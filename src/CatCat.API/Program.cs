@@ -101,14 +101,18 @@ builder.Services.AddFusionCache()
         TypeInfoResolver = CatCat.API.Json.AppJsonContext.Default
     });
 
-// NATS message queue
+// NATS JetStream message queue
 var natsConnection = new NatsConnection(new NatsOpts
 {
     Url = builder.Configuration.GetConnectionString("Nats")!
 });
 builder.Services.AddSingleton(natsConnection);
-builder.Services.AddSingleton<IMessageQueueService>(sp =>
-    new NatsService(natsConnection, CatCat.API.Json.AppJsonContext.Default));
+builder.Services.AddSingleton<JetStreamConfiguration>();
+builder.Services.AddSingleton<IMessageQueueService, JetStreamService>(sp =>
+    new JetStreamService(
+        natsConnection,
+        CatCat.API.Json.AppJsonContext.Default,
+        sp.GetRequiredService<ILogger<JetStreamService>>()));
 
 // Repositories & Services
 builder.Services.AddRepositories();
@@ -147,6 +151,10 @@ app.MapReviewEndpoints();
 
 app.MapGet("/health", () => Results.Ok(new HealthResponse("healthy", DateTime.UtcNow)))
     .WithTags("Health");
+
+// Initialize JetStream streams on startup
+var jetStreamConfig = app.Services.GetRequiredService<JetStreamConfiguration>();
+await jetStreamConfig.InitializeStreamsAsync();
 
 app.Run();
 

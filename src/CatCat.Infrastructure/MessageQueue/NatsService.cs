@@ -1,4 +1,7 @@
 using NATS.Client.Core;
+using NATS.Client.JetStream;
+using NATS.Client.JetStream.Models;
+using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
@@ -11,82 +14,99 @@ public interface IMessageQueueService
     Task<IAsyncDisposable> SubscribeAsync<T>(string subject, Func<T, Task> handler, CancellationToken cancellationToken = default);
 }
 
-/// <summary>
-/// NATS 消息队列服务 - 使用 System.Text.Json 源生成，AOT 兼容
-/// </summary>
-public class NatsService : IMessageQueueService
+public class JetStreamService : IMessageQueueService
 {
     private readonly NatsConnection _connection;
+    private readonly INatsJSContext _jsContext;
     private readonly JsonSerializerContext _jsonContext;
+    private readonly ILogger<JetStreamService> _logger;
 
-    public NatsService(NatsConnection connection, JsonSerializerContext jsonContext)
+    public JetStreamService(
+        NatsConnection connection,
+        JsonSerializerContext jsonContext,
+        ILogger<JetStreamService> logger)
     {
         _connection = connection;
+        _jsContext = new NatsJSContextFactory().CreateContext(_connection);
         _jsonContext = jsonContext;
+        _logger = logger;
     }
 
-    /// <summary>
-    /// 发布消息（使用源生成的 JSON 序列化）
-    /// </summary>
     public async Task PublishAsync<T>(string subject, T message, CancellationToken cancellationToken = default)
     {
-        // 使用源生成的 TypeInfo 进行序列化
         var typeInfo = (JsonTypeInfo<T>)_jsonContext.GetTypeInfo(typeof(T))!;
         var json = JsonSerializer.Serialize(message, typeInfo);
-        await _connection.PublishAsync(subject, json, cancellationToken: cancellationToken);
+
+        var ack = await _jsContext.PublishAsync(subject, json, cancellationToken: cancellationToken);
+
+        if (ack != null)
+        {
+            _logger.LogDebug("Message published to JetStream: {Subject}, Stream: {Stream}, Seq: {Sequence}",
+                subject, ack.Stream, ack.Seq);
+        }
     }
 
-    /// <summary>
-    /// 订阅消息（使用源生成的 JSON 反序列化）
-    /// </summary>
     public Task<IAsyncDisposable> SubscribeAsync<T>(string subject, Func<T, Task> handler, CancellationToken cancellationToken = default)
     {
-        // 创建取消令牌源以控制订阅
         var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
-        // 后台任务处理消息
         _ = Task.Run(async () =>
         {
             try
             {
-                // 获取源生成的 TypeInfo
                 var typeInfo = (JsonTypeInfo<T>)_jsonContext.GetTypeInfo(typeof(T))!;
 
-                await foreach (var msg in _connection.SubscribeAsync<string>(subject, cancellationToken: cts.Token))
+                var consumer = await _jsContext.CreateOrUpdateConsumerAsync(
+                    GetStreamName(subject),
+                    new ConsumerConfig
+                    {
+                        DurableName = $"consumer-{subject.Replace(".", "-")}",
+                        FilterSubject = subject,
+                        AckPolicy = ConsumerConfigAckPolicy.Explicit,
+                        DeliverPolicy = ConsumerConfigDeliverPolicy.All
+                    },
+                    cts.Token);
+
+                await foreach (var msg in consumer.ConsumeAsync<string>(cancellationToken: cts.Token))
                 {
                     try
                     {
                         if (!string.IsNullOrEmpty(msg.Data))
                         {
-                            // 使用源生成的 TypeInfo 进行反序列化
                             var data = JsonSerializer.Deserialize(msg.Data, typeInfo);
                             if (data != null)
                             {
                                 await handler(data);
+                                await msg.AckAsync(cancellationToken: cts.Token);
                             }
                         }
                     }
-                    catch
+                    catch (Exception ex)
                     {
-                        // 忽略反序列化错误
+                        _logger.LogError(ex, "Error processing message from {Subject}", subject);
+                        await msg.NakAsync(cancellationToken: cts.Token);
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // 订阅被取消或连接关闭
+                _logger.LogError(ex, "Subscription error for {Subject}", subject);
             }
         }, cts.Token);
 
-        // 返回一个可dispose的包装器
-        return Task.FromResult<IAsyncDisposable>(new NatsSubscription(cts));
+        return Task.FromResult<IAsyncDisposable>(new JetStreamSubscription(cts));
     }
 
-    private class NatsSubscription : IAsyncDisposable
+    private static string GetStreamName(string subject)
+    {
+        return subject.Split('.')[0].ToUpperInvariant();
+    }
+
+    private class JetStreamSubscription : IAsyncDisposable
     {
         private readonly CancellationTokenSource _cts;
 
-        public NatsSubscription(CancellationTokenSource cts)
+        public JetStreamSubscription(CancellationTokenSource cts)
         {
             _cts = cts;
         }

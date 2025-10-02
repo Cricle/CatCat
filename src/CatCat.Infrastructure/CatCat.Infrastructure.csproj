@@ -9,6 +9,7 @@
     <PackageReference Include="ZiggyCreatures.FusionCache.Backplane.StackExchangeRedis" />
     <PackageReference Include="StackExchange.Redis" />
     <PackageReference Include="NATS.Client.Core" />
+    <PackageReference Include="NATS.Client.JetStream" />
     <PackageReference Include="Stripe.net" />
     <PackageReference Include="Yitter.IdGenerator" />
   </ItemGroup>

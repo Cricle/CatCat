@@ -20,6 +20,7 @@
     <PackageVersion Include="StackExchange.Redis" Version="2.8.22" />
     <!-- Messaging -->
     <PackageVersion Include="NATS.Client.Core" Version="2.6.5" />
+    <PackageVersion Include="NATS.Client.JetStream" Version="2.6.5" />
     <!-- Payment -->
     <PackageVersion Include="Stripe.net" Version="46.0.0" />
     <!-- Logging & Monitoring -->
