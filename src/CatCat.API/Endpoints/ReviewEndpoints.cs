@@ -21,16 +21,9 @@ public static class ReviewEndpoints
             if (!user.TryGetUserId(out var userId))
                 return Results.Unauthorized();
 
-            try
-            {
-                var command = new CreateReviewCommand(request.OrderId, userId, request.Rating, request.Content, request.PhotoUrls);
-                var reviewId = await reviewService.CreateReviewAsync(command);
-                return Results.Ok(new ReviewCreateResponse(reviewId, "评价成功"));
-            }
-            catch (InvalidOperationException ex)
-            {
-                return Results.BadRequest(new MessageResponse(ex.Message));
-            }
+            var command = new CreateReviewCommand(request.OrderId, userId, request.Rating, request.Content, request.PhotoUrls);
+            var reviewId = await reviewService.CreateReviewAsync(command);
+            return Results.Ok(new ReviewCreateResponse(reviewId, "评价成功"));
         })
         .RequireAuthorization()
         .WithName("CreateReview")
@@ -38,15 +31,8 @@ public static class ReviewEndpoints
 
         group.MapPost("/{id}/reply", async (long id, [FromBody] ReplyReviewRequest request, IReviewService reviewService) =>
         {
-            try
-            {
-                await reviewService.ReplyReviewAsync(id, request.Reply);
-                return Results.Ok(new MessageResponse("回复成功"));
-            }
-            catch (InvalidOperationException ex)
-            {
-                return Results.BadRequest(new MessageResponse(ex.Message));
-            }
+            await reviewService.ReplyReviewAsync(id, request.Reply);
+            return Results.Ok(new MessageResponse("回复成功"));
         })
         .RequireAuthorization()
         .WithName("ReplyReview")

@@ -1,5 +1,7 @@
 using System.Net;
 using CatCat.API.Json;
+using CatCat.API.Models;
+using CatCat.Infrastructure.Common;
 using System.Text.Json;
 
 namespace CatCat.API.Middleware;
@@ -23,25 +25,40 @@ public class ExceptionHandlingMiddleware
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An unhandled exception occurred");
-            await HandleExceptionAsync(context, ex);
+            await HandleExceptionAsync(context, ex, _logger);
         }
     }
 
-    private static Task HandleExceptionAsync(HttpContext context, Exception exception)
+    private static Task HandleExceptionAsync(HttpContext context, Exception exception, ILogger logger)
     {
         context.Response.ContentType = "application/json";
-        context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
 
-        var response = new Dictionary<string, object>
+        var (statusCode, message) = exception switch
         {
-            ["code"] = context.Response.StatusCode,
-            ["message"] = "Internal Server Error",
-            ["detail"] = exception.Message
+            BusinessException => (HttpStatusCode.BadRequest, exception.Message),
+            InvalidOperationException => (HttpStatusCode.BadRequest, exception.Message),
+            ArgumentException => (HttpStatusCode.BadRequest, exception.Message),
+            UnauthorizedAccessException => (HttpStatusCode.Unauthorized, "Unauthorized access"),
+            KeyNotFoundException => (HttpStatusCode.NotFound, "Resource not found"),
+            _ => (HttpStatusCode.InternalServerError, "Internal server error")
         };
 
+        // Log at appropriate level
+        if (statusCode == HttpStatusCode.InternalServerError)
+        {
+            logger.LogError(exception, "Unhandled exception: {Message}", exception.Message);
+        }
+        else
+        {
+            logger.LogWarning("Business exception: {Type} - {Message}", exception.GetType().Name, exception.Message);
+        }
+
+        context.Response.StatusCode = (int)statusCode;
+
+        var response = ApiResult.Fail(message);
+
         return context.Response.WriteAsync(
-            JsonSerializer.Serialize(response, AppJsonContext.Default.DictionaryStringObject));
+            JsonSerializer.Serialize(response, AppJsonContext.Default.ApiResultObject));
     }
 }
 
