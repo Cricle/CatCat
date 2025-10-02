@@ -38,12 +38,29 @@ namespace CatCat.API.Json;
 [JsonSerializable(typeof(Payment))]
 [JsonSerializable(typeof(OrderStatusHistory))]
 
-// Request/Response Models
+// Request Models
 [JsonSerializable(typeof(SendCodeRequest))]
 [JsonSerializable(typeof(RegisterRequest))]
 [JsonSerializable(typeof(LoginRequest))]
+[JsonSerializable(typeof(UpdateUserRequest))]
+[JsonSerializable(typeof(CreatePetRequest))]
+[JsonSerializable(typeof(UpdatePetRequest))]
+[JsonSerializable(typeof(CreateOrderRequest))]
+[JsonSerializable(typeof(PayOrderRequest))]
+[JsonSerializable(typeof(CreateReviewRequest))]
+[JsonSerializable(typeof(ReplyReviewRequest))]
 [JsonSerializable(typeof(CreateOrderCommand))]
 [JsonSerializable(typeof(CreateReviewCommand))]
+
+// Response Models
+[JsonSerializable(typeof(MessageResponse))]
+[JsonSerializable(typeof(HealthResponse))]
+[JsonSerializable(typeof(AuthResponse))]
+[JsonSerializable(typeof(UserInfo))]
+[JsonSerializable(typeof(PetListResponse))]
+[JsonSerializable(typeof(PetCreateResponse))]
+[JsonSerializable(typeof(ReviewCreateResponse))]
+[JsonSerializable(typeof(UserListResponse))]
 
 // Payment Models
 [JsonSerializable(typeof(PaymentIntentResult))]

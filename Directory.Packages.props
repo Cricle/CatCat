@@ -36,5 +36,9 @@
     <PackageVersion Include="OpenTelemetry.Instrumentation.StackExchangeRedis" Version="1.9.0-beta.1" />
     <!-- ID Generator -->
     <PackageVersion Include="Yitter.IdGenerator" Version="1.0.14" />
+    <!-- YARP Reverse Proxy (微软反向代理，支持 AOT) -->
+    <PackageVersion Include="Yarp.ReverseProxy" Version="2.2.0" />
+    <!-- Distributed Cache for FusionCache L2 -->
+    <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.0" />
   </ItemGroup>
 </Project>

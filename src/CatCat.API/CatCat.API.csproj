@@ -3,7 +3,9 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
-    <PackageReference Include="Swashbuckle.AspNetCore" />
+
+    <!-- Distributed Cache -->
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" />
 
     <!-- OpenTelemetry -->
     <PackageReference Include="OpenTelemetry.Exporter.Console" />
@@ -17,6 +19,11 @@
   <ItemGroup>
     <ProjectReference Include="..\CatCat.Core\CatCat.Core.csproj" />
     <ProjectReference Include="..\CatCat.Infrastructure\CatCat.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <!-- Swagger 仅在 Debug 配置下引用（生产环境不需要） -->
+  <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+    <PackageReference Include="Swashbuckle.AspNetCore" />
   </ItemGroup>
 
 </Project>

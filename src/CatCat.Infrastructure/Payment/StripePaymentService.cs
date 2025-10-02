@@ -14,11 +14,17 @@ public interface IPaymentService
 public class StripePaymentService : IPaymentService
 {
     private readonly ILogger<StripePaymentService> _logger;
+    private readonly PaymentIntentService _paymentIntentService;
+    private readonly RefundService _refundService;
 
     public StripePaymentService(IConfiguration configuration, ILogger<StripePaymentService> logger)
     {
         _logger = logger;
         StripeConfiguration.ApiKey = configuration["Stripe:SecretKey"];
+
+        // 缓存Stripe服务实例，避免重复创建
+        _paymentIntentService = new PaymentIntentService();
+        _refundService = new RefundService();
     }
 
     public async Task<PaymentIntentResult> CreatePaymentIntentAsync(long orderId, decimal amount, string currency = "usd")
@@ -39,8 +45,7 @@ public class StripePaymentService : IPaymentService
                 }
             };
 
-            var service = new PaymentIntentService();
-            var paymentIntent = await service.CreateAsync(options);
+            var paymentIntent = await _paymentIntentService.CreateAsync(options);
 
             _logger.LogInformation("Stripe Payment Intent创建成功: {PaymentIntentId}, OrderId: {OrderId}",
                 paymentIntent.Id, orderId);
@@ -67,8 +72,7 @@ public class StripePaymentService : IPaymentService
     {
         try
         {
-            var service = new PaymentIntentService();
-            var paymentIntent = await service.GetAsync(paymentIntentId);
+            var paymentIntent = await _paymentIntentService.GetAsync(paymentIntentId);
 
             _logger.LogInformation("支付确认: {PaymentIntentId}, Status: {Status}",
                 paymentIntentId, paymentIntent.Status);
@@ -96,8 +100,7 @@ public class StripePaymentService : IPaymentService
                 options.Amount = (long)(amount.Value * 100);
             }
 
-            var service = new RefundService();
-            var refund = await service.CreateAsync(options);
+            var refund = await _refundService.CreateAsync(options);
 
             _logger.LogInformation("退款成功: {RefundId}, PaymentIntentId: {PaymentIntentId}",
                 refund.Id, paymentIntentId);

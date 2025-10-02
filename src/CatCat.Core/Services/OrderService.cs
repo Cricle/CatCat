@@ -150,7 +150,7 @@ public class OrderService : IOrderService
     public async Task<Result<(IEnumerable<ServiceOrder> Items, int Total)>> GetCustomerOrdersAsync(
         long customerId, int? status, int page, int pageSize, CancellationToken cancellationToken = default)
     {
-        // TODO: 优化为单次查询（使用窗口函数 COUNT(*) OVER()）
+        // TODO: Optimize with window function (COUNT(*) OVER() in single query)
         var offset = (page - 1) * pageSize;
         var items = status.HasValue
             ? await _orderRepository.GetByCustomerIdAndStatusPagedAsync(customerId, status.Value.ToString(), offset, pageSize)
@@ -164,7 +164,7 @@ public class OrderService : IOrderService
     public async Task<Result<(IEnumerable<ServiceOrder> Items, int Total)>> GetProviderOrdersAsync(
         long providerId, int? status, int page, int pageSize, CancellationToken cancellationToken = default)
     {
-        // TODO: 优化为单次查询（使用窗口函数 COUNT(*) OVER()）
+        // TODO: Optimize with window function (COUNT(*) OVER() in single query)
         var offset = (page - 1) * pageSize;
         var items = status.HasValue
             ? await _orderRepository.GetByServiceProviderIdAndStatusPagedAsync(providerId, status.Value.ToString(), offset, pageSize)

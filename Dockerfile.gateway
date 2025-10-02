@@ -1,0 +1,40 @@
+# 构建阶段
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+WORKDIR /src
+
+# 复制项目文件
+COPY ["Directory.Build.props", "./"]
+COPY ["Directory.Packages.props", "./"]
+COPY ["src/CatCat.Gateway/CatCat.Gateway.csproj", "src/CatCat.Gateway/"]
+
+# 还原依赖
+RUN dotnet restore "src/CatCat.Gateway/CatCat.Gateway.csproj"
+
+# 复制所有源代码
+COPY src/CatCat.Gateway/ src/CatCat.Gateway/
+
+# 构建和发布
+WORKDIR "/src/src/CatCat.Gateway"
+RUN dotnet publish "CatCat.Gateway.csproj" -c Release -o /app/publish /p:UseAppHost=false
+
+# 运行时阶段
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
+WORKDIR /app
+
+# 安装 wget (用于健康检查)
+RUN apt-get update && apt-get install -y wget && rm -rf /var/lib/apt/lists/*
+
+# 复制发布文件
+COPY --from=build /app/publish .
+
+# 暴露端口
+EXPOSE 80
+EXPOSE 443
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost/health || exit 1
+
+# 设置入口点
+ENTRYPOINT ["dotnet", "CatCat.Gateway.dll"]
+

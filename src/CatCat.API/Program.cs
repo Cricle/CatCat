@@ -1,6 +1,7 @@
 using CatCat.API.Configuration;
 using CatCat.API.Endpoints;
 using CatCat.API.Middleware;
+using CatCat.API.Models;
 using CatCat.API.Observability;
 using CatCat.Core.Services;
 using CatCat.Infrastructure.Database;
@@ -17,36 +18,54 @@ using System.Text;
 
 var builder = WebApplication.CreateSlimBuilder(args);
 
-// 初始化雪花ID生成器（集群环境需配置不同的 WorkerId）
+// Initialize Snowflake ID generator (configure different WorkerId for cluster)
 var workerId = builder.Configuration.GetValue<ushort>("IdGenerator:WorkerId", 1);
 SnowflakeIdGenerator.Initialize(workerId);
 
-// 添加限流配置（防止接口击穿）
+// Rate limiting
 builder.Services.AddRateLimiting();
 
-// 添加 OpenTelemetry 可观察性（支持 AOT）
+// OpenTelemetry observability
 builder.Services.AddOpenTelemetryObservability(builder.Configuration, "CatCat.API");
 builder.Services.AddCustomActivitySources();
 builder.Services.AddCustomMetrics();
 builder.Services.AddSingleton<CustomMetrics>();
 
-// Add services to the container
 builder.Services.AddEndpointsApiExplorer();
+
+// OpenAPI (AOT-compatible)
+builder.Services.AddOpenApi("v1", options =>
+{
+    options.AddDocumentTransformer((document, context, cancellationToken) =>
+    {
+        document.Info = new()
+        {
+            Title = "CatCat API",
+            Version = "v1",
+            Description = "Cat-sitting service platform API - AOT Compiled"
+        };
+        return Task.CompletedTask;
+    });
+});
+
+#if DEBUG
+// Swagger UI (Debug only)
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new()
     {
         Title = "CatCat API",
         Version = "v1",
-        Description = "上门喂猫服务平台 API"
+        Description = "Cat-sitting service platform API (Debug Mode)"
     });
 });
+#endif
 
-// Configure Database with Connection Pool and Protection
+// Database
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddSingleton<IDbConnectionFactory>(new DbConnectionFactory(connectionString!));
 
-// 数据库并发限流器（保护数据库）
+// Database concurrency limiter
 var maxConcurrency = builder.Configuration.GetValue<int>("Database:MaxConcurrency", 40);
 builder.Services.AddSingleton(sp => new DatabaseConcurrencyLimiter(
     maxConcurrency: maxConcurrency,
@@ -54,7 +73,7 @@ builder.Services.AddSingleton(sp => new DatabaseConcurrencyLimiter(
     logger: sp.GetRequiredService<ILogger<DatabaseConcurrencyLimiter>>()
 ));
 
-// 数据库性能监控
+// Database metrics
 var slowQueryThreshold = builder.Configuration.GetValue<double>("Database:SlowQueryThresholdMs", 1000);
 builder.Services.AddSingleton(sp => new DatabaseMetrics(
     meterFactory: sp.GetRequiredService<IMeterFactory>(),
@@ -62,14 +81,26 @@ builder.Services.AddSingleton(sp => new DatabaseMetrics(
     slowQueryThresholdMs: slowQueryThreshold
 ));
 
-// Configure FusionCache (混合缓存：内存 + Redis + Backplane)
+// FusionCache: L1 (Memory) + L2 (Redis)
 var redisConnectionString = builder.Configuration.GetConnectionString("Redis")!;
 var redisConnection = await ConnectionMultiplexer.ConnectAsync(redisConnectionString);
 builder.Services.AddSingleton<IConnectionMultiplexer>(redisConnection);
 
-builder.Services.AddFusionCache();
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = redisConnectionString;
+    options.InstanceName = "CatCat:";
+});
 
-// Configure NATS with AOT-compatible JSON serialization
+builder.Services.AddFusionCache()
+    .WithSystemTextJsonSerializer(new System.Text.Json.JsonSerializerOptions
+    {
+        PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
+        TypeInfoResolver = CatCat.API.Json.AppJsonContext.Default
+    });
+
+// NATS message queue
 var natsConnection = new NatsConnection(new NatsOpts
 {
     Url = builder.Configuration.GetConnectionString("Nats")!
@@ -78,7 +109,7 @@ builder.Services.AddSingleton(natsConnection);
 builder.Services.AddSingleton<IMessageQueueService>(sp =>
     new NatsService(natsConnection, CatCat.API.Json.AppJsonContext.Default));
 
-// Register Repositories
+// Repositories
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IPetRepository, PetRepository>();
 builder.Services.AddScoped<IServiceOrderRepository, ServiceOrderRepository>();
@@ -87,12 +118,12 @@ builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
 builder.Services.AddScoped<IOrderStatusHistoryRepository, OrderStatusHistoryRepository>();
 builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 
-// Register Services
+// Services
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IPaymentService, StripePaymentService>();
 
-// Configure JWT Authentication
+// JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey = jwtSettings["SecretKey"]!;
 
@@ -117,7 +148,7 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
-// Configure CORS
+// CORS
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
@@ -131,35 +162,31 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
+    app.MapOpenApi();
+#if DEBUG
     app.UseSwagger();
     app.UseSwaggerUI();
+#endif
 }
 
 app.UseHttpsRedirection();
 app.UseCors();
-
 app.UseMiddleware<ExceptionHandlingMiddleware>();
-
-// 启用限流中间件（必须在 UseAuthentication 之前）
 app.UseRateLimiter();
-
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Map Minimal API Endpoints
+// Endpoints
 app.MapAuthEndpoints();
 app.MapUserEndpoints();
 app.MapPetEndpoints();
 app.MapOrderEndpoints();
 app.MapReviewEndpoints();
 
-// Health Check
-app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }))
-    .WithTags("Health")
-    .WithOpenApi();
+app.MapGet("/health", () => Results.Ok(new HealthResponse("healthy", DateTime.UtcNow)))
+    .WithTags("Health");
 
 app.Run();
 

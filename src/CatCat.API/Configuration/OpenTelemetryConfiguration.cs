@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
@@ -12,6 +13,7 @@ public static class OpenTelemetryConfiguration
     /// <summary>
     /// 添加 OpenTelemetry 可观察性支持
     /// </summary>
+    [RequiresUnreferencedCode("OpenTelemetry instrumentation may require unreferenced code")]
     public static IServiceCollection AddOpenTelemetryObservability(
         this IServiceCollection services,
         IConfiguration configuration,
