@@ -33,18 +33,18 @@ public class ExceptionHandlingMiddleware
     {
         context.Response.ContentType = "application/json";
 
-        var (statusCode, message) = exception switch
+        var errorResponse = exception switch
         {
-            BusinessException => (HttpStatusCode.BadRequest, exception.Message),
-            InvalidOperationException => (HttpStatusCode.BadRequest, exception.Message),
-            ArgumentException => (HttpStatusCode.BadRequest, exception.Message),
-            UnauthorizedAccessException => (HttpStatusCode.Unauthorized, "Unauthorized access"),
-            KeyNotFoundException => (HttpStatusCode.NotFound, "Resource not found"),
-            _ => (HttpStatusCode.InternalServerError, "Internal server error")
+            BusinessException => new ErrorResponse(HttpStatusCode.BadRequest, exception.Message),
+            InvalidOperationException => new ErrorResponse(HttpStatusCode.BadRequest, exception.Message),
+            ArgumentException => new ErrorResponse(HttpStatusCode.BadRequest, exception.Message),
+            UnauthorizedAccessException => new ErrorResponse(HttpStatusCode.Unauthorized, "Unauthorized access"),
+            KeyNotFoundException => new ErrorResponse(HttpStatusCode.NotFound, "Resource not found"),
+            _ => new ErrorResponse(HttpStatusCode.InternalServerError, "Internal server error")
         };
 
         // Log at appropriate level
-        if (statusCode == HttpStatusCode.InternalServerError)
+        if (errorResponse.StatusCode == HttpStatusCode.InternalServerError)
         {
             logger.LogError(exception, "Unhandled exception: {Message}", exception.Message);
         }
@@ -53,12 +53,14 @@ public class ExceptionHandlingMiddleware
             logger.LogWarning("Business exception: {Type} - {Message}", exception.GetType().Name, exception.Message);
         }
 
-        context.Response.StatusCode = (int)statusCode;
+        context.Response.StatusCode = (int)errorResponse.StatusCode;
 
-        var response = ApiResult.Fail(message);
+        var response = ApiResult.Fail(errorResponse.Message);
 
         return context.Response.WriteAsync(
             JsonSerializer.Serialize(response, AppJsonContext.Default.ApiResultObject));
     }
+
+    private record ErrorResponse(HttpStatusCode StatusCode, string Message);
 }
 
