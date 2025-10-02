@@ -33,6 +33,7 @@ public class ServiceOrder
 /// </summary>
 public enum OrderStatus
 {
+    Queued = -1,      // 排队中（JetStream队列）
     Pending = 0,      // 待接单
     Accepted = 1,     // 已接单
     InProgress = 2,   // 服务中

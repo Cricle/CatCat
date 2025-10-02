@@ -66,6 +66,7 @@ public class OrderService : IOrderService
     {
         try
         {
+            // Pre-validate package exists (cached)
             var package = await _cache.GetOrSetAsync(
                 $"package:{command.ServicePackageId}",
                 _ => _packageRepository.GetByIdAsync(command.ServicePackageId),
@@ -74,53 +75,27 @@ public class OrderService : IOrderService
             if (package == null)
                 return Result.Failure<long>("Service package not found");
 
-            var order = new ServiceOrder
-            {
-                Id = YitIdHelper.NextId(),
-                OrderNo = GenerateOrderNo(),
-                CustomerId = command.CustomerId,
-                ServicePackageId = command.ServicePackageId,
-                PetId = command.PetId,
-                ServiceDate = command.ServiceDate,
-                Address = command.ServiceAddress,
-                Price = package.Price,
-                Status = OrderStatus.Pending,
-                CustomerRemark = command.Remark,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
+            // Generate order ID and number
+            var orderId = YitIdHelper.NextId();
+            var orderNo = GenerateOrderNo();
 
-            var orderId = await _orderRepository.CreateAsync(order);
-
-            var paymentIntent = await _paymentService.CreatePaymentIntentAsync(
+            // Send to JetStream queue instead of immediate DB insert
+            var queueMessage = new OrderQueueMessage(
                 orderId,
-                order.Price,
-                "cny");
+                orderNo,
+                command.CustomerId,
+                command.ServicePackageId,
+                command.PetId,
+                command.ServiceDate,
+                command.ServiceAddress,
+                command.Remark,
+                DateTime.UtcNow);
 
-            var payment = new Entities.Payment
-            {
-                Id = YitIdHelper.NextId(),
-                OrderId = orderId,
-                Amount = order.Price,
-                Currency = "CNY",
-                PaymentIntentId = paymentIntent.PaymentIntentId!,
-                Status = PaymentStatus.Pending,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-            await _paymentRepository.CreateAsync(payment);
+            await _messageQueue.PublishAsync("order.queue", queueMessage, cancellationToken);
 
-            await _messageQueue.PublishAsync(
-                "order.status_changed",
-                new { OrderId = orderId, Status = OrderStatus.Pending.ToString(), Notes = "Order created" },
-                cancellationToken);
+            _logger.LogInformation("Order {OrderId} queued for processing", orderId);
 
-            await _messageQueue.PublishAsync(
-                "order.created",
-                new OrderCreatedMessage { OrderId = orderId },
-                cancellationToken);
-
-            return Result.Success((long)orderId);
+            return Result.Success(orderId);
         }
         catch (Exception ex)
         {
@@ -169,13 +144,25 @@ public class OrderService : IOrderService
     public async Task<Result> CancelOrderAsync(long orderId, long userId, CancellationToken cancellationToken = default)
     {
         var order = await _orderRepository.GetByIdAsync(orderId);
+        
+        // If order not found in DB, it might still be in queue
         if (order == null)
-            return Result.Failure("Order not found");
+        {
+            // Mark order as cancelled in cache so processing service can skip it
+            await _cache.SetAsync(
+                $"order:cancelled:{orderId}",
+                true,
+                new FusionCacheEntryOptions { Duration = TimeSpan.FromHours(24) },
+                cancellationToken);
+
+            _logger.LogInformation("Order {OrderId} marked for cancellation (in queue)", orderId);
+            return Result.Success();
+        }
 
         if (order.CustomerId != userId)
             return Result.Failure("Unauthorized");
 
-        if (order.Status != OrderStatus.Pending)
+        if (order.Status != OrderStatus.Pending && order.Status != OrderStatus.Queued)
             return Result.Failure($"Cannot cancel order (Status: {order.Status})");
 
         var affectedRows = await _orderRepository.UpdateStatusAsync(orderId, OrderStatus.Cancelled.ToString(), DateTime.UtcNow);
@@ -295,4 +282,15 @@ public class OrderService : IOrderService
         return $"ORD{DateTime.UtcNow:yyyyMMddHHmmss}{Random.Shared.Next(1000, 9999)}";
     }
 }
+
+public record OrderQueueMessage(
+    long OrderId,
+    string OrderNo,
+    long CustomerId,
+    long ServicePackageId,
+    long PetId,
+    DateTime ServiceDate,
+    string ServiceAddress,
+    string? Remark,
+    DateTime CreatedAt);
 

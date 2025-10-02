@@ -24,7 +24,7 @@ public class JetStreamConfiguration
         {
             Name = "ORDER",
             Description = "Order events stream",
-            Subjects = new[] { "order.created", "order.status_changed" },
+            Subjects = new[] { "order.queue", "order.created", "order.status_changed" },
             Storage = StreamConfigStorage.File,
             Retention = StreamConfigRetention.Workqueue,
             MaxAge = TimeSpan.FromDays(7),

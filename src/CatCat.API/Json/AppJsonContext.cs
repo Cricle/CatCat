@@ -68,6 +68,7 @@ namespace CatCat.API.Json;
 [JsonSerializable(typeof(PaymentIntentResult))]
 
 // NATS Messages/Events
+[JsonSerializable(typeof(OrderQueueMessage))]
 [JsonSerializable(typeof(OrderCreatedMessage))]
 [JsonSerializable(typeof(ReviewCreatedEvent))]
 [JsonSerializable(typeof(ReviewRepliedEvent))]

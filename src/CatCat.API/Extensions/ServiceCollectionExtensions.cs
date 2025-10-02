@@ -1,3 +1,4 @@
+using CatCat.API.BackgroundServices;
 using CatCat.Infrastructure.Services;
 using CatCat.Infrastructure.Payment;
 using CatCat.Infrastructure.Repositories;
@@ -26,6 +27,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IOrderService, OrderService>();
         services.AddScoped<IReviewService, ReviewService>();
         services.AddScoped<IPaymentService, StripePaymentService>();
+        
+        // Background Services
+        services.AddHostedService<OrderProcessingService>();
+        
         return services;
     }
 

@@ -71,7 +71,7 @@ public static class OrderEndpoints
         var result = await orderService.CreateOrderAsync(command, cancellationToken);
 
         return result.IsSuccess
-            ? Results.Ok(ApiResult.Ok(result.Value, "订单创建成功"))
+            ? Results.Ok(ApiResult.Ok(result.Value, "订单已提交，正在处理中..."))
             : Results.BadRequest(ApiResult.Fail<long>(result.Error!));
     }
 
