@@ -1,3 +1,4 @@
+using CatCat.Infrastructure.Common;
 using CatCat.Infrastructure.Entities;
 using CatCat.Infrastructure.MessageQueue;
 using CatCat.Infrastructure.Repositories;
@@ -7,9 +8,9 @@ namespace CatCat.Infrastructure.Services;
 
 public interface IReviewService
 {
-    Task<long> CreateReviewAsync(CreateReviewCommand command, CancellationToken cancellationToken = default);
-    Task<bool> ReplyReviewAsync(long reviewId, string reply, CancellationToken cancellationToken = default);
-    Task<(IEnumerable<Review> Items, int Total, decimal AverageRating)> GetServiceProviderReviewsAsync(
+    Task<Result<long>> CreateReviewAsync(CreateReviewCommand command, CancellationToken cancellationToken = default);
+    Task<Result<bool>> ReplyReviewAsync(long reviewId, string reply, CancellationToken cancellationToken = default);
+    Task<Result<(IEnumerable<Review> Items, int Total, decimal AverageRating)>> GetServiceProviderReviewsAsync(
         long serviceProviderId, int page, int pageSize, CancellationToken cancellationToken = default);
 }
 
@@ -33,27 +34,41 @@ public class ReviewService : IReviewService
     }
 
     /// <summary>
-    /// 创建评价 - 使用NATS异步处理
+    /// Create review - Use NATS for async processing
     /// </summary>
-    public async Task<long> CreateReviewAsync(CreateReviewCommand command, CancellationToken cancellationToken = default)
+    public async Task<Result<long>> CreateReviewAsync(CreateReviewCommand command, CancellationToken cancellationToken = default)
     {
-        // 1. 验证订单状态
+        // 1. Validate order status
         var order = await _orderRepository.GetByIdAsync(command.OrderId);
         if (order == null)
-            throw new InvalidOperationException("订单不存在");
+        {
+            _logger.LogWarning("Create review failed: Order not found. OrderId={OrderId}", command.OrderId);
+            return Result.Failure<long>("Order not found");
+        }
 
         if (order.Status != OrderStatus.Completed)
-            throw new InvalidOperationException("只能对已完成的订单进行评价");
+        {
+            _logger.LogWarning("Create review failed: Order not completed. OrderId={OrderId}, Status={Status}", 
+                command.OrderId, order.Status);
+            return Result.Failure<long>("Only completed orders can be reviewed");
+        }
 
         if (order.CustomerId != command.CustomerId)
-            throw new InvalidOperationException("只能评价自己的订单");
+        {
+            _logger.LogWarning("Create review failed: Not order owner. OrderId={OrderId}, CustomerId={CustomerId}, RequestUserId={RequestUserId}", 
+                command.OrderId, order.CustomerId, command.CustomerId);
+            return Result.Failure<long>("You can only review your own orders");
+        }
 
-        // 2. 检查是否已评价
+        // 2. Check if already reviewed
         var existingReview = await _reviewRepository.GetByOrderIdAsync(command.OrderId);
         if (existingReview != null)
-            throw new InvalidOperationException("该订单已评价");
+        {
+            _logger.LogWarning("Create review failed: Order already reviewed. OrderId={OrderId}", command.OrderId);
+            return Result.Failure<long>("This order has already been reviewed");
+        }
 
-        // 3. 创建评价
+        // 3. Create review
         var review = new Review
         {
             OrderId = command.OrderId,
@@ -67,7 +82,7 @@ public class ReviewService : IReviewService
 
         var reviewId = await _reviewRepository.CreateAsync(review);
 
-        // 4. 发布评价创建事件到NATS（异步更新统计数据）
+        // 4. Publish review created event to NATS (async update statistics)
         await _messageQueue.PublishAsync("review.created", new ReviewCreatedEvent
         {
             ReviewId = reviewId,
@@ -77,22 +92,28 @@ public class ReviewService : IReviewService
             CreatedAt = review.CreatedAt
         }, cancellationToken);
 
-        _logger.LogInformation("评价创建成功: ReviewId={ReviewId}, OrderId={OrderId}", reviewId, command.OrderId);
+        _logger.LogInformation("Review created successfully: ReviewId={ReviewId}, OrderId={OrderId}", reviewId, command.OrderId);
 
-        return reviewId;
+        return Result.Success((long)reviewId);
     }
 
     /// <summary>
-    /// 回复评价
+    /// Reply to review
     /// </summary>
-    public async Task<bool> ReplyReviewAsync(long reviewId, string reply, CancellationToken cancellationToken = default)
+    public async Task<Result<bool>> ReplyReviewAsync(long reviewId, string reply, CancellationToken cancellationToken = default)
     {
         var review = await _reviewRepository.GetByIdAsync(reviewId);
         if (review == null)
-            throw new InvalidOperationException("评价不存在");
+        {
+            _logger.LogWarning("Reply review failed: Review not found. ReviewId={ReviewId}", reviewId);
+            return Result.Failure<bool>("Review not found");
+        }
 
         if (!string.IsNullOrEmpty(review.Reply))
-            throw new InvalidOperationException("已回复过该评价");
+        {
+            _logger.LogWarning("Reply review failed: Already replied. ReviewId={ReviewId}", reviewId);
+            return Result.Failure<bool>("This review has already been replied to");
+        }
 
         var affectedRows = await _reviewRepository.UpdateReplyAsync(reviewId, reply, DateTime.UtcNow, DateTime.UtcNow);
 
@@ -106,16 +127,18 @@ public class ReviewService : IReviewService
                 RepliedAt = DateTime.UtcNow
             }, cancellationToken);
 
-            _logger.LogInformation("评价已回复: ReviewId={ReviewId}", reviewId);
+            _logger.LogInformation("Review replied successfully: ReviewId={ReviewId}", reviewId);
+            return Result.Success(true);
         }
 
-        return affectedRows > 0;
+        _logger.LogWarning("Reply review failed: Update failed. ReviewId={ReviewId}", reviewId);
+        return Result.Failure<bool>("Failed to update review reply");
     }
 
     /// <summary>
-    /// 获取服务人员的评价列表
+    /// Get service provider reviews list
     /// </summary>
-    public async Task<(IEnumerable<Review> Items, int Total, decimal AverageRating)> GetServiceProviderReviewsAsync(
+    public async Task<Result<(IEnumerable<Review> Items, int Total, decimal AverageRating)>> GetServiceProviderReviewsAsync(
         long serviceProviderId, int page, int pageSize, CancellationToken cancellationToken = default)
     {
         var avgRating = await _reviewRepository.GetAverageRatingAsync(serviceProviderId);
@@ -123,7 +146,10 @@ public class ReviewService : IReviewService
         var items = await _reviewRepository.GetByServiceProviderIdPagedAsync(serviceProviderId, offset, pageSize);
         var total = await _reviewRepository.CountByServiceProviderIdAsync(serviceProviderId);
 
-        return (items, total, (decimal)avgRating);
+        _logger.LogInformation("Get reviews: ServiceProviderId={ServiceProviderId}, Total={Total}, AvgRating={AvgRating}", 
+            serviceProviderId, total, avgRating);
+
+        return Result.Success<(IEnumerable<Review>, int, decimal)>((items, total, (decimal)avgRating));
     }
 }
 

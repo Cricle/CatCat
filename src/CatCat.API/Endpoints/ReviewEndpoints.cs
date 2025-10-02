@@ -22,30 +22,41 @@ public static class ReviewEndpoints
                 return Results.Unauthorized();
 
             var command = new CreateReviewCommand(request.OrderId, userId, request.Rating, request.Content, request.PhotoUrls);
-            var reviewId = await reviewService.CreateReviewAsync(command);
-            return Results.Ok(new ReviewCreateResponse(reviewId, "评价成功"));
+            var result = await reviewService.CreateReviewAsync(command);
+
+            return result.IsSuccess
+                ? Results.Ok(new ReviewCreateResponse(result.Value, "Review created successfully"))
+                : Results.BadRequest(ApiResult.Fail(result.Error!));
         })
         .RequireAuthorization()
         .WithName("CreateReview")
-        .WithSummary("创建评价");
+        .WithSummary("Create review");
 
         group.MapPost("/{id}/reply", async (long id, [FromBody] ReplyReviewRequest request, IReviewService reviewService) =>
         {
-            await reviewService.ReplyReviewAsync(id, request.Reply);
-            return Results.Ok(new MessageResponse("回复成功"));
+            var result = await reviewService.ReplyReviewAsync(id, request.Reply);
+
+            return result.IsSuccess
+                ? Results.Ok(new MessageResponse("Reply sent successfully"))
+                : Results.BadRequest(ApiResult.Fail(result.Error!));
         })
         .RequireAuthorization()
         .WithName("ReplyReview")
-        .WithSummary("回复评价（服务人员）");
+        .WithSummary("Reply to review (Service provider)");
 
         group.MapGet("/service-provider/{serviceProviderId}", async (
             long serviceProviderId, IReviewService reviewService,
             [FromQuery] int page = 1, [FromQuery] int pageSize = 10) =>
         {
-            var (items, total, averageRating) = await reviewService.GetServiceProviderReviewsAsync(serviceProviderId, page, pageSize);
+            var result = await reviewService.GetServiceProviderReviewsAsync(serviceProviderId, page, pageSize);
+
+            if (!result.IsSuccess)
+                return Results.BadRequest(ApiResult.Fail(result.Error!));
+
+            var (items, total, averageRating) = result.Value;
             return Results.Ok(new ReviewListResponse(items, total, averageRating, page, pageSize));
         })
         .WithName("GetServiceProviderReviews")
-        .WithSummary("获取服务人员的评价列表");
+        .WithSummary("Get service provider reviews list");
     }
 }

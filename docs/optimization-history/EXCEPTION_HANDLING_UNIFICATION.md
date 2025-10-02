@@ -82,7 +82,7 @@ public class BusinessException : Exception
     {
     }
 
-    public BusinessException(string message, Exception innerException) 
+    public BusinessException(string message, Exception innerException)
         : base(message, innerException)
     {
     }
@@ -284,11 +284,11 @@ var (statusCode, message) = exception switch
     ArgumentException => (HttpStatusCode.BadRequest, exception.Message),
     UnauthorizedAccessException => (HttpStatusCode.Unauthorized, "Unauthorized access"),
     KeyNotFoundException => (HttpStatusCode.NotFound, "Resource not found"),
-    
+
     // 新增
     TimeoutException => (HttpStatusCode.RequestTimeout, "Request timeout"),
     NotSupportedException => (HttpStatusCode.NotImplemented, "Not implemented"),
-    
+
     _ => (HttpStatusCode.InternalServerError, "Internal server error")
 };
 ```
@@ -300,7 +300,7 @@ var (statusCode, message) = exception switch
 public class ValidationException : Exception
 {
     public Dictionary<string, string[]> Errors { get; }
-    
+
     public ValidationException(Dictionary<string, string[]> errors)
         : base("Validation failed")
     {
@@ -323,10 +323,10 @@ public class NotFoundException : Exception
 ```csharp
 var response = exception switch
 {
-    _ when context.RequestServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment() 
-        => ApiResult.Fail(message, new { 
+    _ when context.RequestServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment()
+        => ApiResult.Fail(message, new {
             ExceptionType = exception.GetType().Name,
-            StackTrace = exception.StackTrace 
+            StackTrace = exception.StackTrace
         }),
     _ => ApiResult.Fail(message)
 };

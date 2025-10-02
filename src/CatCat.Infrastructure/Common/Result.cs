@@ -1,7 +1,7 @@
 namespace CatCat.Infrastructure.Common;
 
 /// <summary>
-/// 操作结果 - 避免异常抛出，提升性能
+/// Operation result - Avoid throwing exceptions, improve performance
 /// </summary>
 public class Result
 {
@@ -12,9 +12,9 @@ public class Result
     protected Result(bool isSuccess, string? error)
     {
         if (isSuccess && error != null)
-            throw new InvalidOperationException("成功结果不能有错误信息");
+            throw new InvalidOperationException("Success result cannot have error message");
         if (!isSuccess && error == null)
-            throw new InvalidOperationException("失败结果必须有错误信息");
+            throw new InvalidOperationException("Failure result must have error message");
 
         IsSuccess = isSuccess;
         Error = error;
@@ -28,7 +28,7 @@ public class Result
 }
 
 /// <summary>
-/// 带返回值的操作结果
+/// Operation result with return value
 /// </summary>
 public class Result<T> : Result
 {
@@ -41,12 +41,12 @@ public class Result<T> : Result
     }
 
     /// <summary>
-    /// 如果成功则返回值，否则返回默认值
+    /// Return value if success, otherwise return default value
     /// </summary>
     public T? ValueOrDefault() => IsSuccess ? Value : default;
 
     /// <summary>
-    /// 如果成功则返回值，否则返回指定的默认值
+    /// Return value if success, otherwise return specified default value
     /// </summary>
     public T ValueOr(T defaultValue) => IsSuccess && Value != null ? Value : defaultValue;
 }

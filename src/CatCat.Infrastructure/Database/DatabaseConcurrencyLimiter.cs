@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 namespace CatCat.Infrastructure.Database;
 
 /// <summary>
-/// 数据库并发限流器 - 保护数据库不被高并发打垮
+/// Database concurrency limiter - Protect database from high concurrency overload
 /// </summary>
 public class DatabaseConcurrencyLimiter : IDisposable
 {
@@ -22,7 +22,7 @@ public class DatabaseConcurrencyLimiter : IDisposable
     }
 
     /// <summary>
-    /// 执行数据库操作（带并发限制）
+    /// Execute database operation with concurrency limit
     /// </summary>
     public async Task<T> ExecuteAsync<T>(
         Func<Task<T>> operation,
@@ -33,13 +33,13 @@ public class DatabaseConcurrencyLimiter : IDisposable
 
         if (!acquired)
         {
-            _logger.LogWarning("数据库并发限制已满，操作被拒绝: {OperationName}", operationName);
-            throw new InvalidOperationException("数据库繁忙，请稍后重试");
+            _logger.LogWarning("Database concurrency limit reached, operation rejected: {OperationName}", operationName);
+            throw new InvalidOperationException("Database is busy, please try again later");
         }
 
         try
         {
-            _logger.LogDebug("执行数据库操作: {OperationName}, 当前并发: {CurrentConcurrency}",
+            _logger.LogDebug("Execute database operation: {OperationName}, Current concurrency: {CurrentConcurrency}",
                 operationName, _semaphore.CurrentCount);
 
             return await operation();
@@ -51,7 +51,7 @@ public class DatabaseConcurrencyLimiter : IDisposable
     }
 
     /// <summary>
-    /// 执行数据库操作（无返回值）
+    /// Execute database operation (no return value)
     /// </summary>
     public async Task ExecuteAsync(
         Func<Task> operation,
@@ -66,7 +66,7 @@ public class DatabaseConcurrencyLimiter : IDisposable
     }
 
     /// <summary>
-    /// 获取当前可用并发数
+    /// Get current available concurrency
     /// </summary>
     public int AvailableConcurrency => _semaphore.CurrentCount;
 
