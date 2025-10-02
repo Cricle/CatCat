@@ -1,6 +1,6 @@
 # 持续代码简化 - 第3轮
 
-**优化日期**: 2025-01-02  
+**优化日期**: 2025-01-02
 **优化目标**: 提取服务注册，消除剩余匿名类型，简化配置代码
 
 ---
@@ -109,10 +109,10 @@ return Results.Ok(new
 ```csharp
 // ✅ After: 显式类型，完全AOT兼容
 public record ReviewListResponse(
-    IEnumerable<Review> Items, 
-    int Total, 
-    decimal AverageRating, 
-    int Page, 
+    IEnumerable<Review> Items,
+    int Total,
+    decimal AverageRating,
+    int Page,
     int PageSize);
 ```
 
@@ -164,9 +164,9 @@ else
 
 ```csharp
 public record RateLimitResponse(
-    bool Success, 
-    string Message, 
-    int Code, 
+    bool Success,
+    string Message,
+    int Code,
     double? RetryAfter = null);
 
 // 使用
@@ -276,7 +276,7 @@ public record ListResponse(List<T> Items, int Total);
 
 ```csharp
 // ✅ 推荐：三元运算符
-var response = condition 
+var response = condition
     ? new Response(with, retry)
     : new Response(without, retry);
 
