@@ -10,9 +10,6 @@ using ZiggyCreatures.Caching.Fusion;
 
 namespace CatCat.Infrastructure.Services;
 
-/// <summary>
-/// 优化的订单服务 - 使用 Result 模式，避免异常抛出
-/// </summary>
 public interface IOrderService
 {
     Task<Result<long>> CreateOrderAsync(CreateOrderCommand command, CancellationToken cancellationToken = default);
@@ -69,16 +66,14 @@ public class OrderService : IOrderService
     {
         try
         {
-            // 1. 获取服务套餐
             var package = await _cache.GetOrSetAsync(
                 $"package:{command.ServicePackageId}",
                 _ => _packageRepository.GetByIdAsync(command.ServicePackageId),
                 new FusionCacheEntryOptions { Duration = TimeSpan.FromHours(1) });
 
             if (package == null)
-                return Result.Failure<long>("服务套餐不存在");
+                return Result.Failure<long>("Service package not found");
 
-            // 2. 创建订单
             var order = new ServiceOrder
             {
                 Id = YitIdHelper.NextId(),
@@ -97,7 +92,6 @@ public class OrderService : IOrderService
 
             var orderId = await _orderRepository.CreateAsync(order);
 
-            // 3. 创建支付意图
             var paymentIntent = await _paymentService.CreatePaymentIntentAsync(
                 orderId,
                 order.Price,
@@ -116,13 +110,11 @@ public class OrderService : IOrderService
             };
             await _paymentRepository.CreateAsync(payment);
 
-            // 4. 异步记录状态历史（使用NATS）
             await _messageQueue.PublishAsync(
                 "order.status_changed",
-                new { OrderId = orderId, Status = OrderStatus.Pending.ToString(), Notes = "订单创建成功" },
+                new { OrderId = orderId, Status = OrderStatus.Pending.ToString(), Notes = "Order created" },
                 cancellationToken);
 
-            // 5. 发送订单创建消息
             await _messageQueue.PublishAsync(
                 "order.created",
                 new OrderCreatedMessage { OrderId = orderId },
@@ -139,12 +131,11 @@ public class OrderService : IOrderService
 
     public async Task<Result<ServiceOrder>> GetOrderDetailAsync(long orderId, CancellationToken cancellationToken = default)
     {
-        // 订单状态变化频繁，强一致性要求，不使用缓存
         var order = await _orderRepository.GetByIdAsync(orderId);
 
         return order != null
             ? Result.Success(order)
-            : Result.Failure<ServiceOrder>("订单不存在");
+            : Result.Failure<ServiceOrder>("Order not found");
     }
 
     public async Task<Result<(IEnumerable<ServiceOrder> Items, int Total)>> GetCustomerOrdersAsync(
@@ -179,22 +170,21 @@ public class OrderService : IOrderService
     {
         var order = await _orderRepository.GetByIdAsync(orderId);
         if (order == null)
-            return Result.Failure("订单不存在");
+            return Result.Failure("Order not found");
 
         if (order.CustomerId != userId)
-            return Result.Failure("无权操作此订单");
+            return Result.Failure("Unauthorized");
 
         if (order.Status != OrderStatus.Pending)
-            return Result.Failure($"订单状态不允许取消（当前状态：{order.Status}）");
+            return Result.Failure($"Cannot cancel order (Status: {order.Status})");
 
         var affectedRows = await _orderRepository.UpdateStatusAsync(orderId, OrderStatus.Cancelled.ToString(), DateTime.UtcNow);
         if (affectedRows <= 0)
-            return Result.Failure("取消订单失败");
+            return Result.Failure("Cancel order failed");
 
-        // 异步记录状态历史
         await _messageQueue.PublishAsync(
             "order.status_changed",
-            new { OrderId = orderId, Status = OrderStatus.Cancelled.ToString(), Notes = "用户取消订单" },
+            new { OrderId = orderId, Status = OrderStatus.Cancelled.ToString(), Notes = "User cancelled order" },
             cancellationToken);
 
         return Result.Success();
@@ -204,10 +194,10 @@ public class OrderService : IOrderService
     {
         var order = await _orderRepository.GetByIdAsync(orderId);
         if (order == null)
-            return Result.Failure("订单不存在");
+            return Result.Failure("Order not found");
 
         if (order.Status != OrderStatus.Pending)
-            return Result.Failure($"订单状态不允许接单（当前状态：{order.Status}）");
+            return Result.Failure($"Cannot accept order (Status: {order.Status})");
 
         order.ServiceProviderId = providerId;
         order.Status = OrderStatus.Accepted;
@@ -215,15 +205,14 @@ public class OrderService : IOrderService
 
         if (affectedRows > 0)
         {
-            // 异步记录状态历史
             await _messageQueue.PublishAsync(
                 "order.status_changed",
-                new { OrderId = orderId, Status = OrderStatus.Accepted.ToString(), Notes = "服务商接单" },
+                new { OrderId = orderId, Status = OrderStatus.Accepted.ToString(), Notes = "Provider accepted order" },
                 cancellationToken);
             return Result.Success();
         }
 
-        return Result.Failure("接单失败");
+        return Result.Failure("Accept order failed");
     }
 
     public async Task<Result> StartServiceAsync(long orderId, long providerId, CancellationToken cancellationToken = default)

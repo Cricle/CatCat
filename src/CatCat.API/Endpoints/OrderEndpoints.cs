@@ -10,8 +10,6 @@ using Microsoft.AspNetCore.RateLimiting;
 namespace CatCat.API.Endpoints;
 public static class OrderEndpoints
 {
-    [RequiresUnreferencedCode("Uses JSON serialization which may require unreferenced code")]
-    [RequiresDynamicCode("Uses JSON serialization which may require dynamic code")]
     public static void MapOrderEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/orders").WithTags("Orders");

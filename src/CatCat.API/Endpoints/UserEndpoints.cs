@@ -9,8 +9,6 @@ namespace CatCat.API.Endpoints;
 
 public static class UserEndpoints
 {
-    [RequiresUnreferencedCode("Uses JSON serialization which may require unreferenced code")]
-    [RequiresDynamicCode("Uses JSON serialization which may require dynamic code")]
     public static void MapUserEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/users")

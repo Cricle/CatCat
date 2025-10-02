@@ -17,8 +17,6 @@ public static class AuthEndpoints
     private static readonly JwtSecurityTokenHandler _jwtTokenHandler = new();
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, SymmetricSecurityKey> _keyCache = new();
 
-    [RequiresUnreferencedCode("Uses JSON serialization which may require unreferenced code")]
-    [RequiresDynamicCode("Uses JSON serialization which may require dynamic code")]
     public static void MapAuthEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/auth")

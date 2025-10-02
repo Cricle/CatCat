@@ -9,28 +9,28 @@
         </div>
 
         <va-form ref="formRef" class="login-form">
-          <va-input 
-            v-model="form.phone" 
-            label="Phone" 
+          <va-input
+            v-model="form.phone"
+            label="Phone"
             placeholder="Enter phone number"
             :rules="phoneRules">
             <template #prepend><va-icon name="phone" /></template>
           </va-input>
 
-          <va-input 
-            v-model="form.password" 
+          <va-input
+            v-model="form.password"
             type="password"
-            label="Password" 
+            label="Password"
             placeholder="Enter password"
             :rules="passwordRules">
             <template #prepend><va-icon name="lock" /></template>
           </va-input>
 
-          <va-button 
-            class="login-button" 
-            :loading="loading" 
-            @click="handleLogin" 
-            size="large" 
+          <va-button
+            class="login-button"
+            :loading="loading"
+            @click="handleLogin"
+            size="large"
             block>
             Login
           </va-button>
@@ -62,9 +62,9 @@ const userStore = useUserStore()
 const formRef = ref<InstanceType<typeof VaForm>>()
 const loading = ref(false)
 
-const form = reactive<LoginRequest>({ 
-  phone: '', 
-  password: '' 
+const form = reactive<LoginRequest>({
+  phone: '',
+  password: ''
 })
 
 const phoneRules = [
