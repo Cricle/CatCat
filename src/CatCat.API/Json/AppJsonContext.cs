@@ -82,9 +82,9 @@ namespace CatCat.API.Json;
 [JsonSerializable(typeof(IEnumerable<ServiceOrder>))]
 [JsonSerializable(typeof(IEnumerable<Review>))]
 
-// Tuples (for paged results)
-[JsonSerializable(typeof(ValueTuple<IEnumerable<ServiceOrder>, int>))]
-[JsonSerializable(typeof(ValueTuple<IEnumerable<Review>, int, decimal>))]
+// Paged results
+[JsonSerializable(typeof(CatCat.Infrastructure.Common.PagedResult<ServiceOrder>))]
+[JsonSerializable(typeof(CatCat.Infrastructure.Common.ReviewPagedResult))]
 
 // Anonymous types equivalents
 [JsonSerializable(typeof(Dictionary<string, object>))]

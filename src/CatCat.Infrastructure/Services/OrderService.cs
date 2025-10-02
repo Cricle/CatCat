@@ -14,8 +14,8 @@ public interface IOrderService
 {
     Task<Result<long>> CreateOrderAsync(CreateOrderCommand command, CancellationToken cancellationToken = default);
     Task<Result<ServiceOrder>> GetOrderDetailAsync(long orderId, CancellationToken cancellationToken = default);
-    Task<Result<(IEnumerable<ServiceOrder> Items, int Total)>> GetCustomerOrdersAsync(long customerId, int? status, int page, int pageSize, CancellationToken cancellationToken = default);
-    Task<Result<(IEnumerable<ServiceOrder> Items, int Total)>> GetProviderOrdersAsync(long providerId, int? status, int page, int pageSize, CancellationToken cancellationToken = default);
+    Task<Result<PagedResult<ServiceOrder>>> GetCustomerOrdersAsync(long customerId, int? status, int page, int pageSize, CancellationToken cancellationToken = default);
+    Task<Result<PagedResult<ServiceOrder>>> GetProviderOrdersAsync(long providerId, int? status, int page, int pageSize, CancellationToken cancellationToken = default);
     Task<Result> CancelOrderAsync(long orderId, long userId, CancellationToken cancellationToken = default);
     Task<Result> AcceptOrderAsync(long orderId, long providerId, CancellationToken cancellationToken = default);
     Task<Result> StartServiceAsync(long orderId, long providerId, CancellationToken cancellationToken = default);
@@ -138,7 +138,7 @@ public class OrderService : IOrderService
             : Result.Failure<ServiceOrder>("Order not found");
     }
 
-    public async Task<Result<(IEnumerable<ServiceOrder> Items, int Total)>> GetCustomerOrdersAsync(
+    public async Task<Result<PagedResult<ServiceOrder>>> GetCustomerOrdersAsync(
         long customerId, int? status, int page, int pageSize, CancellationToken cancellationToken = default)
     {
         // TODO: Optimize with window function (COUNT(*) OVER() in single query)
@@ -149,10 +149,10 @@ public class OrderService : IOrderService
         var total = status.HasValue
             ? await _orderRepository.CountByCustomerIdAndStatusAsync(customerId, status.Value.ToString())
             : await _orderRepository.CountByCustomerIdAsync(customerId);
-        return Result.Success((items.AsEnumerable(), total));
+        return Result.Success(new PagedResult<ServiceOrder>(items, total));
     }
 
-    public async Task<Result<(IEnumerable<ServiceOrder> Items, int Total)>> GetProviderOrdersAsync(
+    public async Task<Result<PagedResult<ServiceOrder>>> GetProviderOrdersAsync(
         long providerId, int? status, int page, int pageSize, CancellationToken cancellationToken = default)
     {
         // TODO: Optimize with window function (COUNT(*) OVER() in single query)
@@ -163,7 +163,7 @@ public class OrderService : IOrderService
         var total = status.HasValue
             ? await _orderRepository.CountByServiceProviderIdAndStatusAsync(providerId, status.Value.ToString())
             : await _orderRepository.CountByServiceProviderIdAsync(providerId);
-        return Result.Success((items.AsEnumerable(), total));
+        return Result.Success(new PagedResult<ServiceOrder>(items, total));
     }
 
     public async Task<Result> CancelOrderAsync(long orderId, long userId, CancellationToken cancellationToken = default)

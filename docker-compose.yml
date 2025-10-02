@@ -43,7 +43,7 @@ services:
   nats:
     image: nats:2.10-alpine
     container_name: catcat-nats
-    command: 
+    command:
       - "-js"
       - "-sd"
       - "/data"

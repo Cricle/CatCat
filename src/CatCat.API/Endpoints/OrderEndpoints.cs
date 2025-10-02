@@ -59,11 +59,11 @@ public static class OrderEndpoints
                 return Results.Unauthorized();
 
             var result = await orderService.GetCustomerOrdersAsync(customerId, status, page, pageSize, cancellationToken);
-            if (!result.IsSuccess)
+            if (!result.IsSuccess || result.Value == null)
                 return Results.BadRequest(ApiResult.Fail<object>(result.Error!));
 
-            var (items, total) = result.Value;
-            var pagedResult = PagedResult<ServiceOrder>.Create(items, total, page, pageSize);
+            var pagedData = result.Value;
+            var pagedResult = PagedResult<ServiceOrder>.Create(pagedData.Items, pagedData.Total, page, pageSize);
             return Results.Ok(ApiResult.Ok(pagedResult));
         })
         .RequireAuthorization()

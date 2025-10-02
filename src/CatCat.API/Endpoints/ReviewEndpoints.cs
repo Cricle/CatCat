@@ -48,11 +48,11 @@ public static class ReviewEndpoints
         {
             var result = await reviewService.GetServiceProviderReviewsAsync(serviceProviderId, page, pageSize);
 
-            if (!result.IsSuccess)
+            if (!result.IsSuccess || result.Value == null)
                 return Results.BadRequest(ApiResult.Fail(result.Error!));
 
-            var (items, total, averageRating) = result.Value;
-            return Results.Ok(new ReviewListResponse(items, total, averageRating, page, pageSize));
+            var reviewData = result.Value;
+            return Results.Ok(new ReviewListResponse(reviewData.Items, reviewData.Total, reviewData.AverageRating, page, pageSize));
         })
         .WithName("GetServiceProviderReviews")
         .WithSummary("Get service provider reviews list");

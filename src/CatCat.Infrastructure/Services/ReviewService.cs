@@ -10,7 +10,7 @@ public interface IReviewService
 {
     Task<Result<long>> CreateReviewAsync(CreateReviewCommand command, CancellationToken cancellationToken = default);
     Task<Result<bool>> ReplyReviewAsync(long reviewId, string reply, CancellationToken cancellationToken = default);
-    Task<Result<(IEnumerable<Review> Items, int Total, decimal AverageRating)>> GetServiceProviderReviewsAsync(
+    Task<Result<ReviewPagedResult>> GetServiceProviderReviewsAsync(
         long serviceProviderId, int page, int pageSize, CancellationToken cancellationToken = default);
 }
 
@@ -138,7 +138,7 @@ public class ReviewService : IReviewService
     /// <summary>
     /// Get service provider reviews list
     /// </summary>
-    public async Task<Result<(IEnumerable<Review> Items, int Total, decimal AverageRating)>> GetServiceProviderReviewsAsync(
+    public async Task<Result<ReviewPagedResult>> GetServiceProviderReviewsAsync(
         long serviceProviderId, int page, int pageSize, CancellationToken cancellationToken = default)
     {
         var avgRating = await _reviewRepository.GetAverageRatingAsync(serviceProviderId);
@@ -149,7 +149,7 @@ public class ReviewService : IReviewService
         _logger.LogInformation("Get reviews: ServiceProviderId={ServiceProviderId}, Total={Total}, AvgRating={AvgRating}",
             serviceProviderId, total, avgRating);
 
-        return Result.Success<(IEnumerable<Review>, int, decimal)>((items, total, (decimal)avgRating));
+        return Result.Success(new ReviewPagedResult(items, total, (decimal)avgRating));
     }
 }
 
