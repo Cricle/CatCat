@@ -30,4 +30,3 @@ app.use(createVuestic({
 }))
 
 app.mount('#app')
-
