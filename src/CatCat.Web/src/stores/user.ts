@@ -10,16 +10,16 @@ export const useUserStore = defineStore('user', () => {
 
   async function loginUser(data: LoginRequest) {
     const response = await login(data)
-    token.value = response.token
-    userInfo.value = response.user
-    localStorage.setItem('token', response.token)
+    token.value = response.data.token
+    userInfo.value = response.data.user
+    localStorage.setItem('token', response.data.token)
   }
 
   async function registerUser(data: RegisterRequest) {
     const response = await register(data)
-    token.value = response.token
-    userInfo.value = response.user
-    localStorage.setItem('token', response.token)
+    token.value = response.data.token
+    userInfo.value = response.data.user
+    localStorage.setItem('token', response.data.token)
   }
 
   function logout() {

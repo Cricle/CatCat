@@ -20,8 +20,8 @@
           <va-dropdown placement="bottom-end">
             <template #anchor>
               <va-button preset="plain" color="#ffffff">
-                <va-avatar :src="userStore.user?.avatar" size="small">{{ userStore.user?.nickName?.charAt(0) || '?' }}</va-avatar>
-                <span v-if="!isMobile" class="user-name">{{ userStore.user?.nickName }}</span>
+                <va-avatar :src="userStore.userInfo?.avatar" size="small">{{ userStore.userInfo?.nickName?.charAt(0) || '?' }}</va-avatar>
+                <span v-if="!isMobile" class="user-name">{{ userStore.userInfo?.nickName }}</span>
                 <va-icon name="expand_more" size="small" />
               </va-button>
             </template>

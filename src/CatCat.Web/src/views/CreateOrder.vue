@@ -208,10 +208,9 @@ const fetchData = async () => {
       getMyPets(),
       getActivePackages()
     ])
-    pets.value = petsRes
-    packages.value = packagesRes
+    pets.value = petsRes.data
+    packages.value = packagesRes.data
 
-    // 如果从首页传递了套餐ID
     const packageId = route.query.packageId
     if (packageId) {
       selectedPackageId.value = Number(packageId)
@@ -221,7 +220,7 @@ const fetchData = async () => {
       }
     }
   } catch (error: any) {
-    showToast(error.message || '加载失败')
+    showToast(error.message || 'Loading failed')
   }
 }
 
@@ -267,12 +266,12 @@ const onSubmit = async () => {
       customerRemark: formData.customerRemark || undefined
     })
 
-    showSuccessToast('订单创建成功')
+    showSuccessToast('Order created successfully')
     setTimeout(() => {
-      router.replace(`/orders/${res.orderId}`)
+      router.replace(`/orders/${res.data.orderId}`)
     }, 1500)
   } catch (error: any) {
-    showToast(error.message || '订单创建失败')
+    showToast(error.message || 'Order creation failed')
   } finally {
     loading.value = false
   }

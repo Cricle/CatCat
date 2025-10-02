@@ -121,9 +121,9 @@ const fetchOrders = async () => {
       pageSize: 20,
       status
     })
-    orders.value = res.items
+    orders.value = res.data.items
   } catch (error: any) {
-    showToast(error.message || '加载失败')
+    showToast(error.message || 'Loading failed')
   } finally {
     loading.value = false
     refreshing.value = false

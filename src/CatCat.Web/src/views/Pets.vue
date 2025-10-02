@@ -67,9 +67,10 @@ const getGender = (gender: number) => {
 const fetchPets = async () => {
   loading.value = true
   try {
-    pets.value = await getMyPets()
+    const res = await getMyPets()
+    pets.value = res.data
   } catch (error: any) {
-    showToast(error.message || '加载失败')
+    showToast(error.message || 'Loading failed')
   } finally {
     loading.value = false
   }

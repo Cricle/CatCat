@@ -116,9 +116,10 @@ const getServiceItems = (items: string) => items.split('、').slice(0, 3)
 const fetchPackages = async () => {
   loading.value = true
   try {
-    packages.value = await getActivePackages()
+    const res = await getActivePackages()
+    packages.value = res.data
   } catch (error: any) {
-    console.error('加载失败:', error)
+    console.error('Loading failed:', error)
   } finally {
     loading.value = false
   }

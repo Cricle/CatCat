@@ -63,7 +63,7 @@ const router = createRouter({
 })
 
 // Navigation guard
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, _from, next) => {
   const userStore = useUserStore()
 
   if (to.meta.requiresAuth && !userStore.isAuthenticated) {

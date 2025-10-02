@@ -99,7 +99,8 @@ const fetchOrder = async () => {
   loading.value = true
   try {
     const id = Number(route.params.id)
-    order.value = await getOrderDetail(id)
+    const res = await getOrderDetail(id)
+    order.value = res.data
   } catch (error: any) {
     showToast(error.message || '加载失败')
     setTimeout(() => router.back(), 1500)
