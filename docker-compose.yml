@@ -1,77 +1,90 @@
 version: '3.8'
 
 services:
-  # PostgreSQL 数据库
+  # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
     container_name: catcat-postgres
     environment:
       POSTGRES_DB: catcat
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: catcat
+      POSTGRES_PASSWORD: catcat_password_change_in_production
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8"
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U catcat"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
       - catcat-network
 
-  # Redis 缓存
+  # Redis Cache
   redis:
     image: redis:7-alpine
     container_name: catcat-redis
+    command: redis-server --requirepass catcat_redis_password_change_in_production --appendonly yes
     ports:
       - "6379:6379"
-    command: redis-server --appendonly yes
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
       - catcat-network
 
-  # NATS 消息队列
+  # NATS with JetStream
   nats:
-    image: nats:2-alpine
+    image: nats:2.10-alpine
     container_name: catcat-nats
+    command: 
+      - "-js"
+      - "-sd"
+      - "/data"
+      - "-m"
+      - "8222"
     ports:
-      - "4222:4222"
-      - "8222:8222"
-    command: "-js -m 8222"
+      - "4222:4222"  # Client connections
+      - "8222:8222"  # Monitoring
+    volumes:
+      - nats_data:/data
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8222/healthz"]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8222/healthz"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
       - catcat-network
 
-  # CatCat API (内部服务，不对外暴露端口)
+  # CatCat API
   api:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: src/CatCat.API/Dockerfile
     container_name: catcat-api
     environment:
-      - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=catcat;Username=postgres;Password=postgres
-      - ConnectionStrings__Redis=redis:6379
-      - ConnectionStrings__Nats=nats://nats:4222
-      - JwtSettings__SecretKey=YourSuperSecretKeyThatIsLongEnoughAndSecure
-      - JwtSettings__Issuer=CatCatIssuer
-      - JwtSettings__Audience=CatCatAudience
-      - IdGenerator__WorkerId=1
-      - Stripe__SecretKey=${STRIPE_SECRET_KEY}
-      - OpenTelemetry__OtlpExporterEndpoint=http://otel-collector:4317
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__Database: "Host=postgres;Port=5432;Database=catcat;Username=catcat;Password=catcat_password_change_in_production"
+      ConnectionStrings__Redis: "redis:6379,password=catcat_redis_password_change_in_production"
+      ConnectionStrings__Nats: "nats://nats:4222"
+      Jwt__SecretKey: "change-this-super-secret-key-in-production-must-be-at-least-32-characters-long"
+      Jwt__Issuer: "CatCat.API"
+      Jwt__Audience: "CatCat.Client"
+      Jwt__ExpiryMinutes: "1440"
+      Stripe__SecretKey: "your-stripe-secret-key"
+      Stripe__PublishableKey: "your-stripe-publishable-key"
+      Serilog__MinimumLevel__Default: "Information"
+      OpenTelemetry__ServiceName: "CatCat.API"
+      OpenTelemetry__Endpoint: "http://jaeger:4317"
+    ports:
+      - "5000:8080"
     depends_on:
       postgres:
         condition: service_healthy
@@ -80,40 +93,50 @@ services:
       nats:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
     networks:
       - catcat-network
+    restart: unless-stopped
 
-  # YARP Gateway (统一网关，使用微软YARP反向代理)
-  gateway:
+  # CatCat Web Frontend
+  web:
     build:
-      context: .
-      dockerfile: Dockerfile.gateway
-    container_name: catcat-gateway
-    ports:
-      - "80:80"
-      - "443:443"
+      context: src/CatCat.Web
+      dockerfile: Dockerfile
+    container_name: catcat-web
     environment:
-      - ASPNETCORE_ENVIRONMENT=Production
-      - OpenTelemetry__OtlpExporterEndpoint=http://otel-collector:4317
+      VITE_API_BASE_URL: http://localhost:5000
+    ports:
+      - "3000:80"
     depends_on:
-      api:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      - api
+    networks:
+      - catcat-network
+    restart: unless-stopped
+
+  # Jaeger (Optional - for OpenTelemetry tracing)
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: catcat-jaeger
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "4317:4317"    # OTLP gRPC
+      - "4318:4318"    # OTLP HTTP
     networks:
       - catcat-network
 
 volumes:
   postgres_data:
+    driver: local
   redis_data:
+    driver: local
+  nats_data:
+    driver: local
 
 networks:
   catcat-network:

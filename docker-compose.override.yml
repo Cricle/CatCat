@@ -1,0 +1,79 @@
+version: '3.8'
+
+# Development environment overrides
+services:
+  postgres:
+    environment:
+      POSTGRES_PASSWORD: dev_password
+    ports:
+      - "15432:5432"  # Use different port to avoid conflicts
+
+  redis:
+    command: redis-server --appendonly yes  # No password for dev
+    ports:
+      - "16379:6379"  # Use different port to avoid conflicts
+
+  nats:
+    ports:
+      - "14222:4222"  # Use different port to avoid conflicts
+      - "18222:8222"
+
+  api:
+    build:
+      context: .
+      dockerfile: src/CatCat.API/Dockerfile
+      target: build  # Use build stage for hot reload
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__Database: "Host=postgres;Port=5432;Database=catcat;Username=catcat;Password=dev_password"
+      ConnectionStrings__Redis: "redis:6379"
+      ConnectionStrings__Nats: "nats://nats:4222"
+      Jwt__SecretKey: "dev-secret-key-for-development-only-32-characters-minimum"
+      Stripe__SecretKey: "sk_test_dev_key"
+    volumes:
+      - ./src:/src:cached  # Hot reload support
+    ports:
+      - "5000:8080"
+      - "5001:8081"
+    command: dotnet watch run --project /src/src/CatCat.API/CatCat.API.csproj --no-restore
+
+  web:
+    build:
+      context: src/CatCat.Web
+      dockerfile: Dockerfile
+      target: build  # Use build stage for dev
+    environment:
+      VITE_API_BASE_URL: http://localhost:5000
+    volumes:
+      - ./src/CatCat.Web:/app:cached
+      - /app/node_modules
+    ports:
+      - "3000:5173"
+    command: npm run dev -- --host 0.0.0.0
+
+  # Development tools
+  adminer:
+    image: adminer:latest
+    container_name: catcat-adminer
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+    ports:
+      - "8080:8080"
+    networks:
+      - catcat-network
+    depends_on:
+      - postgres
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: catcat-redis-commander
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    ports:
+      - "8081:8081"
+    networks:
+      - catcat-network
+    depends_on:
+      - redis
+

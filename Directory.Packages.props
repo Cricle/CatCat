@@ -41,5 +41,10 @@
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.2.0" />
     <!-- Distributed Cache for FusionCache L2 -->
     <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.0" />
+    <!-- .NET Aspire (云原生应用编排) -->
+    <PackageVersion Include="Aspire.Hosting.AppHost" Version="9.0.0" />
+    <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="9.0.0" />
+    <PackageVersion Include="Aspire.Hosting.Redis" Version="9.0.0" />
+    <PackageVersion Include="Aspire.Hosting.Nats" Version="9.0.0" />
   </ItemGroup>
 </Project>

@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsAspireHost>true</IsAspireHost>
+    <UserSecretsId>96bd38c2-0eb0-42c9-a4ec-bbc5f3dee616</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.AppHost" />
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" />
+    <PackageReference Include="Aspire.Hosting.Redis" />
+    <PackageReference Include="Aspire.Hosting.Nats" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CatCat.API\CatCat.API.csproj" />
+  </ItemGroup>
+
+</Project>
