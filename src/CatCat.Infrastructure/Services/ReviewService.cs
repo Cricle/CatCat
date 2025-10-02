@@ -153,7 +153,6 @@ public class ReviewService : IReviewService
     }
 }
 
-// 命令和事件定义
 public record CreateReviewCommand(
     long OrderId,
     long CustomerId,

@@ -1,8 +1,5 @@
 namespace CatCat.Infrastructure.Entities;
 
-/// <summary>
-/// 用户实体
-/// </summary>
 public class User
 {
     public long Id { get; set; }
@@ -17,24 +14,18 @@ public class User
     public DateTime? UpdatedAt { get; set; }
 }
 
-/// <summary>
-/// 用户角色
-/// </summary>
 public enum UserRole
 {
-    Customer = 1,      // 客户
-    ServiceProvider = 2, // 服务人员
-    Admin = 99         // 管理员
+    Customer = 1,
+    ServiceProvider = 2,
+    Admin = 99
 }
 
-/// <summary>
-/// 用户状态
-/// </summary>
 public enum UserStatus
 {
-    Pending = 0,    // 待审核
-    Active = 1,     // 正常
-    Suspended = 2,  // 停用
-    Banned = 3      // 封禁
+    Pending = 0,
+    Active = 1,
+    Suspended = 2,
+    Banned = 3
 }
 

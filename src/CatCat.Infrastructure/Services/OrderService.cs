@@ -208,8 +208,8 @@ public class OrderService : IOrderService
             orderId,
             OrderStatus.InProgress,
             OrderStatus.Accepted,
-            "开始服务",
-            order => order.ServiceProviderId == providerId ? null : "无权操作此订单",
+            "Service started",
+            order => order.ServiceProviderId == providerId ? null : "Unauthorized operation",
             cancellationToken);
     }
 
@@ -219,8 +219,8 @@ public class OrderService : IOrderService
             orderId,
             OrderStatus.Completed,
             OrderStatus.InProgress,
-            "服务完成",
-            order => order.ServiceProviderId == providerId ? null : "无权操作此订单",
+            "Service completed",
+            order => order.ServiceProviderId == providerId ? null : "Unauthorized operation",
             cancellationToken);
     }
 
@@ -228,20 +228,19 @@ public class OrderService : IOrderService
     {
         var payment = await _paymentRepository.GetByPaymentIntentIdAsync(paymentIntentId);
         if (payment == null)
-            return Result.Failure("支付记录不存在");
+            return Result.Failure("Payment record not found");
 
         if (payment.OrderId != orderId)
-            return Result.Failure("支付记录与订单不匹配");
+            return Result.Failure("Payment order mismatch");
 
         var confirmed = await _paymentService.ConfirmPaymentAsync(paymentIntentId);
         if (confirmed)
         {
             await _paymentRepository.UpdateStatusSuccessAsync(payment.Id, PaymentStatus.Succeeded.ToString(), DateTime.UtcNow, DateTime.UtcNow);
-            // 清除订单缓存（因为支付状态改变会影响订单）
             return Result.Success();
         }
 
-        return Result.Failure("支付确认失败");
+        return Result.Failure("Payment confirmation failed");
     }
 
     private async Task<Result> UpdateOrderStatusWithValidationAsync(
@@ -254,19 +253,18 @@ public class OrderService : IOrderService
     {
         var order = await _orderRepository.GetByIdAsync(orderId);
         if (order == null)
-            return Result.Failure("订单不存在");
+            return Result.Failure("Order not found");
 
         var validationError = additionalValidation(order);
         if (validationError != null)
             return Result.Failure(validationError);
 
         if (order.Status != expectedCurrentStatus)
-            return Result.Failure($"订单状态不允许此操作（当前状态：{order.Status}）");
+            return Result.Failure($"Invalid order status (Current: {order.Status})");
 
         var affectedRows = await _orderRepository.UpdateStatusAsync(orderId, newStatus.ToString(), DateTime.UtcNow);
         if (affectedRows > 0)
         {
-            // 异步记录状态历史（使用NATS削峰）
             await _messageQueue.PublishAsync(
                 "order.status_changed",
                 new { OrderId = orderId, Status = newStatus.ToString(), Notes = notes },
@@ -274,7 +272,7 @@ public class OrderService : IOrderService
             return Result.Success();
         }
 
-        return Result.Failure("操作失败");
+        return Result.Failure("Operation failed");
     }
 
     private string GenerateOrderNo()
