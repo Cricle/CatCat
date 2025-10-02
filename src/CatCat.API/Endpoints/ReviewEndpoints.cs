@@ -14,47 +14,61 @@ public static class ReviewEndpoints
         var group = app.MapGroup("/api/reviews")
             .WithTags("Reviews");
 
-        group.MapPost("/", async (ClaimsPrincipal user, [FromBody] CreateReviewRequest request, IReviewService reviewService) =>
-        {
-            if (!user.TryGetUserId(out var userId))
-                return Results.Unauthorized();
+        group.MapPost("/", CreateReview)
+            .RequireAuthorization()
+            .WithName("CreateReview")
+            .WithSummary("Create review");
 
-            var command = new CreateReviewCommand(request.OrderId, userId, request.Rating, request.Content, request.PhotoUrls);
-            var result = await reviewService.CreateReviewAsync(command);
+        group.MapPost("/{id}/reply", ReplyReview)
+            .RequireAuthorization()
+            .WithName("ReplyReview")
+            .WithSummary("Reply to review (Service provider)");
 
-            return result.IsSuccess
-                ? Results.Ok(new ReviewCreateResponse(result.Value, "Review created successfully"))
-                : Results.BadRequest(ApiResult.Fail(result.Error!));
-        })
-        .RequireAuthorization()
-        .WithName("CreateReview")
-        .WithSummary("Create review");
+        group.MapGet("/service-provider/{serviceProviderId}", GetServiceProviderReviews)
+            .WithName("GetServiceProviderReviews")
+            .WithSummary("Get service provider reviews list");
+    }
 
-        group.MapPost("/{id}/reply", async (long id, [FromBody] ReplyReviewRequest request, IReviewService reviewService) =>
-        {
-            var result = await reviewService.ReplyReviewAsync(id, request.Reply);
+    private static async Task<IResult> CreateReview(
+        ClaimsPrincipal user,
+        [FromBody] CreateReviewRequest request,
+        IReviewService reviewService)
+    {
+        if (!user.TryGetUserId(out var userId))
+            return Results.Unauthorized();
 
-            return result.IsSuccess
-                ? Results.Ok(new MessageResponse("Reply sent successfully"))
-                : Results.BadRequest(ApiResult.Fail(result.Error!));
-        })
-        .RequireAuthorization()
-        .WithName("ReplyReview")
-        .WithSummary("Reply to review (Service provider)");
+        var command = new CreateReviewCommand(request.OrderId, userId, request.Rating, request.Content, request.PhotoUrls);
+        var result = await reviewService.CreateReviewAsync(command);
 
-        group.MapGet("/service-provider/{serviceProviderId}", async (
-            long serviceProviderId, IReviewService reviewService,
-            [FromQuery] int page = 1, [FromQuery] int pageSize = 10) =>
-        {
-            var result = await reviewService.GetServiceProviderReviewsAsync(serviceProviderId, page, pageSize);
+        return result.IsSuccess
+            ? Results.Ok(new ReviewCreateResponse(result.Value, "Review created successfully"))
+            : Results.BadRequest(ApiResult.Fail(result.Error!));
+    }
 
-            if (!result.IsSuccess || result.Value == null)
-                return Results.BadRequest(ApiResult.Fail(result.Error!));
+    private static async Task<IResult> ReplyReview(
+        long id,
+        [FromBody] ReplyReviewRequest request,
+        IReviewService reviewService)
+    {
+        var result = await reviewService.ReplyReviewAsync(id, request.Reply);
 
-            var reviewData = result.Value;
-            return Results.Ok(new ReviewListResponse(reviewData.Items, reviewData.Total, reviewData.AverageRating, page, pageSize));
-        })
-        .WithName("GetServiceProviderReviews")
-        .WithSummary("Get service provider reviews list");
+        return result.IsSuccess
+            ? Results.Ok(new MessageResponse("Reply sent successfully"))
+            : Results.BadRequest(ApiResult.Fail(result.Error!));
+    }
+
+    private static async Task<IResult> GetServiceProviderReviews(
+        long serviceProviderId,
+        IReviewService reviewService,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10)
+    {
+        var result = await reviewService.GetServiceProviderReviewsAsync(serviceProviderId, page, pageSize);
+
+        if (!result.IsSuccess || result.Value == null)
+            return Results.BadRequest(ApiResult.Fail(result.Error!));
+
+        var reviewData = result.Value;
+        return Results.Ok(new ReviewListResponse(reviewData.Items, reviewData.Total, reviewData.AverageRating, page, pageSize));
     }
 }

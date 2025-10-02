@@ -16,82 +16,98 @@ public static class PetEndpoints
             .WithTags("Pets")
             .RequireAuthorization();
 
-        group.MapGet("/", async (ClaimsPrincipal user, IPetRepository petRepository) =>
+        group.MapGet("/", GetMyPets)
+            .WithName("GetMyPets")
+            .WithSummary("获取我的猫猫档案列表");
+
+        group.MapPost("/", CreatePet)
+            .WithName("CreatePet")
+            .WithSummary("创建猫猫档案");
+
+        group.MapGet("/{id}", GetPetById)
+            .WithName("GetPetById")
+            .WithSummary("获取猫猫档案详情");
+
+        group.MapPut("/{id}", UpdatePet)
+            .WithName("UpdatePet")
+            .WithSummary("更新猫猫档案");
+
+        group.MapDelete("/{id}", DeletePet)
+            .WithName("DeletePet")
+            .WithSummary("删除猫猫档案");
+    }
+
+    private static async Task<IResult> GetMyPets(ClaimsPrincipal user, IPetRepository petRepository)
+    {
+        if (!user.TryGetUserId(out var userId))
+            return Results.Unauthorized();
+
+        var pets = await petRepository.GetByUserIdAsync(userId);
+        return Results.Ok(new PetListResponse(pets, pets.Count));
+    }
+
+    private static async Task<IResult> CreatePet(
+        ClaimsPrincipal user,
+        [FromBody] CreatePetRequest request,
+        IPetRepository petRepository)
+    {
+        if (!user.TryGetUserId(out var userId))
+            return Results.Unauthorized();
+
+        var pet = new Pet
         {
-            if (!user.TryGetUserId(out var userId))
-                return Results.Unauthorized();
+            UserId = userId,
+            Name = request.Name,
+            Type = request.Type,
+            Breed = request.Breed,
+            Age = request.Age,
+            Gender = request.Gender,
+            Avatar = request.Avatar,
+            Character = request.Character,
+            DietaryHabits = request.DietaryHabits,
+            HealthStatus = request.HealthStatus,
+            Remarks = request.Remarks,
+            CreatedAt = DateTime.UtcNow
+        };
 
-            var pets = await petRepository.GetByUserIdAsync(userId);
-            return Results.Ok(new PetListResponse(pets, pets.Count));
-        })
-        .WithName("GetMyPets")
-        .WithSummary("获取我的猫猫档案列表");
+        var petId = await petRepository.CreateAsync(pet);
+        return Results.Ok(new PetCreateResponse(petId, "猫猫档案创建成功"));
+    }
 
-        group.MapPost("/", async (ClaimsPrincipal user, [FromBody] CreatePetRequest request, IPetRepository petRepository) =>
-        {
-            if (!user.TryGetUserId(out var userId))
-                return Results.Unauthorized();
+    private static async Task<IResult> GetPetById(long id, IPetRepository petRepository)
+    {
+        var pet = await petRepository.GetByIdAsync(id);
+        return pet == null
+            ? Results.NotFound(ApiResult.NotFound("猫猫档案不存在"))
+            : Results.Ok(pet);
+    }
 
-            var pet = new Pet
-            {
-                UserId = userId,
-                Name = request.Name,
-                Type = request.Type,
-                Breed = request.Breed,
-                Age = request.Age,
-                Gender = request.Gender,
-                Avatar = request.Avatar,
-                Character = request.Character,
-                DietaryHabits = request.DietaryHabits,
-                HealthStatus = request.HealthStatus,
-                Remarks = request.Remarks,
-                CreatedAt = DateTime.UtcNow
-            };
+    private static async Task<IResult> UpdatePet(
+        long id,
+        [FromBody] UpdatePetRequest request,
+        IPetRepository petRepository)
+    {
+        var pet = await petRepository.GetByIdAsync(id);
+        if (pet == null)
+            return Results.NotFound(ApiResult.NotFound("猫猫档案不存在"));
 
-            var petId = await petRepository.CreateAsync(pet);
-            return Results.Ok(new PetCreateResponse(petId, "猫猫档案创建成功"));
-        })
-        .WithName("CreatePet")
-        .WithSummary("创建猫猫档案");
+        if (request.Name != null) pet.Name = request.Name;
+        if (request.Breed != null) pet.Breed = request.Breed;
+        if (request.Age.HasValue) pet.Age = request.Age.Value;
+        if (request.Avatar != null) pet.Avatar = request.Avatar;
+        if (request.Character != null) pet.Character = request.Character;
+        if (request.DietaryHabits != null) pet.DietaryHabits = request.DietaryHabits;
+        if (request.HealthStatus != null) pet.HealthStatus = request.HealthStatus;
+        if (request.Remarks != null) pet.Remarks = request.Remarks;
+        pet.UpdatedAt = DateTime.UtcNow;
 
-        group.MapGet("/{id}", async (long id, IPetRepository petRepository) =>
-        {
-            var pet = await petRepository.GetByIdAsync(id);
-            return pet == null
-                ? Results.NotFound(ApiResult.NotFound("猫猫档案不存在"))
-                : Results.Ok(pet);
-        })
-        .WithName("GetPetById")
-        .WithSummary("获取猫猫档案详情");
+        await petRepository.UpdateAsync(pet);
+        return Results.Ok(new MessageResponse("猫猫档案更新成功"));
+    }
 
-        group.MapPut("/{id}", async (long id, [FromBody] UpdatePetRequest request, IPetRepository petRepository) =>
-        {
-            var pet = await petRepository.GetByIdAsync(id);
-            if (pet == null)
-                return Results.NotFound(ApiResult.NotFound("猫猫档案不存在"));
-
-            if (request.Name != null) pet.Name = request.Name;
-            if (request.Breed != null) pet.Breed = request.Breed;
-            if (request.Age.HasValue) pet.Age = request.Age.Value;
-            if (request.Avatar != null) pet.Avatar = request.Avatar;
-            if (request.Character != null) pet.Character = request.Character;
-            if (request.DietaryHabits != null) pet.DietaryHabits = request.DietaryHabits;
-            if (request.HealthStatus != null) pet.HealthStatus = request.HealthStatus;
-            if (request.Remarks != null) pet.Remarks = request.Remarks;
-            pet.UpdatedAt = DateTime.UtcNow;
-
-            await petRepository.UpdateAsync(pet);
-            return Results.Ok(new MessageResponse("猫猫档案更新成功"));
-        })
-        .WithName("UpdatePet")
-        .WithSummary("更新猫猫档案");
-
-        group.MapDelete("/{id}", async (long id, IPetRepository petRepository) =>
-        {
-            await petRepository.DeleteAsync(id);
-            return Results.Ok(new MessageResponse("猫猫档案已删除"));
-        })
-        .WithName("DeletePet")
-        .WithSummary("删除猫猫档案");
+    private static async Task<IResult> DeletePet(long id, IPetRepository petRepository)
+    {
+        await petRepository.DeleteAsync(id);
+        return Results.Ok(new MessageResponse("猫猫档案已删除"));
     }
 }

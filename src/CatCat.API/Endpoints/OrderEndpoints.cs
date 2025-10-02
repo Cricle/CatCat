@@ -14,133 +14,169 @@ public static class OrderEndpoints
     {
         var group = app.MapGroup("/api/orders").WithTags("Orders");
 
-        group.MapPost("", async (
-            [FromBody] CreateOrderRequest request,
-            [FromServices] IOrderService orderService,
-            CancellationToken cancellationToken) =>
-        {
-            var command = new CreateOrderCommand(
-                request.CustomerId,
-                request.ServicePackageId,
-                request.PetId,
-                request.ServiceDate,
-                request.ServiceAddress,
-                request.Remark);
+        group.MapPost("", CreateOrder)
+            .RequireAuthorization()
+            .RequireRateLimiting("order-create")
+            .WithName("CreateOrder");
 
-            var result = await orderService.CreateOrderAsync(command, cancellationToken);
+        group.MapGet("{id:long}", GetOrderDetail)
+            .RequireAuthorization()
+            .RequireRateLimiting("query")
+            .WithName("GetOrderDetail");
 
-            return result.IsSuccess
-                ? Results.Ok(ApiResult.Ok(result.Value, "订单创建成功"))
-                : Results.BadRequest(ApiResult.Fail<long>(result.Error!));
-        })
-        .RequireAuthorization()
-        .RequireRateLimiting("order-create")
-        .WithName("CreateOrder");
+        group.MapGet("/my", GetMyOrders)
+            .RequireAuthorization()
+            .RequireRateLimiting("query")
+            .WithName("GetMyOrders");
 
-        group.MapGet("{id:long}", async (
-            long id,
-            [FromServices] IOrderService orderService,
-            CancellationToken cancellationToken) =>
-        {
-            var result = await orderService.GetOrderDetailAsync(id, cancellationToken);
+        group.MapPost("{id:long}/cancel", CancelOrder)
+            .RequireAuthorization()
+            .RequireRateLimiting("api")
+            .WithName("CancelOrder");
 
-            return result.IsSuccess
-                ? Results.Ok(ApiResult.Ok(result.Value))
-                : Results.NotFound(ApiResult.NotFound(result.Error!));
-        })
-        .RequireAuthorization()
-        .RequireRateLimiting("query")
-        .WithName("GetOrderDetail");
+        group.MapPost("{id:long}/accept", AcceptOrder)
+            .RequireAuthorization()
+            .RequireRateLimiting("api")
+            .WithName("AcceptOrder");
 
-        group.MapGet("/my", async (ClaimsPrincipal user, IOrderService orderService, CancellationToken cancellationToken,
-            [FromQuery] int? status = null, [FromQuery] int page = 1, [FromQuery] int pageSize = 20) =>
-        {
-            if (!user.TryGetUserId(out var customerId))
-                return Results.Unauthorized();
+        group.MapPost("{id:long}/start", StartService)
+            .RequireAuthorization()
+            .RequireRateLimiting("api")
+            .WithName("StartService");
 
-            var result = await orderService.GetCustomerOrdersAsync(customerId, status, page, pageSize, cancellationToken);
-            if (!result.IsSuccess || result.Value == null)
-                return Results.BadRequest(ApiResult.Fail<object>(result.Error!));
+        group.MapPost("{id:long}/complete", CompleteService)
+            .RequireAuthorization()
+            .RequireRateLimiting("api")
+            .WithName("CompleteService");
 
-            var pagedData = result.Value;
-            var pagedResult = PagedResult<ServiceOrder>.Create(pagedData.Items, pagedData.Total, page, pageSize);
-            return Results.Ok(ApiResult.Ok(pagedResult));
-        })
-        .RequireAuthorization()
-        .RequireRateLimiting("query")
-        .WithName("GetMyOrders");
+        group.MapPost("{id:long}/pay", PayOrder)
+            .RequireAuthorization()
+            .RequireRateLimiting("payment")
+            .WithName("PayOrder");
+    }
 
-        group.MapPost("{id:long}/cancel", async (long id, ClaimsPrincipal user, IOrderService orderService, CancellationToken cancellationToken) =>
-        {
-            if (!user.TryGetUserId(out var userId))
-                return Results.Unauthorized();
+    private static async Task<IResult> CreateOrder(
+        [FromBody] CreateOrderRequest request,
+        [FromServices] IOrderService orderService,
+        CancellationToken cancellationToken)
+    {
+        var command = new CreateOrderCommand(
+            request.CustomerId,
+            request.ServicePackageId,
+            request.PetId,
+            request.ServiceDate,
+            request.ServiceAddress,
+            request.Remark);
 
-            var result = await orderService.CancelOrderAsync(id, userId, cancellationToken);
-            return result.IsSuccess
-                ? Results.Ok(ApiResult.Ok("订单已取消"))
-                : Results.BadRequest(ApiResult.Fail(result.Error!));
-        })
-        .RequireAuthorization()
-        .RequireRateLimiting("api")
-        .WithName("CancelOrder");
+        var result = await orderService.CreateOrderAsync(command, cancellationToken);
 
-        group.MapPost("{id:long}/accept", async (long id, ClaimsPrincipal user, IOrderService orderService, CancellationToken cancellationToken) =>
-        {
-            if (!user.TryGetUserId(out var providerId))
-                return Results.Unauthorized();
+        return result.IsSuccess
+            ? Results.Ok(ApiResult.Ok(result.Value, "订单创建成功"))
+            : Results.BadRequest(ApiResult.Fail<long>(result.Error!));
+    }
 
-            var result = await orderService.AcceptOrderAsync(id, providerId, cancellationToken);
-            return result.IsSuccess
-                ? Results.Ok(ApiResult.Ok("接单成功"))
-                : Results.BadRequest(ApiResult.Fail(result.Error!));
-        })
-        .RequireAuthorization()
-        .RequireRateLimiting("api")
-        .WithName("AcceptOrder");
+    private static async Task<IResult> GetOrderDetail(
+        long id,
+        [FromServices] IOrderService orderService,
+        CancellationToken cancellationToken)
+    {
+        var result = await orderService.GetOrderDetailAsync(id, cancellationToken);
 
-        group.MapPost("{id:long}/start", async (long id, ClaimsPrincipal user, IOrderService orderService, CancellationToken cancellationToken) =>
-        {
-            if (!user.TryGetUserId(out var providerId))
-                return Results.Unauthorized();
+        return result.IsSuccess
+            ? Results.Ok(ApiResult.Ok(result.Value))
+            : Results.NotFound(ApiResult.NotFound(result.Error!));
+    }
 
-            var result = await orderService.StartServiceAsync(id, providerId, cancellationToken);
-            return result.IsSuccess
-                ? Results.Ok(ApiResult.Ok("服务已开始"))
-                : Results.BadRequest(ApiResult.Fail(result.Error!));
-        })
-        .RequireAuthorization()
-        .RequireRateLimiting("api")
-        .WithName("StartService");
+    private static async Task<IResult> GetMyOrders(
+        ClaimsPrincipal user,
+        IOrderService orderService,
+        CancellationToken cancellationToken,
+        [FromQuery] int? status = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
+    {
+        if (!user.TryGetUserId(out var customerId))
+            return Results.Unauthorized();
 
-        group.MapPost("{id:long}/complete", async (long id, ClaimsPrincipal user, IOrderService orderService, CancellationToken cancellationToken) =>
-        {
-            if (!user.TryGetUserId(out var providerId))
-                return Results.Unauthorized();
+        var result = await orderService.GetCustomerOrdersAsync(customerId, status, page, pageSize, cancellationToken);
+        if (!result.IsSuccess || result.Value == null)
+            return Results.BadRequest(ApiResult.Fail<object>(result.Error!));
 
-            var result = await orderService.CompleteServiceAsync(id, providerId, cancellationToken);
-            return result.IsSuccess
-                ? Results.Ok(ApiResult.Ok("服务已完成"))
-                : Results.BadRequest(ApiResult.Fail(result.Error!));
-        })
-        .RequireAuthorization()
-        .RequireRateLimiting("api")
-        .WithName("CompleteService");
+        var pagedData = result.Value;
+        var pagedResult = PagedResult<ServiceOrder>.Create(pagedData.Items, pagedData.Total, page, pageSize);
+        return Results.Ok(ApiResult.Ok(pagedResult));
+    }
 
+    private static async Task<IResult> CancelOrder(
+        long id,
+        ClaimsPrincipal user,
+        IOrderService orderService,
+        CancellationToken cancellationToken)
+    {
+        if (!user.TryGetUserId(out var userId))
+            return Results.Unauthorized();
 
-        group.MapPost("{id:long}/pay", async (
-            long id,
-            [FromBody] PayOrderRequest request,
-            [FromServices] IOrderService orderService,
-            CancellationToken cancellationToken) =>
-        {
-            var result = await orderService.PayOrderAsync(id, request.PaymentIntentId, cancellationToken);
+        var result = await orderService.CancelOrderAsync(id, userId, cancellationToken);
+        return result.IsSuccess
+            ? Results.Ok(ApiResult.Ok("订单已取消"))
+            : Results.BadRequest(ApiResult.Fail(result.Error!));
+    }
 
-            return result.IsSuccess
-                ? Results.Ok(ApiResult.Ok("支付成功"))
-                : Results.BadRequest(ApiResult.Fail(result.Error!));
-        })
-        .RequireAuthorization()
-        .RequireRateLimiting("payment")
-        .WithName("PayOrder");
+    private static async Task<IResult> AcceptOrder(
+        long id,
+        ClaimsPrincipal user,
+        IOrderService orderService,
+        CancellationToken cancellationToken)
+    {
+        if (!user.TryGetUserId(out var providerId))
+            return Results.Unauthorized();
+
+        var result = await orderService.AcceptOrderAsync(id, providerId, cancellationToken);
+        return result.IsSuccess
+            ? Results.Ok(ApiResult.Ok("接单成功"))
+            : Results.BadRequest(ApiResult.Fail(result.Error!));
+    }
+
+    private static async Task<IResult> StartService(
+        long id,
+        ClaimsPrincipal user,
+        IOrderService orderService,
+        CancellationToken cancellationToken)
+    {
+        if (!user.TryGetUserId(out var providerId))
+            return Results.Unauthorized();
+
+        var result = await orderService.StartServiceAsync(id, providerId, cancellationToken);
+        return result.IsSuccess
+            ? Results.Ok(ApiResult.Ok("服务已开始"))
+            : Results.BadRequest(ApiResult.Fail(result.Error!));
+    }
+
+    private static async Task<IResult> CompleteService(
+        long id,
+        ClaimsPrincipal user,
+        IOrderService orderService,
+        CancellationToken cancellationToken)
+    {
+        if (!user.TryGetUserId(out var providerId))
+            return Results.Unauthorized();
+
+        var result = await orderService.CompleteServiceAsync(id, providerId, cancellationToken);
+        return result.IsSuccess
+            ? Results.Ok(ApiResult.Ok("服务已完成"))
+            : Results.BadRequest(ApiResult.Fail(result.Error!));
+    }
+
+    private static async Task<IResult> PayOrder(
+        long id,
+        [FromBody] PayOrderRequest request,
+        [FromServices] IOrderService orderService,
+        CancellationToken cancellationToken)
+    {
+        var result = await orderService.PayOrderAsync(id, request.PaymentIntentId, cancellationToken);
+
+        return result.IsSuccess
+            ? Results.Ok(ApiResult.Ok("支付成功"))
+            : Results.BadRequest(ApiResult.Fail(result.Error!));
     }
 }

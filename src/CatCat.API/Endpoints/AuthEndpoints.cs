@@ -22,89 +22,96 @@ public static class AuthEndpoints
         var group = app.MapGroup("/api/auth")
             .WithTags("Authentication");
 
-        group.MapPost("/send-code", async (
-            [FromBody] SendCodeRequest request,
-            IFusionCache cache,
-            ILogger<Program> logger) =>
+        group.MapPost("/send-code", SendCode)
+            .WithName("SendCode")
+            .WithSummary("Send SMS verification code");
+
+        group.MapPost("/register", Register)
+            .WithName("Register")
+            .WithSummary("User registration");
+
+        group.MapPost("/login", Login)
+            .WithName("Login")
+            .WithSummary("User login");
+    }
+
+    private static async Task<IResult> SendCode(
+        [FromBody] SendCodeRequest request,
+        IFusionCache cache,
+        ILogger<Program> logger)
+    {
+        var code = Random.Shared.Next(100000, 999999).ToString();
+        await cache.SetAsync($"sms:code:{request.Phone}", code, TimeSpan.FromMinutes(5));
+
+        // TODO: Integrate SMS service (e.g., Twilio, Aliyun SMS)
+        logger.LogInformation("SMS code {Code} for {Phone}", code, request.Phone);
+
+        return Results.Ok(new MessageResponse("验证码已发送"));
+    }
+
+    private static async Task<IResult> Register(
+        [FromBody] RegisterRequest request,
+        IUserRepository userRepository,
+        IFusionCache cache,
+        IConfiguration configuration)
+    {
+        var cachedCode = await cache.TryGetAsync<string>($"sms:code:{request.Phone}");
+        if (!cachedCode.HasValue || cachedCode.Value != request.Code)
         {
-            var code = Random.Shared.Next(100000, 999999).ToString();
-            await cache.SetAsync($"sms:code:{request.Phone}", code, TimeSpan.FromMinutes(5));
+            return Results.BadRequest(new MessageResponse("验证码错误或已过期"));
+        }
 
-            // TODO: Integrate SMS service (e.g., Twilio, Aliyun SMS)
-            logger.LogInformation("SMS code {Code} for {Phone}", code, request.Phone);
-
-            return Results.Ok(new MessageResponse("验证码已发送"));
-        })
-        .WithName("SendCode")
-        .WithSummary("Send SMS verification code");
-
-        group.MapPost("/register", async (
-            [FromBody] RegisterRequest request,
-            IUserRepository userRepository,
-            IFusionCache cache,
-            IConfiguration configuration) =>
+        var existingUser = await userRepository.GetByPhoneAsync(request.Phone);
+        if (existingUser != null)
         {
-            var cachedCode = await cache.TryGetAsync<string>($"sms:code:{request.Phone}");
-            if (!cachedCode.HasValue || cachedCode.Value != request.Code)
-            {
-                return Results.BadRequest(new MessageResponse("验证码错误或已过期"));
-            }
+            return Results.BadRequest(new MessageResponse("该手机号已注册"));
+        }
 
-            var existingUser = await userRepository.GetByPhoneAsync(request.Phone);
-            if (existingUser != null)
-            {
-                return Results.BadRequest(new MessageResponse("该手机号已注册"));
-            }
-
-            var user = new User
-            {
-                Phone = request.Phone,
-                NickName = request.NickName ?? $"User{request.Phone[^4..]}",
-                PasswordHash = HashPassword(request.Password, configuration),
-                Role = UserRole.Customer,
-                Status = UserStatus.Active,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            var userId = await userRepository.CreateAsync(user);
-            user.Id = userId;
-
-            await cache.RemoveAsync($"sms:code:{request.Phone}");
-
-            var token = GenerateJwtToken(user, configuration);
-
-            return Results.Ok(new AuthResponse(
-                token,
-                new UserInfo(user.Id, user.Phone, user.NickName, user.Avatar, user.Role)
-            ));
-        })
-        .WithName("Register")
-        .WithSummary("User registration");
-        group.MapPost("/login", async (
-            [FromBody] LoginRequest request,
-            IUserRepository userRepository,
-            IConfiguration configuration) =>
+        var user = new User
         {
-            var user = await userRepository.GetByPhoneAsync(request.Phone);
-            if (user == null || !VerifyPassword(request.Password, user.PasswordHash, configuration))
-            {
-                return Results.BadRequest(new MessageResponse("手机号或密码错误"));
-            }
+            Phone = request.Phone,
+            NickName = request.NickName ?? $"User{request.Phone[^4..]}",
+            PasswordHash = HashPassword(request.Password, configuration),
+            Role = UserRole.Customer,
+            Status = UserStatus.Active,
+            CreatedAt = DateTime.UtcNow
+        };
 
-            if (user.Status != UserStatus.Active)
-            {
-                return Results.BadRequest(new MessageResponse("账号已被禁用"));
-            }
+        var userId = await userRepository.CreateAsync(user);
+        user.Id = userId;
 
-            var token = GenerateJwtToken(user, configuration);
+        await cache.RemoveAsync($"sms:code:{request.Phone}");
 
-            return Results.Ok(new AuthResponse(
-                token,
-                new UserInfo(user.Id, user.Phone, user.NickName, user.Avatar, user.Role)
-            ));
-        })
-        .WithName("Login")
-        .WithSummary("User login");
+        var token = GenerateJwtToken(user, configuration);
+
+        return Results.Ok(new AuthResponse(
+            token,
+            new UserInfo(user.Id, user.Phone, user.NickName, user.Avatar, user.Role)
+        ));
+    }
+
+    private static async Task<IResult> Login(
+        [FromBody] LoginRequest request,
+        IUserRepository userRepository,
+        IConfiguration configuration)
+    {
+        var user = await userRepository.GetByPhoneAsync(request.Phone);
+        if (user == null || !VerifyPassword(request.Password, user.PasswordHash, configuration))
+        {
+            return Results.BadRequest(new MessageResponse("手机号或密码错误"));
+        }
+
+        if (user.Status != UserStatus.Active)
+        {
+            return Results.BadRequest(new MessageResponse("账号已被禁用"));
+        }
+
+        var token = GenerateJwtToken(user, configuration);
+
+        return Results.Ok(new AuthResponse(
+            token,
+            new UserInfo(user.Id, user.Phone, user.NickName, user.Avatar, user.Role)
+        ));
     }
 
     private static string HashPassword(string password, IConfiguration configuration)
