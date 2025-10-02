@@ -8,73 +8,125 @@ CatCat/
 │   └── workflows/
 │       └── ci-cd.yml              # GitHub Actions CI/CD配置
 ├── database/
-│   └── init.sql                   # 数据库初始化脚本
+│   └── init.sql                   # PostgreSQL数据库初始化脚本
 ├── deploy/
 │   └── kubernetes/
 │       ├── deployment.yml         # K8s部署配置
 │       ├── postgres.yml          # PostgreSQL配置
 │       ├── redis.yml             # Redis配置
-│       ├── nats.yml              # NATS配置
-│       └── ingress.yml           # Ingress配置
+│       └── nats.yml              # NATS配置
 ├── docs/
 │   ├── ARCHITECTURE.md           # 架构设计文档
 │   ├── API.md                    # API文档
-│   ├── QUICK_START.md            # 快速启动指南
+│   ├── AOT_AND_CLUSTER.md        # AOT和集群指南
+│   ├── CENTRAL_PACKAGE_MANAGEMENT.md  # 中央包管理
 │   ├── DEPLOYMENT.md             # 部署指南
-│   └── PROJECT_STRUCTURE.md      # 本文档
+│   ├── ENVIRONMENT.md            # 环境配置
+│   ├── NATS_PEAK_CLIPPING.md     # NATS削峰指南
+│   ├── OPENTELEMETRY_GUIDE.md    # OpenTelemetry指南
+│   ├── OPTIMIZATION_SUMMARY.md   # 优化总结
+│   ├── PROJECT_STRUCTURE.md      # 本文档
+│   ├── QUICK_START.md            # 快速启动指南
+│   ├── RATE_LIMITING_GUIDE.md    # 限流指南
+│   └── optimization-history/     # 优化历史记录
+│       ├── AOT_FUSIONCACHE_REVIEW.md
+│       ├── CONTINUOUS_OPTIMIZATION_2.md
+│       ├── CONTINUOUS_OPTIMIZATION_3.md
+│       ├── CONTINUOUS_OPTIMIZATION_4.md
+│       └── YARP_MIGRATION.md
+├── scripts/
+│   ├── build.ps1                 # Windows编译脚本（支持AOT）
+│   └── build.sh                  # Linux编译脚本（支持AOT）
 ├── src/
-│   ├── CatCat.API/               # API服务层（Minimal API）
-│   │   ├── Endpoints/            # API端点定义
-│   │   │   ├── AuthEndpoints.cs
-│   │   │   ├── UserEndpoints.cs
-│   │   │   ├── PetEndpoints.cs
-│   │   │   ├── OrderEndpoints.cs
-│   │   │   └── ServiceProviderEndpoints.cs
+│   ├── CatCat.API/               # Web API服务（Minimal API）
+│   │   ├── Configuration/        # 配置模块
+│   │   │   ├── OpenTelemetryConfiguration.cs
+│   │   │   └── RateLimitingConfiguration.cs
+│   │   ├── Endpoints/            # API端点定义（按模块组织）
+│   │   │   ├── AuthEndpoints.cs  # 认证端点
+│   │   │   ├── UserEndpoints.cs  # 用户端点
+│   │   │   ├── PetEndpoints.cs   # 宠物端点
+│   │   │   ├── OrderEndpoints.cs # 订单端点
+│   │   │   └── ReviewEndpoints.cs# 评价端点
+│   │   ├── Extensions/           # 扩展方法
+│   │   │   ├── ClaimsPrincipalExtensions.cs # JWT声明扩展
+│   │   │   └── ServiceCollectionExtensions.cs # 服务注册扩展
+│   │   ├── Json/                 # JSON配置（AOT源生成）
+│   │   │   └── AppJsonContext.cs # System.Text.Json源生成上下文
 │   │   ├── Middleware/           # 中间件
 │   │   │   └── ExceptionHandlingMiddleware.cs
-│   │   ├── Models/               # 请求/响应模型
-│   │   │   └── AuthModels.cs
+│   │   ├── Models/               # 数据模型
+│   │   │   ├── ApiResult.cs      # API响应统一格式
+│   │   │   ├── Requests.cs       # 请求DTO
+│   │   │   └── Responses.cs      # 响应DTO
+│   │   ├── Observability/        # 可观测性
+│   │   │   └── CustomMetrics.cs  # 自定义指标
 │   │   ├── Properties/
 │   │   │   └── launchSettings.json
 │   │   ├── appsettings.json      # 配置文件
 │   │   ├── CatCat.API.csproj     # 项目文件
 │   │   ├── Dockerfile            # Docker构建文件
+│   │   ├── Dockerfile.aot        # AOT Docker构建文件
+│   │   ├── GlobalSuppressions.cs # 警告抑制
 │   │   └── Program.cs            # 程序入口
 │   │
-│   ├── CatCat.Core/              # 核心业务逻辑层（待扩展）
-│   │   ├── Services/             # 业务服务
-│   │   └── Validators/           # 数据验证
+│   ├── CatCat.Gateway/           # YARP API网关
+│   │   ├── Properties/
+│   │   │   └── launchSettings.json
+│   │   ├── appsettings.json      # 网关配置
+│   │   ├── appsettings.Development.json
+│   │   ├── appsettings.Production.json
+│   │   ├── CatCat.Gateway.csproj
+│   │   ├── Dockerfile.gateway    # Docker构建文件
+│   │   ├── Dockerfile.gateway.aot# AOT Docker构建文件
+│   │   └── Program.cs            # 程序入口
 │   │
-│   ├── CatCat.Domain/            # 领域模型层
+│   ├── CatCat.Infrastructure/    # 基础设施层（统一）
+│   │   ├── Common/               # 通用类型
+│   │   │   └── Result.cs         # Result模式
+│   │   ├── Database/             # 数据库
+│   │   │   ├── DatabaseConcurrencyLimiter.cs # 并发限制器
+│   │   │   ├── DatabaseMetrics.cs# 数据库指标
+│   │   │   └── DbConnectionFactory.cs # 连接工厂
 │   │   ├── Entities/             # 实体类
-│   │   │   ├── User.cs           # 用户实体
-│   │   │   ├── ServiceProvider.cs
-│   │   │   ├── Pet.cs            # 宠物实体
-│   │   │   ├── ServiceOrder.cs   # 订单实体
+│   │   │   ├── OrderStatusHistory.cs # 订单状态历史
+│   │   │   ├── Payment.cs        # 支付
+│   │   │   ├── Pet.cs            # 宠物
+│   │   │   ├── Review.cs         # 评价
+│   │   │   ├── ServiceOrder.cs   # 订单
 │   │   │   ├── ServicePackage.cs # 服务套餐
-│   │   │   ├── ServiceRecord.cs  # 服务记录
-│   │   │   └── Review.cs         # 评价
-│   │   └── CatCat.Domain.csproj
-│   │
-│   ├── CatCat.Infrastructure/    # 基础设施层
-│   │   ├── Cache/                # 缓存服务
-│   │   │   └── RedisCacheService.cs
-│   │   ├── Database/             # 数据库连接
-│   │   │   └── DbConnectionFactory.cs
+│   │   │   └── User.cs           # 用户
+│   │   ├── IdGenerator/          # ID生成器
+│   │   │   └── SnowflakeIdGenerator.cs # Yitter雪花ID
+│   │   ├── Messages/             # 消息定义
+│   │   │   └── OrderCreatedMessage.cs # 订单创建消息
 │   │   ├── MessageQueue/         # 消息队列
-│   │   │   └── NatsService.cs
-│   │   ├── Repositories/         # 数据仓库
+│   │   │   └── NatsService.cs    # NATS服务
+│   │   ├── Payment/              # 支付服务
+│   │   │   └── StripePaymentService.cs # Stripe支付
+│   │   ├── Repositories/         # 数据仓储（Sqlx）
+│   │   │   ├── OrderStatusHistoryRepository.cs
+│   │   │   ├── PaymentRepository.cs
+│   │   │   ├── PetRepository.cs
+│   │   │   ├── ReviewRepository.cs
+│   │   │   ├── ServiceOrderRepository.cs
+│   │   │   ├── ServicePackageRepository.cs
 │   │   │   └── UserRepository.cs
+│   │   ├── Services/             # 业务服务
+│   │   │   ├── OrderService.cs   # 订单服务
+│   │   │   └── ReviewService.cs  # 评价服务
 │   │   └── CatCat.Infrastructure.csproj
 │   │
-│   └── CatCat.Web/               # 前端应用
+│   └── CatCat.Web/               # Vue 3前端应用
 │       ├── public/               # 静态资源
 │       ├── src/
 │       │   ├── api/              # API调用
-│       │   │   ├── request.ts    # axios封装
-│       │   │   └── auth.ts       # 认证API
-│       │   ├── assets/           # 资源文件
-│       │   ├── components/       # 公共组件
+│       │   │   ├── auth.ts       # 认证API
+│       │   │   ├── orders.ts     # 订单API
+│       │   │   ├── packages.ts   # 套餐API
+│       │   │   ├── pets.ts       # 宠物API
+│       │   │   └── request.ts    # Axios封装
+│       │   ├── assets/           # 静态资源
 │       │   ├── layouts/          # 布局组件
 │       │   │   └── MainLayout.vue
 │       │   ├── router/           # 路由配置
@@ -86,128 +138,133 @@ CatCat/
 │       │   │   │   ├── Login.vue
 │       │   │   │   └── Register.vue
 │       │   │   ├── Home.vue
-│       │   │   ├── Orders.vue
-│       │   │   └── Profile.vue
+│       │   │   ├── MyOrders.vue
+│       │   │   ├── MyPets.vue
+│       │   │   ├── OrderDetail.vue
+│       │   │   ├── Payment.vue
+│       │   │   ├── Profile.vue
+│       │   │   └── Reviews.vue
 │       │   ├── App.vue           # 根组件
 │       │   ├── main.ts           # 应用入口
 │       │   └── style.css         # 全局样式
-│       ├── .gitignore
-│       ├── Dockerfile
+│       ├── Dockerfile.web        # Docker构建文件
 │       ├── index.html
 │       ├── nginx.conf            # Nginx配置
 │       ├── package.json
 │       ├── tsconfig.json
 │       └── vite.config.ts
 │
-├── .gitignore                     # Git忽略文件
+├── Directory.Build.props          # 项目通用属性
+├── Directory.Packages.props       # 中央包管理
+├── .dockerignore
+├── .gitignore
 ├── CatCat.sln                     # Visual Studio解决方案
-├── CONTRIBUTING.md                # 贡献指南
-├── docker-compose.yml             # Docker编排配置
+├── docker-compose.yml             # Docker Compose配置
 ├── LICENSE                        # MIT许可证
 └── README.md                      # 项目说明
 ```
 
-## 层次架构
+## 层次架构（简化后）
 
-### 1. API层 (CatCat.API) - Minimal API架构
+项目采用**3层架构**，从5个项目简化到3个项目：
+
+### 1. API层 (CatCat.API)
 
 **职责**：
 - 接收HTTP请求
-- 参数验证
-- 调用业务逻辑
-- 返回响应
-- 中间件处理（认证、异常等）
-
-**关键文件**：
-- `Program.cs`: 应用配置和中间件管道
-- `Endpoints/`: Minimal API端点定义（按功能模块组织）
-- `Middleware/`: 自定义中间件
-- `Models/`: DTO模型
-
-**Minimal API优势**：
-- 更轻量、性能更好
-- 代码更简洁
-- 更好的AOT支持
-- 适合微服务架构
-
-### 2. 核心业务层 (CatCat.Core)
-
-**职责**：
-- 业务逻辑实现
-- 业务规则验证
-- 事务管理
-- 领域服务
-
-**待实现的服务**：
-- `OrderService`: 订单处理逻辑
-- `PaymentService`: 支付处理
-- `NotificationService`: 通知服务
-- `LocationService`: 位置服务
-
-### 3. 领域模型层 (CatCat.Domain)
-
-**职责**：
-- 定义实体类
-- 定义枚举类型
-- 值对象
-- 领域事件
-
-**实体关系**：
-```
-User (用户)
-  ├── 1:N → Pet (宠物)
-  ├── 1:N → ServiceOrder (订单-作为客户)
-  ├── 1:1 → ServiceProvider (服务人员详情)
-  └── 1:N → Review (评价-作为客户)
-
-ServiceProvider (服务人员)
-  ├── 1:N → ServiceOrder (订单-作为服务人员)
-  └── 1:N → Review (评价-被评价)
-
-ServiceOrder (订单)
-  ├── N:1 → User (客户)
-  ├── N:1 → ServiceProvider (服务人员)
-  ├── N:1 → Pet (宠物)
-  ├── N:1 → ServicePackage (服务套餐)
-  ├── 1:N → ServiceRecord (服务记录)
-  └── 1:1 → Review (评价)
-```
-
-### 4. 基础设施层 (CatCat.Infrastructure)
-
-**职责**：
-- 数据访问实现
-- 缓存实现
-- 消息队列实现
-- 外部服务集成
-
-**组件**：
-- **DbConnectionFactory**: 数据库连接工厂
-- **Repositories**: 数据仓库实现
-- **RedisCacheService**: Redis缓存服务
-- **NatsService**: NATS消息队列服务
-
-### 5. 前端层 (CatCat.Web)
+- 参数验证和绑定
+- 调用业务服务
+- 返回统一格式响应
+- 认证授权
+- 限流保护
+- 异常处理
 
 **技术栈**：
-- Vue 3 (组合式API)
-- Vue Router 4 (路由)
-- Pinia (状态管理)
-- Vant 4 (移动端UI)
-- Axios (HTTP客户端)
-- TypeScript (类型安全)
+- ASP.NET Core 9 Minimal API
+- JWT Authentication
+- Rate Limiting (Fixed Window, Sliding Window, Token Bucket, Concurrency)
+- OpenTelemetry (Tracing + Metrics)
+- FusionCache (L1 Memory + L2 Redis)
+- System.Text.Json Source Generators (AOT兼容)
 
-**页面结构**：
-```
-认证流程：
-  Login (登录) ← → Register (注册)
-     ↓
-主要页面：
-  MainLayout (主布局)
-    ├── Home (首页 - 服务套餐展示)
-    ├── Orders (订单列表)
-    └── Profile (个人中心)
-```
+**关键特性**：
+- ✅ 100% AOT兼容
+- ✅ Minimal API（轻量、高性能）
+- ✅ 统一API响应格式 (`ApiResult<T>`)
+- ✅ 显式类型（无匿名类型）
+- ✅ 条件编译Swagger（仅Debug）
+
+### 2. 网关层 (CatCat.Gateway)
+
+**职责**：
+- 反向代理
+- 负载均衡
+- 限流
+- 路由转发
+- OpenTelemetry集成
+
+**技术栈**：
+- YARP (Yet Another Reverse Proxy)
+- OpenTelemetry
+- 支持AOT编译
+
+**优势**：
+- 统一.NET技术栈
+- 原生OpenTelemetry支持
+- 配置热更新
+- 集群友好
+
+### 3. 基础设施层 (CatCat.Infrastructure)
+
+**职责**（合并了Domain + Core + Infrastructure）：
+- **实体定义** (Entities/): 领域模型
+- **数据访问** (Repositories/): Sqlx源生成仓储
+- **业务服务** (Services/): OrderService, ReviewService
+- **消息队列** (MessageQueue/): NATS
+- **支付服务** (Payment/): Stripe
+- **缓存** (通过FusionCache直接使用)
+- **ID生成** (IdGenerator/): Yitter Snowflake
+- **数据库保护** (Database/): 并发限制 + 性能监控
+
+**技术栈**：
+- Npgsql (PostgreSQL)
+- **Sqlx** (编译时源生成ORM，零反射)
+- NATS.Client.Core
+- Stripe.net
+- FusionCache
+- Yitter.IdGenerator
+
+**仓储实现**：
+- 使用Sqlx的`[Sqlx]`特性定义SQL
+- 使用`[RepositoryFor(typeof(IXxxRepository))]`标记接口实现
+- 编译时生成代码，零运行时反射
+- 完全AOT兼容
+
+### 4. 前端层 (CatCat.Web)
+
+**技术栈**：
+- Vue 3 (Composition API)
+- Vue Router 4
+- Pinia (状态管理)
+- Vuestic UI (移动+桌面自适应)
+- Axios
+- TypeScript
+
+**响应式设计**：
+- 手机端: 320px - 767px
+- 平板: 768px - 1023px
+- 桌面: 1024px+
+
+## 项目简化总结
+
+| 优化项 | 优化前 | 优化后 | 说明 |
+|--------|--------|--------|------|
+| 项目数量 | 5个 | 3个 | 合并Domain+Core到Infrastructure |
+| 命名空间 | 多层级 | 简化 | `CatCat.Infrastructure.*` |
+| 依赖关系 | 复杂 | 清晰 | API → Infrastructure, Gateway独立 |
+| 代码行数 | ~1,112 | ~964 | 减少13.3% |
+| 编译警告 | 11个 | 0个 | 100%消除 |
+| AOT兼容性 | 部分 | 100% | 完全支持 |
 
 ## 数据流向
 
@@ -216,17 +273,19 @@ ServiceOrder (订单)
 ```
 用户输入 → Login.vue
     ↓
-stores/user.ts (loginUser)
+store.loginUser()
     ↓
 api/auth.ts (login)
     ↓
-HTTP POST /api/auth/login
+Gateway (YARP) → API
     ↓
-AuthController.Login
+AuthEndpoints.Login
     ↓
-UserRepository.GetByPhoneAsync
+UserRepository.GetByPhoneAsync (Sqlx)
     ↓
 PostgreSQL
+    ↓
+生成JWT Token
     ↓
 返回Token + UserInfo
     ↓
@@ -238,137 +297,130 @@ PostgreSQL
 ### 2. 创建订单流程
 
 ```
-用户选择服务 → Home.vue
+用户下单 → Home.vue
     ↓
-填写订单信息
+POST /api/orders
     ↓
-HTTP POST /api/orders
+Gateway → API
     ↓
-OrderController.Create
+OrderEndpoints.CreateOrder
     ↓
 OrderService.CreateOrderAsync
     ↓
-├── OrderRepository.CreateAsync (保存订单)
-├── NatsService.PublishAsync (发布订单事件)
-└── CacheService.RemoveAsync (清理缓存)
+├── 1. 验证用户和套餐（FusionCache缓存）
+├── 2. 创建订单（Sqlx Repository）
+├── 3. 创建支付意图（Stripe）
+├── 4. 异步记录状态历史（NATS消息队列）
+└── 5. 发布订单创建事件（NATS）
     ↓
 订单创建成功
     ↓
-推送通知给服务人员
+后台消费者处理通知
 ```
 
-### 3. 服务人员接单流程
+### 3. 订单状态流转
 
 ```
-推送通知 → 服务人员App
-    ↓
-查看订单详情
-    ↓
-HTTP POST /api/orders/{id}/accept
-    ↓
-OrderController.Accept
-    ↓
-OrderService.AcceptOrderAsync
-    ↓
-├── 验证服务人员状态
-├── 更新订单状态
-├── 通知客户（NATS）
-└── 更新缓存
-    ↓
-接单成功
+订单状态：
+  Pending (待接单)
+    ↓ AcceptOrderAsync
+  Accepted (已接单)
+    ↓ StartServiceAsync
+  InProgress (服务中)
+    ↓ CompleteServiceAsync
+  Completed (已完成)
+    ↓ CreateReviewAsync
+  Reviewed (已评价)
+
+状态变更：
+  - 每次状态变更通过NATS异步记录历史
+  - 清除相关缓存
+  - 推送通知（NATS）
 ```
 
 ## 配置管理
 
-### 后端配置
+### 中央包管理 (Directory.Packages.props)
+
+```xml
+<PackageVersion Include="Npgsql" Version="9.0.1" />
+<PackageVersion Include="Sqlx" Version="0.0.4" />
+<PackageVersion Include="ZiggyCreatures.FusionCache" Version="2.0.0" />
+<PackageVersion Include="NATS.Client.Core" Version="2.5.3" />
+<PackageVersion Include="Stripe.net" Version="47.3.0" />
+<PackageVersion Include="Yitter.IdGenerator" Version="1.0.14" />
+```
+
+### 应用配置 (appsettings.json)
 
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "PostgreSQL连接字符串",
-    "Redis": "Redis连接字符串",
-    "Nats": "NATS连接字符串"
+    "DefaultConnection": "Host=localhost;Database=catcat;...",
+    "Redis": "localhost:6379",
+    "Nats": "nats://localhost:4222"
   },
   "JwtSettings": {
-    "SecretKey": "JWT密钥",
-    "Issuer": "签发者",
-    "Audience": "受众",
+    "SecretKey": "your-secret-key",
+    "Issuer": "CatCat",
+    "Audience": "CatCat.API",
     "ExpiryDays": 7
   },
-  "AllowedOrigins": ["http://localhost:5173"],
-  "RateLimiting": {
-    "PermitLimit": 100,
-    "WindowMinutes": 1
+  "Database": {
+    "MaxConcurrency": 40,
+    "SlowQueryThresholdMs": 1000
+  },
+  "Stripe": {
+    "ApiKey": "sk_test_..."
   }
 }
 ```
-
-### 前端配置
-
-```typescript
-// vite.config.ts
-export default defineConfig({
-  server: {
-    port: 5173,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:5000',
-        changeOrigin: true
-      }
-    }
-  }
-})
-```
-
-## 扩展点
-
-### 1. 添加新实体
-
-1. 在 `CatCat.Domain/Entities/` 创建实体类
-2. 在 `database/init.sql` 添加表结构
-3. 在 `CatCat.Infrastructure/Repositories/` 创建Repository
-4. 在 `CatCat.API/Controllers/` 创建Controller
-5. 在前端创建对应的API调用和页面
-
-### 2. 添加新功能模块
-
-1. **后端**:
-   - Domain: 定义实体和接口
-   - Infrastructure: 实现数据访问
-   - Core: 实现业务逻辑
-   - API: 暴露HTTP接口
-
-2. **前端**:
-   - api/: 定义API调用
-   - stores/: 状态管理
-   - views/: 页面组件
-   - router/: 路由配置
-
-### 3. 集成第三方服务
-
-在 `CatCat.Infrastructure` 中添加：
-- 支付服务 (Payment/)
-- 短信服务 (Sms/)
-- 对象存储 (Storage/)
-- 地图服务 (Map/)
 
 ## 开发规范
 
 ### 命名约定
 
-- **C# 类名**: PascalCase (e.g., `UserRepository`)
-- **C# 方法**: PascalCase (e.g., `GetByIdAsync`)
-- **C# 参数**: camelCase (e.g., `userId`)
+- **C# 类名**: PascalCase (e.g., `OrderService`)
+- **C# 接口**: IPascalCase (e.g., `IOrderRepository`)
+- **C# 方法**: PascalCase (e.g., `CreateOrderAsync`)
+- **C# 参数**: camelCase (e.g., `orderId`)
 - **TypeScript 文件**: kebab-case (e.g., `user-service.ts`)
-- **Vue 组件**: PascalCase (e.g., `UserProfile.vue`)
+- **Vue 组件**: PascalCase (e.g., `OrderDetail.vue`)
 - **数据库表**: snake_case (e.g., `service_orders`)
 
-### 代码组织
+### 代码原则
 
-- 单一职责原则
-- 依赖注入
-- 接口分离
-- 异步优先
+- ✅ DRY (Don't Repeat Yourself)
+- ✅ SOLID原则
+- ✅ 依赖注入
+- ✅ 异步优先
+- ✅ Result模式（避免异常）
+- ✅ 显式类型（避免匿名类型）
+- ✅ AOT优先
+
+## 扩展点
+
+### 1. 添加新实体
+
+1. 在 `CatCat.Infrastructure/Entities/` 创建实体类
+2. 在 `database/init.sql` 添加表结构
+3. 在 `CatCat.Infrastructure/Repositories/` 创建Repository接口和类
+4. 在 `CatCat.API/Endpoints/` 创建Endpoints
+5. 在 `CatCat.API/Json/AppJsonContext.cs` 注册类型
+6. 在前端创建对应的API和页面
+
+### 2. 添加新服务
+
+1. 在 `CatCat.Infrastructure/Services/` 创建服务接口和实现
+2. 在 `ServiceCollectionExtensions.cs` 注册服务
+3. 在Endpoints中注入使用
+
+### 3. 集成第三方服务
+
+在 `CatCat.Infrastructure` 中添加新目录，如：
+- `Sms/` - 短信服务
+- `Storage/` - 对象存储
+- `Map/` - 地图服务
 
 ## 相关文档
 
@@ -376,4 +428,11 @@ export default defineConfig({
 - [API文档](API.md)
 - [快速启动](QUICK_START.md)
 - [部署指南](DEPLOYMENT.md)
+- [优化总结](OPTIMIZATION_SUMMARY.md)
+- [AOT和集群](AOT_AND_CLUSTER.md)
+- [限流指南](RATE_LIMITING_GUIDE.md)
+- [OpenTelemetry指南](OPENTELEMETRY_GUIDE.md)
 
+---
+
+*最后更新: 2025-10-02 - 项目已简化到3层架构*
