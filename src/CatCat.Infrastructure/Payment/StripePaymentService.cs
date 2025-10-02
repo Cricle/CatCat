@@ -22,7 +22,7 @@ public class StripePaymentService : IPaymentService
         _logger = logger;
         StripeConfiguration.ApiKey = configuration["Stripe:SecretKey"];
 
-        // 缓存Stripe服务实例，避免重复创建
+        // Cache Stripe service instances to avoid repeated creation
         _paymentIntentService = new PaymentIntentService();
         _refundService = new RefundService();
     }
@@ -33,7 +33,7 @@ public class StripePaymentService : IPaymentService
         {
             var options = new PaymentIntentCreateOptions
             {
-                Amount = (long)(amount * 100), // Stripe使用最小单位（美分）
+                Amount = (long)(amount * 100), // Stripe uses smallest unit (cents)
                 Currency = currency,
                 AutomaticPaymentMethods = new PaymentIntentAutomaticPaymentMethodsOptions
                 {
@@ -47,7 +47,7 @@ public class StripePaymentService : IPaymentService
 
             var paymentIntent = await _paymentIntentService.CreateAsync(options);
 
-            _logger.LogInformation("Stripe Payment Intent创建成功: {PaymentIntentId}, OrderId: {OrderId}",
+            _logger.LogInformation("Stripe PaymentIntent created successfully: {PaymentIntentId}, OrderId: {OrderId}",
                 paymentIntent.Id, orderId);
 
             return new PaymentIntentResult
@@ -59,7 +59,7 @@ public class StripePaymentService : IPaymentService
         }
         catch (StripeException ex)
         {
-            _logger.LogError(ex, "创建Payment Intent失败: OrderId={OrderId}", orderId);
+            _logger.LogError(ex, "Failed to create PaymentIntent: OrderId={OrderId}", orderId);
             return new PaymentIntentResult
             {
                 Success = false,
@@ -74,14 +74,14 @@ public class StripePaymentService : IPaymentService
         {
             var paymentIntent = await _paymentIntentService.GetAsync(paymentIntentId);
 
-            _logger.LogInformation("支付确认: {PaymentIntentId}, Status: {Status}",
+            _logger.LogInformation("Payment confirmed: {PaymentIntentId}, Status: {Status}",
                 paymentIntentId, paymentIntent.Status);
 
             return paymentIntent.Status == "succeeded";
         }
         catch (StripeException ex)
         {
-            _logger.LogError(ex, "确认支付失败: PaymentIntentId={PaymentIntentId}", paymentIntentId);
+            _logger.LogError(ex, "Failed to confirm payment: PaymentIntentId={PaymentIntentId}", paymentIntentId);
             return false;
         }
     }
@@ -102,14 +102,14 @@ public class StripePaymentService : IPaymentService
 
             var refund = await _refundService.CreateAsync(options);
 
-            _logger.LogInformation("退款成功: {RefundId}, PaymentIntentId: {PaymentIntentId}",
+            _logger.LogInformation("Refund successful: {RefundId}, PaymentIntentId: {PaymentIntentId}",
                 refund.Id, paymentIntentId);
 
             return refund.Status == "succeeded";
         }
         catch (StripeException ex)
         {
-            _logger.LogError(ex, "退款失败: PaymentIntentId={PaymentIntentId}", paymentIntentId);
+            _logger.LogError(ex, "Failed to refund payment: PaymentIntentId={PaymentIntentId}", paymentIntentId);
             return false;
         }
     }

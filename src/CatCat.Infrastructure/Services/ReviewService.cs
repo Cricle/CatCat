@@ -48,14 +48,14 @@ public class ReviewService : IReviewService
 
         if (order.Status != OrderStatus.Completed)
         {
-            _logger.LogWarning("Create review failed: Order not completed. OrderId={OrderId}, Status={Status}", 
+            _logger.LogWarning("Create review failed: Order not completed. OrderId={OrderId}, Status={Status}",
                 command.OrderId, order.Status);
             return Result.Failure<long>("Only completed orders can be reviewed");
         }
 
         if (order.CustomerId != command.CustomerId)
         {
-            _logger.LogWarning("Create review failed: Not order owner. OrderId={OrderId}, CustomerId={CustomerId}, RequestUserId={RequestUserId}", 
+            _logger.LogWarning("Create review failed: Not order owner. OrderId={OrderId}, CustomerId={CustomerId}, RequestUserId={RequestUserId}",
                 command.OrderId, order.CustomerId, command.CustomerId);
             return Result.Failure<long>("You can only review your own orders");
         }
@@ -146,7 +146,7 @@ public class ReviewService : IReviewService
         var items = await _reviewRepository.GetByServiceProviderIdPagedAsync(serviceProviderId, offset, pageSize);
         var total = await _reviewRepository.CountByServiceProviderIdAsync(serviceProviderId);
 
-        _logger.LogInformation("Get reviews: ServiceProviderId={ServiceProviderId}, Total={Total}, AvgRating={AvgRating}", 
+        _logger.LogInformation("Get reviews: ServiceProviderId={ServiceProviderId}, Total={Total}, AvgRating={AvgRating}",
             serviceProviderId, total, avgRating);
 
         return Result.Success<(IEnumerable<Review>, int, decimal)>((items, total, (decimal)avgRating));

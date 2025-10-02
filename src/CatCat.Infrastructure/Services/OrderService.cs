@@ -132,8 +132,8 @@ public class OrderService : IOrderService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "创建订单失败");
-            return Result.Failure<long>("创建订单失败：" + ex.Message);
+            _logger.LogError(ex, "Order creation failed");
+            return Result.Failure<long>("Order creation failed: " + ex.Message);
         }
     }
 

@@ -41,7 +41,7 @@ public async Task<Result<long>> CreateReviewAsync(CreateReviewCommand command, C
 
     if (order.Status != OrderStatus.Completed)
     {
-        _logger.LogWarning("Create review failed: Order not completed. OrderId={OrderId}, Status={Status}", 
+        _logger.LogWarning("Create review failed: Order not completed. OrderId={OrderId}, Status={Status}",
             command.OrderId, order.Status);
         return Result.Failure<long>("Only completed orders can be reviewed");
     }

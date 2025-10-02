@@ -5,7 +5,7 @@ using System.Diagnostics.Metrics;
 namespace CatCat.Infrastructure.Database;
 
 /// <summary>
-/// 数据库性能监控指标
+/// Database performance monitoring metrics
 /// </summary>
 public class DatabaseMetrics
 {
@@ -29,23 +29,23 @@ public class DatabaseMetrics
         _queryDuration = meter.CreateHistogram<double>(
             "database.query.duration",
             unit: "ms",
-            description: "数据库查询耗时");
+            description: "Database query duration");
 
         _queryCount = meter.CreateCounter<long>(
             "database.query.count",
-            description: "数据库查询次数");
+            description: "Database query count");
 
         _slowQueryCount = meter.CreateCounter<long>(
             "database.slow_query.count",
-            description: "慢查询次数");
+            description: "Slow query count");
 
         _queryErrorCount = meter.CreateCounter<long>(
             "database.query.error.count",
-            description: "查询错误次数");
+            description: "Query error count");
     }
 
     /// <summary>
-    /// 记录查询性能指标
+    /// Record query performance metrics
     /// </summary>
     public async Task<T> RecordQueryAsync<T>(
         string queryName,
@@ -60,24 +60,24 @@ public class DatabaseMetrics
 
             var elapsedMs = sw.Elapsed.TotalMilliseconds;
 
-            // 记录查询耗时
+            // Record query duration
             _queryDuration.Record(elapsedMs,
                 new KeyValuePair<string, object?>("query", queryName),
                 new KeyValuePair<string, object?>("status", "success"));
 
-            // 记录查询次数
+            // Record query count
             _queryCount.Add(1,
                 new KeyValuePair<string, object?>("query", queryName),
                 new KeyValuePair<string, object?>("status", "success"));
 
-            // 慢查询告警
+            // Slow query warning
             if (elapsedMs > _slowQueryThresholdMs)
             {
                 _slowQueryCount.Add(1,
                     new KeyValuePair<string, object?>("query", queryName));
 
                 _logger.LogWarning(
-                    "慢查询检测: {QueryName}, 耗时: {ElapsedMs}ms (阈值: {ThresholdMs}ms)",
+                    "Slow query detected: {QueryName}, Duration: {ElapsedMs}ms (Threshold: {ThresholdMs}ms)",
                     queryName, elapsedMs, _slowQueryThresholdMs);
             }
 
@@ -87,7 +87,7 @@ public class DatabaseMetrics
         {
             sw.Stop();
 
-            // 记录错误
+            // Record error
             _queryErrorCount.Add(1,
                 new KeyValuePair<string, object?>("query", queryName),
                 new KeyValuePair<string, object?>("error_type", ex.GetType().Name));
@@ -97,7 +97,7 @@ public class DatabaseMetrics
                 new KeyValuePair<string, object?>("status", "error"));
 
             _logger.LogError(ex,
-                "数据库查询失败: {QueryName}, 耗时: {ElapsedMs}ms",
+                "Database query failed: {QueryName}, Duration: {ElapsedMs}ms",
                 queryName, sw.Elapsed.TotalMilliseconds);
 
             throw;
