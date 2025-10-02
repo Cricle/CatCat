@@ -1,4 +1,4 @@
-namespace CatCat.Domain.Messages;
+namespace CatCat.Infrastructure.Messages;
 
 /// <summary>
 /// 订单创建消息

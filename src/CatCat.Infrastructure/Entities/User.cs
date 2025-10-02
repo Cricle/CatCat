@@ -1,4 +1,4 @@
-namespace CatCat.Domain.Entities;
+namespace CatCat.Infrastructure.Entities;
 
 /// <summary>
 /// 用户实体

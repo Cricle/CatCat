@@ -1,4 +1,4 @@
-using CatCat.Domain.Entities;
+using CatCat.Infrastructure.Entities;
 using CatCat.Infrastructure.MessageQueue;
 using CatCat.Infrastructure.Repositories;
 using Microsoft.Extensions.Logging;

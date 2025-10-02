@@ -1,8 +1,8 @@
-using CatCat.Domain.Entities;
+using CatCat.Infrastructure.Entities;
 using CatCat.Infrastructure.Database;
 using Sqlx.Annotations;
 using System.Data;
-using PaymentEntity = CatCat.Domain.Entities.Payment;
+using PaymentEntity = CatCat.Infrastructure.Entities.Payment;
 
 namespace CatCat.Infrastructure.Repositories;
 

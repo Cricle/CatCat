@@ -1,4 +1,4 @@
-namespace CatCat.Domain.Entities;
+namespace CatCat.Infrastructure.Entities;
 
 /// <summary>
 /// 订单状态变更历史 - 让流程透明可见

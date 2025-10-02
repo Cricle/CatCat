@@ -1,4 +1,4 @@
-using CatCat.Domain.Entities;
+using CatCat.Infrastructure.Entities;
 
 namespace CatCat.API.Models;
 

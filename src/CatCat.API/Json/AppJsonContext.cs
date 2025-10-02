@@ -1,8 +1,8 @@
 using CatCat.API.Models;
 using CatCat.Core.Common;
 using CatCat.Core.Services;
-using CatCat.Domain.Entities;
-using CatCat.Domain.Messages;
+using CatCat.Infrastructure.Entities;
+using CatCat.Infrastructure.Messages;
 using CatCat.Infrastructure.Payment;
 using System.Text.Json.Serialization;
 

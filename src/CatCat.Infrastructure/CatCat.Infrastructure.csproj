@@ -13,8 +13,4 @@
     <PackageReference Include="Yitter.IdGenerator" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\CatCat.Domain\CatCat.Domain.csproj" />
-  </ItemGroup>
-
 </Project>

@@ -1,4 +1,4 @@
-using CatCat.Domain.Entities;
+using CatCat.Infrastructure.Entities;
 using CatCat.Infrastructure.Database;
 using Sqlx.Annotations;
 using System.Data;

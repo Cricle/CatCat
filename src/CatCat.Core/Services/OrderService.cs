@@ -1,6 +1,6 @@
 using CatCat.Core.Common;
-using CatCat.Domain.Entities;
-using CatCat.Domain.Messages;
+using CatCat.Infrastructure.Entities;
+using CatCat.Infrastructure.Messages;
 using CatCat.Infrastructure.MessageQueue;
 using CatCat.Infrastructure.Payment;
 using CatCat.Infrastructure.Repositories;

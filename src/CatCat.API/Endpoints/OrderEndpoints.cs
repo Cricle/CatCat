@@ -3,6 +3,7 @@ using System.Security.Claims;
 using CatCat.API.Extensions;
 using CatCat.API.Models;
 using CatCat.Core.Services;
+using CatCat.Infrastructure.Entities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
@@ -64,7 +65,7 @@ public static class OrderEndpoints
                 return Results.BadRequest(ApiResult.Fail<object>(result.Error!));
 
             var (items, total) = result.Value;
-            var pagedResult = PagedResult<Domain.Entities.ServiceOrder>.Create(items, total, page, pageSize);
+            var pagedResult = PagedResult<ServiceOrder>.Create(items, total, page, pageSize);
             return Results.Ok(ApiResult.Ok(pagedResult));
         })
         .RequireAuthorization()
