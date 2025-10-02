@@ -53,22 +53,11 @@ public static class ReviewEndpoints
         .WithSummary("回复评价（服务人员）");
 
         group.MapGet("/service-provider/{serviceProviderId}", async (
-            long serviceProviderId,
-            IReviewService reviewService,
-            [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 10) =>
+            long serviceProviderId, IReviewService reviewService,
+            [FromQuery] int page = 1, [FromQuery] int pageSize = 10) =>
         {
-            var (items, total, averageRating) = await reviewService.GetServiceProviderReviewsAsync(
-                serviceProviderId, page, pageSize);
-
-            return Results.Ok(new
-            {
-                items,
-                total,
-                averageRating,
-                page,
-                pageSize
-            });
+            var (items, total, averageRating) = await reviewService.GetServiceProviderReviewsAsync(serviceProviderId, page, pageSize);
+            return Results.Ok(new ReviewListResponse(items, total, averageRating, page, pageSize));
         })
         .WithName("GetServiceProviderReviews")
         .WithSummary("获取服务人员的评价列表");

@@ -1,4 +1,5 @@
 using CatCat.API.Json;
+using CatCat.API.Models;
 using System.Text.Json;
 using System.Threading.RateLimiting;
 
@@ -107,31 +108,12 @@ public static class RateLimitingConfiguration
                 context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
                 context.HttpContext.Response.ContentType = "application/json";
 
-                if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
-                {
-                    var response = new Dictionary<string, object>
-                    {
-                        ["success"] = false,
-                        ["message"] = "请求过于频繁，请稍后再试",
-                        ["code"] = 429,
-                        ["retryAfter"] = retryAfter.TotalSeconds
-                    };
-                    await context.HttpContext.Response.WriteAsync(
-                        JsonSerializer.Serialize(response, AppJsonContext.Default.DictionaryStringObject),
-                        token);
-                }
-                else
-                {
-                    var response = new Dictionary<string, object>
-                    {
-                        ["success"] = false,
-                        ["message"] = "请求过于频繁，请稍后再试",
-                        ["code"] = 429
-                    };
-                    await context.HttpContext.Response.WriteAsync(
-                        JsonSerializer.Serialize(response, AppJsonContext.Default.DictionaryStringObject),
-                        token);
-                }
+                var response = context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter)
+                    ? new RateLimitResponse(false, "请求过于频繁，请稍后再试", 429, retryAfter.TotalSeconds)
+                    : new RateLimitResponse(false, "请求过于频繁，请稍后再试", 429);
+                await context.HttpContext.Response.WriteAsync(
+                    JsonSerializer.Serialize(response, AppJsonContext.Default.RateLimitResponse),
+                    token);
             };
         });
 

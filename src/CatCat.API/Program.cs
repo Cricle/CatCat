@@ -1,5 +1,6 @@
 using CatCat.API.Configuration;
 using CatCat.API.Endpoints;
+using CatCat.API.Extensions;
 using CatCat.API.Middleware;
 using CatCat.API.Models;
 using CatCat.API.Observability;
@@ -109,19 +110,9 @@ builder.Services.AddSingleton(natsConnection);
 builder.Services.AddSingleton<IMessageQueueService>(sp =>
     new NatsService(natsConnection, CatCat.API.Json.AppJsonContext.Default));
 
-// Repositories
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<IPetRepository, PetRepository>();
-builder.Services.AddScoped<IServiceOrderRepository, ServiceOrderRepository>();
-builder.Services.AddScoped<IServicePackageRepository, ServicePackageRepository>();
-builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
-builder.Services.AddScoped<IOrderStatusHistoryRepository, OrderStatusHistoryRepository>();
-builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
-
-// Services
-builder.Services.AddScoped<IOrderService, OrderService>();
-builder.Services.AddScoped<IReviewService, ReviewService>();
-builder.Services.AddScoped<IPaymentService, StripePaymentService>();
+// Repositories & Services
+builder.Services.AddRepositories();
+builder.Services.AddApplicationServices();
 
 // JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");

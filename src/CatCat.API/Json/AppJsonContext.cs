@@ -60,7 +60,9 @@ namespace CatCat.API.Json;
 [JsonSerializable(typeof(PetListResponse))]
 [JsonSerializable(typeof(PetCreateResponse))]
 [JsonSerializable(typeof(ReviewCreateResponse))]
+[JsonSerializable(typeof(ReviewListResponse))]
 [JsonSerializable(typeof(UserListResponse))]
+[JsonSerializable(typeof(RateLimitResponse))]
 
 // Payment Models
 [JsonSerializable(typeof(PaymentIntentResult))]
