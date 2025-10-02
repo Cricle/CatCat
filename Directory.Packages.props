@@ -1,0 +1,40 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- ASP.NET Core -->
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="9.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.0" />
+    <PackageVersion Include="Swashbuckle.AspNetCore" Version="7.2.0" />
+    <!-- Database & ORM -->
+    <PackageVersion Include="Npgsql" Version="9.0.2" />
+    <PackageVersion Include="Sqlx" Version="0.3.0" />
+    <!-- Sqlx.Generator 已包含在 Sqlx 包中，不需要单独安装 -->
+    <!-- Caching - FusionCache (混合缓存：内存 + Redis) -->
+    <PackageVersion Include="ZiggyCreatures.FusionCache" Version="2.0.0" />
+    <PackageVersion Include="ZiggyCreatures.FusionCache.Serialization.SystemTextJson" Version="2.0.0" />
+    <PackageVersion Include="ZiggyCreatures.FusionCache.Backplane.StackExchangeRedis" Version="2.0.0" />
+    <PackageVersion Include="StackExchange.Redis" Version="2.8.22" />
+    <!-- Messaging -->
+    <PackageVersion Include="NATS.Client.Core" Version="2.6.5" />
+    <!-- Payment -->
+    <PackageVersion Include="Stripe.net" Version="46.0.0" />
+    <!-- Logging & Monitoring -->
+    <PackageVersion Include="Serilog.AspNetCore" Version="8.0.3" />
+    <PackageVersion Include="Serilog.Sinks.Console" Version="6.0.0" />
+    <PackageVersion Include="Serilog.Sinks.File" Version="6.0.0" />
+    <!-- OpenTelemetry - 可观察性（支持 AOT）-->
+    <PackageVersion Include="OpenTelemetry.Exporter.Console" Version="1.9.0" />
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.9.0" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.9.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.9.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.9.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.9.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.StackExchangeRedis" Version="1.9.0-beta.1" />
+    <!-- ID Generator -->
+    <PackageVersion Include="Yitter.IdGenerator" Version="1.0.14" />
+  </ItemGroup>
+</Project>

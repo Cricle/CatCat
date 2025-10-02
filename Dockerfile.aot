@@ -1,0 +1,68 @@
+# AOT 编译 Dockerfile（最小体积）
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+WORKDIR /src
+
+# 安装 AOT 编译工具链
+RUN apt-get update && apt-get install -y \
+    clang \
+    zlib1g-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# 复制项目文件
+COPY Directory.Packages.props .
+COPY Directory.Build.props .
+COPY src/CatCat.Domain/CatCat.Domain.csproj src/CatCat.Domain/
+COPY src/CatCat.Infrastructure/CatCat.Infrastructure.csproj src/CatCat.Infrastructure/
+COPY src/CatCat.Core/CatCat.Core.csproj src/CatCat.Core/
+COPY src/CatCat.API/CatCat.API.csproj src/CatCat.API/
+
+# 还原依赖
+RUN dotnet restore src/CatCat.API/CatCat.API.csproj
+
+# 复制所有源代码
+COPY src/ src/
+
+# AOT 编译
+WORKDIR /src/src/CatCat.API
+RUN dotnet publish -c Release -r linux-x64 -o /app/publish
+
+# 前端构建
+FROM node:20-alpine AS frontend-build
+WORKDIR /app
+COPY src/CatCat.Web/package*.json ./
+RUN npm ci
+COPY src/CatCat.Web/ ./
+RUN npm run build
+
+# 最终镜像（使用 Alpine Linux，极小体积）
+FROM alpine:latest
+WORKDIR /app
+
+# 安装必要的运行时库
+RUN apk add --no-cache \
+    libstdc++ \
+    libgcc \
+    icu-libs
+
+# 复制 AOT 编译的二进制文件
+COPY --from=build /app/publish/CatCat.API .
+
+# 复制前端静态文件
+COPY --from=frontend-build /app/dist ./wwwroot
+
+# 设置权限
+RUN chmod +x CatCat.API
+
+# 环境变量
+ENV ASPNETCORE_URLS=http://+:80 \
+    ASPNETCORE_ENVIRONMENT=Production
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost/health || exit 1
+
+EXPOSE 80
+
+# 直接运行 AOT 编译的二进制文件
+ENTRYPOINT ["./CatCat.API"]
+

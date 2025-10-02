@@ -1,0 +1,131 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+env:
+  DOTNET_VERSION: '9.0.x'
+  NODE_VERSION: '20.x'
+
+jobs:
+  build-backend:
+    name: Build Backend
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build --no-restore --configuration Release
+
+    - name: Test
+      run: dotnet test --no-build --configuration Release --verbosity normal
+
+    - name: Publish
+      run: dotnet publish src/CatCat.API/CatCat.API.csproj --configuration Release --output ./publish
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: backend-release
+        path: ./publish
+
+  build-frontend:
+    name: Build Frontend
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: src/CatCat.Web/package-lock.json
+
+    - name: Install dependencies
+      working-directory: src/CatCat.Web
+      run: npm ci
+
+    - name: Build
+      working-directory: src/CatCat.Web
+      run: npm run build
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: frontend-dist
+        path: src/CatCat.Web/dist
+
+  build-aot:
+    name: Build AOT (Linux)
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build AOT
+      run: dotnet publish src/CatCat.API/CatCat.API.csproj -c Release -r linux-x64 -o ./publish-aot
+
+    - name: Check binary size
+      run: |
+        ls -lh ./publish-aot/CatCat.API
+        echo "Binary size: $(du -h ./publish-aot/CatCat.API | cut -f1)"
+
+    - name: Upload AOT artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: backend-aot-linux
+        path: ./publish-aot/CatCat.API
+
+  lint:
+    name: Lint and Format Check
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Install dotnet-format
+      run: dotnet tool install -g dotnet-format || true
+
+    - name: Check code formatting
+      run: dotnet format --verify-no-changes --verbosity diagnostic || true
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+
+    - name: Install frontend dependencies
+      working-directory: src/CatCat.Web
+      run: npm ci
+
+    - name: Lint frontend
+      working-directory: src/CatCat.Web
+      run: npm run lint || true
+

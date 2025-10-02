@@ -1,0 +1,119 @@
+version: '3.8'
+
+services:
+  # PostgreSQL 数据库
+  postgres:
+    image: postgres:16-alpine
+    container_name: catcat-postgres
+    environment:
+      POSTGRES_DB: catcat
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - catcat-network
+
+  # Redis 缓存
+  redis:
+    image: redis:7-alpine
+    container_name: catcat-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - catcat-network
+
+  # NATS 消息队列
+  nats:
+    image: nats:2-alpine
+    container_name: catcat-nats
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    command: "-js -m 8222"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8222/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - catcat-network
+
+  # CatCat API
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: catcat-api
+    ports:
+      - "5000:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=catcat;Username=postgres;Password=postgres
+      - ConnectionStrings__Redis=redis:6379
+      - ConnectionStrings__Nats=nats://nats:4222
+      - JwtSettings__SecretKey=YourSuperSecretKeyThatIsLongEnoughAndSecure
+      - JwtSettings__Issuer=CatCatIssuer
+      - JwtSettings__Audience=CatCatAudience
+      - IdGenerator__WorkerId=1
+      - Stripe__SecretKey=${STRIPE_SECRET_KEY}
+      - OpenTelemetry__OtlpExporterEndpoint=http://otel-collector:4317
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - catcat-network
+
+  # Nginx 反向代理
+  nginx:
+    image: nginx:alpine
+    container_name: catcat-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - api
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - catcat-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  catcat-network:
+    driver: bridge
