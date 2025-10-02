@@ -4,7 +4,7 @@ using CatCat.API.Extensions;
 using CatCat.API.Middleware;
 using CatCat.API.Models;
 using CatCat.API.Observability;
-using CatCat.Core.Services;
+using CatCat.Infrastructure.Services;
 using CatCat.Infrastructure.Database;
 using CatCat.Infrastructure.IdGenerator;
 using CatCat.Infrastructure.MessageQueue;

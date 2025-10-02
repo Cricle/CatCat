@@ -1,4 +1,4 @@
-namespace CatCat.Core.Common;
+namespace CatCat.Infrastructure.Common;
 
 /// <summary>
 /// 操作结果 - 避免异常抛出，提升性能

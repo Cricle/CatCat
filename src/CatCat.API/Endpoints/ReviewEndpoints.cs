@@ -1,6 +1,6 @@
 using CatCat.API.Extensions;
 using CatCat.API.Models;
-using CatCat.Core.Services;
+using CatCat.Infrastructure.Services;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Claims;

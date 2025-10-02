@@ -2,7 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Security.Claims;
 using CatCat.API.Extensions;
 using CatCat.API.Models;
-using CatCat.Core.Services;
+using CatCat.Infrastructure.Services;
 using CatCat.Infrastructure.Entities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;

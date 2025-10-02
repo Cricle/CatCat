@@ -3,7 +3,7 @@ using CatCat.Infrastructure.MessageQueue;
 using CatCat.Infrastructure.Repositories;
 using Microsoft.Extensions.Logging;
 
-namespace CatCat.Core.Services;
+namespace CatCat.Infrastructure.Services;
 
 public interface IReviewService
 {

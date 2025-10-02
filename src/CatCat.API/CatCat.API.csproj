@@ -17,7 +17,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CatCat.Core\CatCat.Core.csproj" />
     <ProjectReference Include="..\CatCat.Infrastructure\CatCat.Infrastructure.csproj" />
   </ItemGroup>
 

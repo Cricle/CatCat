@@ -1,4 +1,4 @@
-using CatCat.Core.Services;
+using CatCat.Infrastructure.Services;
 using CatCat.Infrastructure.Payment;
 using CatCat.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;

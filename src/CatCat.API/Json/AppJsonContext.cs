@@ -1,6 +1,6 @@
 using CatCat.API.Models;
-using CatCat.Core.Common;
-using CatCat.Core.Services;
+using CatCat.Infrastructure.Common;
+using CatCat.Infrastructure.Services;
 using CatCat.Infrastructure.Entities;
 using CatCat.Infrastructure.Messages;
 using CatCat.Infrastructure.Payment;

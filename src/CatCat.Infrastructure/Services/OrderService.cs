@@ -1,14 +1,14 @@
-using CatCat.Core.Common;
+using CatCat.Infrastructure.Common;
 using CatCat.Infrastructure.Entities;
 using CatCat.Infrastructure.Messages;
 using CatCat.Infrastructure.MessageQueue;
-using CatCat.Infrastructure.Payment;
 using CatCat.Infrastructure.Repositories;
 using Microsoft.Extensions.Logging;
+using PaymentService = CatCat.Infrastructure.Payment;
 using Yitter.IdGenerator;
 using ZiggyCreatures.Caching.Fusion;
 
-namespace CatCat.Core.Services;
+namespace CatCat.Infrastructure.Services;
 
 /// <summary>
 /// 优化的订单服务 - 使用 Result 模式，避免异常抛出
@@ -41,7 +41,7 @@ public class OrderService : IOrderService
     private readonly IPaymentRepository _paymentRepository;
     private readonly IServicePackageRepository _packageRepository;
     private readonly IMessageQueueService _messageQueue;
-    private readonly IPaymentService _paymentService;
+    private readonly PaymentService.IPaymentService _paymentService;
     private readonly IFusionCache _cache;
     private readonly ILogger<OrderService> _logger;
 
@@ -51,7 +51,7 @@ public class OrderService : IOrderService
         IPaymentRepository paymentRepository,
         IServicePackageRepository packageRepository,
         IMessageQueueService messageQueue,
-        IPaymentService paymentService,
+        PaymentService.IPaymentService paymentService,
         IFusionCache cache,
         ILogger<OrderService> logger)
     {
@@ -103,7 +103,7 @@ public class OrderService : IOrderService
                 order.Price,
                 "cny");
 
-            var payment = new Payment
+            var payment = new Entities.Payment
             {
                 Id = YitIdHelper.NextId(),
                 OrderId = orderId,
