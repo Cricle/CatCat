@@ -10,9 +10,11 @@
 - ✅ **极简代码**: Repository 层仅 200 行（使用 Sqlx Source Generator）
 - ✅ **完全类型安全**: 编译时检查，零运行时错误
 - ✅ **AOT 就绪**: 零反射，极快启动，极小体积
-- ✅ **高性能**: FusionCache + NATS + Snowflake ID
+- ✅ **高性能**: FusionCache + NATS JetStream + Snowflake ID
+- ✅ **异步处理**: 订单队列化，削峰填谷，快速响应
 - ✅ **可观察**: OpenTelemetry 分布式追踪
-- ✅ **一键部署**: Docker Compose + GitHub Actions CI/CD
+- ✅ **一键部署**: Docker Compose + .NET Aspire + GitHub Actions CI/CD
+- ✅ **清晰架构**: 静态方法端点 + Result 模式 + 统一错误处理
 
 ---
 
@@ -23,10 +25,11 @@
 - **ORM**: Sqlx (Source Generator)
 - **数据库**: PostgreSQL 16
 - **缓存**: FusionCache + Redis 7
-- **消息队列**: NATS 2
+- **消息队列**: NATS JetStream 2.10
 - **支付**: Stripe
 - **ID生成**: Yitter Snowflake
 - **可观察性**: OpenTelemetry
+- **API Gateway**: YARP
 
 ### 前端
 - **框架**: Vue 3 + TypeScript
@@ -37,9 +40,10 @@
 
 ### DevOps
 - **容器**: Docker + Docker Compose
+- **编排**: .NET Aspire (本地开发)
 - **CI/CD**: GitHub Actions
-- **监控**: Jaeger + Prometheus + Grafana
-- **反向代理**: Nginx
+- **监控**: Jaeger (OpenTelemetry)
+- **API Gateway**: YARP
 
 ---
 
@@ -48,20 +52,30 @@
 ```
 CatCat/
 ├── src/
-│   ├── CatCat.API/              # Minimal API 端点
-│   ├── CatCat.Core/             # 业务逻辑层
-│   ├── CatCat.Domain/           # 领域实体
-│   ├── CatCat.Infrastructure/   # 基础设施层
-│   └── CatCat.Web/              # Vue 3 前端
-├── .github/workflows/           # CI/CD 配置
-├── database/                    # 数据库脚本
-├── nginx/                       # Nginx 配置
-├── Directory.Packages.props     # 中央包管理
-├── Directory.Build.props        # 统一项目配置
-├── docker-compose.yml           # 完整服务编排
-├── Dockerfile                   # 常规镜像
-├── Dockerfile.aot               # AOT 优化镜像
-└── build.ps1 / build.sh         # 一键编译脚本
+│   ├── CatCat.API/                  # Minimal API 层
+│   │   ├── Endpoints/               # API 端点 (静态方法)
+│   │   ├── BackgroundServices/      # 后台服务 (订单处理)
+│   │   ├── Middleware/              # 中间件 (异常处理等)
+│   │   └── Configuration/           # 配置 (Rate Limiting, CORS等)
+│   ├── CatCat.Infrastructure/       # 基础设施层
+│   │   ├── Services/                # 业务服务
+│   │   ├── Repositories/            # Sqlx 仓储
+│   │   ├── Entities/                # 数据实体
+│   │   ├── MessageQueue/            # NATS JetStream
+│   │   └── Payment/                 # Stripe 支付
+│   ├── CatCat.AppHost/              # .NET Aspire 编排
+│   └── CatCat.Web/                  # Vue 3 前端
+│       ├── src/api/                 # API 调用
+│       ├── src/views/               # 页面组件
+│       └── src/stores/              # Pinia 状态
+├── .github/workflows/               # CI/CD 配置
+├── docs/                            # 文档
+├── scripts/                         # 构建脚本
+├── Directory.Packages.props         # 中央包管理
+├── Directory.Build.props            # 统一项目配置
+├── docker-compose.yml               # 生产环境编排
+├── docker-compose.override.yml      # 开发环境覆盖
+└── build.ps1 / build.sh             # 一键编译脚本
 ```
 
 ---
@@ -76,19 +90,41 @@ CatCat/
 
 ### 本地开发
 
+#### 选项 1: 使用 .NET Aspire (推荐)
+
+```bash
+# 1. 克隆项目
+git clone https://github.com/your-org/CatCat.git
+cd CatCat
+
+# 2. 安装 .NET Aspire 工作负载
+dotnet workload install aspire
+
+# 3. 启动所有服务（自动启动 PostgreSQL, Redis, NATS, API）
+dotnet run --project src/CatCat.AppHost
+
+# 4. 访问 Aspire Dashboard: http://localhost:15000
+# 5. 启动前端（新终端）
+cd src/CatCat.Web
+npm install
+npm run dev
+```
+
+#### 选项 2: 手动启动
+
 ```bash
 # 1. 克隆项目
 git clone https://github.com/your-org/CatCat.git
 cd CatCat
 
 # 2. 启动基础设施（PostgreSQL + Redis + NATS）
-docker-compose up -d postgres redis nats
+.\scripts\dev-start.ps1  # Windows
+# 或
+./scripts/dev-start.sh   # Linux/Mac
 
 # 3. 编译后端
-# Windows
-.\build.ps1
-# Linux/Mac
-chmod +x build.sh && ./build.sh
+.\build.ps1              # Windows
+./build.sh               # Linux/Mac
 
 # 4. 运行后端
 cd src/CatCat.API
@@ -133,6 +169,48 @@ docker run -p 80:80 catcat-aot
 | 内存占用 | ~200MB | ~50MB |
 | 程序大小 | ~80MB | ~15MB |
 | 首次请求 | ~50ms | ~10ms |
+
+---
+
+## 🏛️ 架构亮点
+
+### 异步订单处理
+订单创建采用异步队列处理机制，提升用户体验和系统稳定性：
+
+```
+Client → API (立即返回 OrderId)
+         ↓
+   NATS JetStream Queue (持久化)
+         ↓
+OrderProcessingService (后台处理)
+         ↓
+   DB Insert + Payment + Events
+```
+
+**优势:**
+- ⚡ **快速响应**: 50-100ms 即可返回，无需等待 DB 和支付
+- 🛡️ **削峰填谷**: 高并发时队列缓冲，保护数据库
+- ♻️ **可靠性**: JetStream 消息持久化，支持重试
+- 📈 **可扩展**: 可启动多个处理实例并行消费
+
+### Endpoint 静态方法模式
+所有 API 端点采用清晰的静态方法设计：
+
+```csharp
+public static void MapOrderEndpoints(this IEndpointRouteBuilder app)
+{
+    group.MapPost("", CreateOrder);
+    group.MapGet("{id}", GetOrderDetail);
+    group.MapPost("{id}/cancel", CancelOrder);
+}
+
+private static async Task<IResult> CreateOrder(...) { }
+```
+
+**优势:**
+- 👀 路由定义一目了然
+- 🧪 每个方法独立可测试
+- 📚 易于添加文档和注释
 
 ---
 

@@ -144,7 +144,7 @@ public class OrderService : IOrderService
     public async Task<Result> CancelOrderAsync(long orderId, long userId, CancellationToken cancellationToken = default)
     {
         var order = await _orderRepository.GetByIdAsync(orderId);
-        
+
         // If order not found in DB, it might still be in queue
         if (order == null)
         {

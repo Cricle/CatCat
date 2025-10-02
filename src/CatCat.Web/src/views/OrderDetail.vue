@@ -17,6 +17,9 @@
           {{ getStatusText(order.status) }}
         </van-tag>
         <div class="order-no">订单号：{{ order.orderNo }}</div>
+        <div v-if="order.status === -1" class="processing-tip">
+          <van-loading size="16px" vertical>订单正在处理中...</van-loading>
+        </div>
       </div>
 
       <!-- 服务信息 -->
@@ -45,7 +48,7 @@
       </van-cell-group>
 
       <!-- 操作按钮 -->
-      <div class="action-buttons" v-if="order.status === 0">
+      <div class="action-buttons" v-if="order.status === -1 || order.status === 0">
         <van-button
           block
           type="danger"
@@ -75,6 +78,7 @@ const order = ref<Order>()
 
 const getStatusType = (status: number) => {
   const types: Record<number, any> = {
+    '-1': 'default',
     0: 'warning',
     1: 'primary',
     2: 'primary',
@@ -86,6 +90,7 @@ const getStatusType = (status: number) => {
 
 const getStatusText = (status: number) => {
   const texts: Record<number, string> = {
+    '-1': '处理中',
     0: '待接单',
     1: '已接单',
     2: '服务中',
@@ -156,6 +161,12 @@ onMounted(() => {
 .order-no {
   margin-top: 12px;
   font-size: 13px;
+  color: #969799;
+}
+
+.processing-tip {
+  margin-top: 12px;
+  font-size: 12px;
   color: #969799;
 }
 

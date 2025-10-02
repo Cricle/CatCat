@@ -266,7 +266,7 @@ const onSubmit = async () => {
       customerRemark: formData.customerRemark || undefined
     })
 
-    showSuccessToast('Order created successfully')
+    showSuccessToast('订单已提交，正在处理中...')
     setTimeout(() => {
       router.replace(`/orders/${res.data.orderId}`)
     }, 1500)

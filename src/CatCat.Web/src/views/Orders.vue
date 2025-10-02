@@ -56,7 +56,7 @@
                   查看详情
                 </van-button>
                 <van-button
-                  v-if="order.status === 0"
+                  v-if="order.status === -1 || order.status === 0"
                   size="small"
                   @click="handleCancelOrder(order.id)"
                 >
@@ -92,17 +92,19 @@ const statusMap = [
 
 const getStatusType = (status: number) => {
   const types: Record<number, any> = {
-    0: 'warning',   // 待接单
-    1: 'primary',   // 已接单
-    2: 'primary',   // 服务中
-    3: 'success',   // 已完成
-    4: 'danger'     // 已取消
+    '-1': 'default', // 排队中
+    0: 'warning',    // 待接单
+    1: 'primary',    // 已接单
+    2: 'primary',    // 服务中
+    3: 'success',    // 已完成
+    4: 'danger'      // 已取消
   }
   return types[status] || 'default'
 }
 
 const getStatusText = (status: number) => {
   const texts: Record<number, string> = {
+    '-1': '处理中',
     0: '待接单',
     1: '已接单',
     2: '服务中',
