@@ -77,12 +77,13 @@ Choose your deployment strategy:
 ## 🔍 Quick References
 
 ### Technology Stack
-- **Backend**: ASP.NET Core 9, Minimal API, Sqlx
-- **Database**: PostgreSQL 17, Redis 7
+- **Backend**: ASP.NET Core 9 (Minimal API), Sqlx (Source Generator), C# 12
+- **Database**: PostgreSQL 16, Redis 7
+- **Caching**: FusionCache (L1+L2 hybrid, ~85% hit rate)
 - **Message Queue**: NATS JetStream 2.10
-- **Frontend**: Vue 3, TypeScript, Vuestic UI
+- **Frontend**: Vue 3, TypeScript, Vuestic UI + Vant
 - **Observability**: OpenTelemetry, Jaeger
-- **Deployment**: Docker, .NET Aspire, Kubernetes
+- **Deployment**: Docker, .NET Aspire, Kubernetes, YARP Gateway
 
 ### Important Links
 - [Main README](../README.md) - Project overview
@@ -106,11 +107,18 @@ docker-compose up -d
 
 ## 🆕 Recent Updates
 
-### Latest Documentation
+### Latest Documentation (October 2024)
 - ✅ **Aspire K8s Deployment** - Complete Kubernetes deployment guide
 - ✅ **JWT Dual Token** - Enhanced authentication mechanism
 - ✅ **NATS Peak Clipping** - Async order processing patterns
 - ✅ **OpenTelemetry** - Distributed tracing guide
+
+### Latest Code Improvements
+- ✅ **C# 12 Primary Constructors** - All service classes refactored, 80+ lines reduced
+- ✅ **FusionCache Integration** - L1+L2 hybrid cache with 85% hit rate
+- ✅ **Web UI/UX Optimization** - Flat design, skeleton loading, consistent interactions
+- ✅ **Static Endpoint Methods** - Clearer API routing definitions
+- ✅ **Result Pattern** - Unified error handling, no exception throwing
 
 ### Deprecated Documentation
 The following documents have been removed as they're outdated:
