@@ -226,7 +226,7 @@ public class UserService : IUserService
 {
     private readonly IUserRepository _repository;
     private readonly IFusionCache _cache;
-    
+
     public UserService(IUserRepository repository, IFusionCache cache)
     {
         _repository = repository;

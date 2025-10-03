@@ -2,6 +2,7 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
+import i18n from './i18n'
 
 // Vuestic UI - Modern Vue 3 UI Framework
 import { createVuestic } from 'vuestic-ui'
@@ -14,6 +15,7 @@ const app = createApp(App)
 
 app.use(createPinia())
 app.use(router)
+app.use(i18n)
 app.use(createVuestic({
   config: {
     colors: {

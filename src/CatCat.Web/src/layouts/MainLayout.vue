@@ -10,9 +10,17 @@
       </template>
 
       <template #right>
+        <!-- Language Switcher -->
+        <va-navbar-item>
+          <va-button preset="plain" :icon="currentLocale === 'zh-CN' ? 'language' : 'translate'" @click="toggleLanguage" color="textPrimary">
+            {{ currentLocale === 'zh-CN' ? '中' : 'EN' }}
+          </va-button>
+        </va-navbar-item>
+        
         <va-navbar-item v-if="userStore.isAuthenticated">
           <va-button preset="plain" icon="notifications" color="textPrimary" />
         </va-navbar-item>
+        
         <va-navbar-item v-if="userStore.isAuthenticated">
           <va-dropdown placement="bottom-end">
             <template #anchor>
@@ -34,14 +42,14 @@
               </div>
               <va-divider style="margin: 12px 0" />
               <va-button preset="plain" icon="person" @click="goToProfile" block class="menu-item">
-                My Profile
+                {{ t('profile.myProfile') }}
               </va-button>
               <va-button preset="plain" icon="settings" @click="goToSettings" block class="menu-item">
-                Settings
+                {{ t('common.settings') }}
               </va-button>
               <va-divider style="margin: 12px 0" />
               <va-button preset="plain" icon="logout" color="danger" @click="handleLogout" block class="menu-item">
-                Logout
+                {{ t('common.logout') }}
               </va-button>
             </va-dropdown-content>
           </va-dropdown>
@@ -68,7 +76,7 @@
         <div class="nav-content">
           <va-icon :name="item.icon" :size="isActive(item.path) ? 'large' : 'medium'" />
           <span class="nav-label" :class="{ active: isActive(item.path) }">
-            {{ item.label }}
+            {{ t(item.labelKey) }}
           </span>
         </div>
       </va-button>
@@ -77,22 +85,36 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useToast, useModal } from 'vuestic-ui'
+import { useI18n } from 'vue-i18n'
 
+const { t, locale } = useI18n()
 const { init: notify } = useToast()
 const { confirm } = useModal()
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 
+const currentLocale = computed(() => locale.value)
+
 const navItems = [
-  { name: 'home', label: 'Home', icon: 'home', path: '/' },
-  { name: 'pets', label: 'Pets', icon: 'pets', path: '/pets' },
-  { name: 'orders', label: 'Orders', icon: 'receipt_long', path: '/orders' },
-  { name: 'profile', label: 'Profile', icon: 'person', path: '/profile' }
+  { name: 'home', labelKey: 'nav.home', icon: 'home', path: '/' },
+  { name: 'pets', labelKey: 'nav.pets', icon: 'pets', path: '/pets' },
+  { name: 'orders', labelKey: 'nav.orders', icon: 'receipt_long', path: '/orders' },
+  { name: 'profile', labelKey: 'nav.profile', icon: 'person', path: '/profile' }
 ]
+
+const toggleLanguage = () => {
+  locale.value = locale.value === 'zh-CN' ? 'en-US' : 'zh-CN'
+  localStorage.setItem('locale', locale.value)
+  notify({ 
+    message: locale.value === 'zh-CN' ? '已切换到中文' : 'Switched to English', 
+    color: 'success' 
+  })
+}
 
 const isActive = (path: string) => {
   if (path === '/') {
@@ -116,20 +138,20 @@ const goToProfile = () => {
 }
 
 const goToSettings = () => {
-  notify({ message: 'Settings page coming soon!', color: 'info' })
+  notify({ message: t('common.settings') + ' - Coming soon!', color: 'info' })
 }
 
 const handleLogout = async () => {
   const agreed = await confirm({
-    title: 'Confirm Logout',
-    message: 'Are you sure you want to logout?',
-    okText: 'Logout',
-    cancelText: 'Cancel'
+    title: t('auth.logoutConfirm'),
+    message: t('auth.logoutConfirm'),
+    okText: t('common.confirm'),
+    cancelText: t('common.cancel')
   })
 
   if (agreed) {
     await userStore.logout()
-    notify({ message: 'Logged out successfully', color: 'success' })
+    notify({ message: t('auth.logoutSuccess'), color: 'success' })
     router.push('/login')
   }
 }
