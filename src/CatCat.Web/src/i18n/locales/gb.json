@@ -202,6 +202,21 @@
   "search": {
     "placeholder": "Search..."
   },
+  "common": {
+    "back": "Back",
+    "next": "Next",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "submit": "Submit",
+    "search": "Search",
+    "filter": "Filter",
+    "loading": "Loading...",
+    "noData": "No Data",
+    "view": "View",
+    "refresh": "Refresh"
+  },
   "buttonSelect": {
     "dark": "Dark",
     "light": "Light"
