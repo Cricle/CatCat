@@ -7,22 +7,22 @@ namespace CatCat.Infrastructure.Repositories;
 
 public interface IRefreshTokenRepository
 {
-    [Sqlx("INSERT INTO {{table}} ({{columns --exclude Id}}) VALUES ({{values}})")]
+    [Sqlx("{{insert:auto|exclude=Id}}")]
     Task CreateAsync(RefreshToken refreshToken);
 
-    [Sqlx("SELECT {{columns}} FROM {{table}} WHERE token = @token AND revoked_at IS NULL")]
+    [Sqlx("SELECT {{columns:auto}} FROM {{table}} WHERE {{where:token}} AND revoked_at IS NULL")]
     Task<RefreshToken?> GetByTokenAsync(string token);
 
-    [Sqlx("SELECT {{columns}} FROM {{table}} WHERE user_id = @userId AND revoked_at IS NULL AND expires_at > @now ORDER BY created_at DESC")]
+    [Sqlx("SELECT {{columns:auto}} FROM {{table}} WHERE {{where:user_id}} AND revoked_at IS NULL AND expires_at > @now {{orderby:created_at_desc}}")]
     Task<List<RefreshToken>> GetActiveByUserIdAsync(long userId, DateTime now);
 
-    [Sqlx("UPDATE {{table}} SET {{set --exclude Id UserId Token CreatedAt CreatedByIp}} WHERE token = @token")]
+    [Sqlx("{{update}} SET {{set:revoked_at,revoked_by_ip,reason_revoked}} WHERE {{where:token}}")]
     Task RevokeAsync(string token, DateTime revokedAt, string? revokedByIp, string? reasonRevoked);
 
-    [Sqlx("UPDATE {{table}} SET {{set --exclude Id UserId Token CreatedAt CreatedByIp}} WHERE token = @token")]
+    [Sqlx("{{update}} SET {{set:revoked_at,revoked_by_ip,reason_revoked,replaced_by_token}} WHERE {{where:token}}")]
     Task RevokeAndReplaceAsync(string token, DateTime revokedAt, string? revokedByIp, string? reasonRevoked, string? replacedByToken);
 
-    [Sqlx("UPDATE {{table}} SET revoked_at = @revokedAt, reason_revoked = 'Logout' WHERE user_id = @userId AND revoked_at IS NULL")]
+    [Sqlx("{{update}} SET {{set:revoked_at}} WHERE {{where:user_id}} AND revoked_at IS NULL")]
     Task RevokeAllByUserIdAsync(long userId, DateTime revokedAt);
 }
 

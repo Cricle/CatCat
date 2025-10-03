@@ -7,43 +7,43 @@ namespace CatCat.Infrastructure.Repositories;
 
 public interface IServiceOrderRepository
 {
-    [Sqlx("SELECT {{columns}} FROM {{table}} WHERE id = @id")]
+    [Sqlx("SELECT {{columns:auto}} FROM {{table}} WHERE {{where:id}}")]
     Task<ServiceOrder?> GetByIdAsync(long id);
 
-    [Sqlx("SELECT {{columns}} FROM {{table}} WHERE order_no = @orderNo")]
+    [Sqlx("SELECT {{columns:auto}} FROM {{table}} WHERE {{where:order_no}}")]
     Task<ServiceOrder?> GetByOrderNoAsync(string orderNo);
 
-    [Sqlx("INSERT INTO {{table}} ({{columns --exclude Id}}) VALUES ({{values}})")]
+    [Sqlx("{{insert:auto|exclude=Id}}")]
     Task<int> CreateAsync(ServiceOrder order);
 
-    [Sqlx("UPDATE {{table}} SET {{set --exclude Id}} WHERE id = @Id")]
+    [Sqlx("{{update}} SET {{set:auto|exclude=Id}} WHERE {{where:id}}")]
     Task<int> UpdateAsync(ServiceOrder order);
 
-    [Sqlx("UPDATE {{table}} SET status = @status, updated_at = @updatedAt WHERE id = @id")]
+    [Sqlx("{{update}} SET {{set:status,updated_at}} WHERE {{where:id}}")]
     Task<int> UpdateStatusAsync(long id, string status, DateTime updatedAt);
 
-    [Sqlx("SELECT {{columns}} FROM {{table}} WHERE customer_id = @customerId ORDER BY created_at DESC LIMIT @pageSize OFFSET @offset")]
+    [Sqlx("SELECT {{columns:auto}} FROM {{table}} WHERE {{where:customer_id}} {{orderby:created_at_desc}} {{limit:postgresql|offset=@offset|rows=@pageSize}}")]
     Task<List<ServiceOrder>> GetByCustomerIdPagedAsync(long customerId, int offset, int pageSize);
 
-    [Sqlx("SELECT {{columns}} FROM {{table}} WHERE customer_id = @customerId AND status = @status ORDER BY created_at DESC LIMIT @pageSize OFFSET @offset")]
+    [Sqlx("SELECT {{columns:auto}} FROM {{table}} WHERE {{where:customer_id}} AND {{where:status}} {{orderby:created_at_desc}} {{limit:postgresql|offset=@offset|rows=@pageSize}}")]
     Task<List<ServiceOrder>> GetByCustomerIdAndStatusPagedAsync(long customerId, string status, int offset, int pageSize);
 
-    [Sqlx("SELECT COUNT(*) FROM {{table}} WHERE customer_id = @customerId")]
+    [Sqlx("SELECT {{count:all}} FROM {{table}} WHERE {{where:customer_id}}")]
     Task<int> CountByCustomerIdAsync(long customerId);
 
-    [Sqlx("SELECT COUNT(*) FROM {{table}} WHERE customer_id = @customerId AND status = @status")]
+    [Sqlx("SELECT {{count:all}} FROM {{table}} WHERE {{where:customer_id}} AND {{where:status}}")]
     Task<int> CountByCustomerIdAndStatusAsync(long customerId, string status);
 
-    [Sqlx("SELECT {{columns}} FROM {{table}} WHERE service_provider_id = @serviceProviderId ORDER BY created_at DESC LIMIT @pageSize OFFSET @offset")]
+    [Sqlx("SELECT {{columns:auto}} FROM {{table}} WHERE {{where:service_provider_id}} {{orderby:created_at_desc}} {{limit:postgresql|offset=@offset|rows=@pageSize}}")]
     Task<List<ServiceOrder>> GetByServiceProviderIdPagedAsync(long serviceProviderId, int offset, int pageSize);
 
-    [Sqlx("SELECT {{columns}} FROM {{table}} WHERE service_provider_id = @serviceProviderId AND status = @status ORDER BY created_at DESC LIMIT @pageSize OFFSET @offset")]
+    [Sqlx("SELECT {{columns:auto}} FROM {{table}} WHERE {{where:service_provider_id}} AND {{where:status}} {{orderby:created_at_desc}} {{limit:postgresql|offset=@offset|rows=@pageSize}}")]
     Task<List<ServiceOrder>> GetByServiceProviderIdAndStatusPagedAsync(long serviceProviderId, string status, int offset, int pageSize);
 
-    [Sqlx("SELECT COUNT(*) FROM {{table}} WHERE service_provider_id = @serviceProviderId")]
+    [Sqlx("SELECT {{count:all}} FROM {{table}} WHERE {{where:service_provider_id}}")]
     Task<int> CountByServiceProviderIdAsync(long serviceProviderId);
 
-    [Sqlx("SELECT COUNT(*) FROM {{table}} WHERE service_provider_id = @serviceProviderId AND status = @status")]
+    [Sqlx("SELECT {{count:all}} FROM {{table}} WHERE {{where:service_provider_id}} AND {{where:status}}")]
     Task<int> CountByServiceProviderIdAndStatusAsync(long serviceProviderId, string status);
 }
 

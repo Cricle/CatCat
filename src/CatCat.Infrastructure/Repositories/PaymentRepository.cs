@@ -8,22 +8,22 @@ namespace CatCat.Infrastructure.Repositories;
 
 public interface IPaymentRepository
 {
-    [Sqlx("SELECT {{columns}} FROM {{table}} WHERE id = @id")]
+    [Sqlx("SELECT {{columns:auto}} FROM {{table}} WHERE {{where:id}}")]
     Task<PaymentEntity?> GetByIdAsync(long id);
 
-    [Sqlx("SELECT {{columns}} FROM {{table}} WHERE order_id = @orderId")]
+    [Sqlx("SELECT {{columns:auto}} FROM {{table}} WHERE {{where:order_id}}")]
     Task<PaymentEntity?> GetByOrderIdAsync(long orderId);
 
-    [Sqlx("SELECT {{columns}} FROM {{table}} WHERE payment_intent_id = @paymentIntentId")]
+    [Sqlx("SELECT {{columns:auto}} FROM {{table}} WHERE {{where:payment_intent_id}}")]
     Task<PaymentEntity?> GetByPaymentIntentIdAsync(string paymentIntentId);
 
-    [Sqlx("INSERT INTO {{table}} ({{columns --exclude Id}}) VALUES ({{values}})")]
+    [Sqlx("{{insert:auto|exclude=Id}}")]
     Task<int> CreateAsync(PaymentEntity payment);
 
-    [Sqlx("UPDATE {{table}} SET status = @status, paid_at = @paidAt, updated_at = @updatedAt WHERE id = @id")]
+    [Sqlx("{{update}} SET {{set:status,paid_at,updated_at}} WHERE {{where:id}}")]
     Task<int> UpdateStatusSuccessAsync(long id, string status, DateTime paidAt, DateTime updatedAt);
 
-    [Sqlx("UPDATE {{table}} SET status = @status, error_message = @errorMessage, updated_at = @updatedAt WHERE id = @id")]
+    [Sqlx("{{update}} SET {{set:status,error_message,updated_at}} WHERE {{where:id}}")]
     Task<int> UpdateStatusFailedAsync(long id, string status, string errorMessage, DateTime updatedAt);
 }
 

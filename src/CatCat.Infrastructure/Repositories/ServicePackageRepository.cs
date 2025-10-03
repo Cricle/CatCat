@@ -7,16 +7,16 @@ namespace CatCat.Infrastructure.Repositories;
 
 public interface IServicePackageRepository
 {
-    [Sqlx("SELECT {{columns}} FROM {{table}} WHERE id = @id")]
+    [Sqlx("SELECT {{columns:auto}} FROM {{table}} WHERE {{where:id}}")]
     Task<ServicePackage?> GetByIdAsync(long id);
 
-    [Sqlx("SELECT {{columns}} FROM {{table}} WHERE is_active = @isActive ORDER BY price")]
+    [Sqlx("SELECT {{columns:auto}} FROM {{table}} WHERE {{where:is_active}} {{orderby:price}}")]
     Task<List<ServicePackage>> GetActivePackagesAsync(bool isActive = true);
 
-    [Sqlx("SELECT {{columns}} FROM {{table}} ORDER BY id LIMIT @pageSize OFFSET @offset")]
+    [Sqlx("SELECT {{columns:auto}} FROM {{table}} {{orderby:id}} {{limit:sqlite|offset=@offset|rows=@pageSize}}")]
     Task<List<ServicePackage>> GetPagedAsync(int offset, int pageSize);
 
-    [Sqlx("SELECT COUNT(*) FROM {{table}}")]
+    [Sqlx("SELECT {{count:all}} FROM {{table}}")]
     Task<int> GetCountAsync();
 }
 

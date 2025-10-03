@@ -7,10 +7,10 @@ namespace CatCat.Infrastructure.Repositories;
 
 public interface IOrderStatusHistoryRepository
 {
-    [Sqlx("SELECT {{columns}} FROM {{table}} WHERE order_id = @orderId ORDER BY created_at")]
+    [Sqlx("SELECT {{columns:auto}} FROM {{table}} WHERE {{where:order_id}} {{orderby:created_at}}")]
     Task<List<OrderStatusHistory>> GetByOrderIdAsync(long orderId);
 
-    [Sqlx("INSERT INTO {{table}} ({{columns --exclude Id}}) VALUES ({{values}})")]
+    [Sqlx("{{insert:auto|exclude=Id}}")]
     Task<int> CreateAsync(OrderStatusHistory history);
 }
 
