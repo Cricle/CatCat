@@ -46,20 +46,59 @@ public class OrderService(
     {
         try
         {
-            // Pre-validate package exists (cached)
+            // 1. Idempotency check (prevent duplicate submissions within 5 minutes)
+            var idempotencyKey = $"order:create:{command.CustomerId}:{command.ServicePackageId}:{command.ServiceDate:yyyyMMddHHmm}";
+            var existingOrderId = await cache.GetOrDefaultAsync<long?>(idempotencyKey, token: cancellationToken);
+            if (existingOrderId.HasValue && existingOrderId.Value > 0)
+            {
+                logger.LogInformation("Duplicate order creation attempt detected for customer {CustomerId}, returning existing order {OrderId}", 
+                    command.CustomerId, existingOrderId.Value);
+                return Result.Success(existingOrderId.Value);
+            }
+
+            // 2. Pre-validate package exists (cached)
             var package = await cache.GetOrSetAsync(
                 $"package:{command.ServicePackageId}",
                 _ => packageRepository.GetByIdAsync(command.ServicePackageId),
                 new FusionCacheEntryOptions { Duration = TimeSpan.FromHours(1) });
 
             if (package == null)
+            {
+                logger.LogWarning("Service package {PackageId} not found", command.ServicePackageId);
                 return Result.Failure<long>("Service package not found");
+            }
 
-            // Generate order ID and number
+            // 3. Check time conflict (prevent double booking)
+            // For simplicity, we'll just check orders on the same day
+            // TODO: Implement more sophisticated time conflict detection
+            // var hasConflict = await CheckTimeConflictAsync(command.CustomerId, command.ServiceDate);
+
+            // 4. Validate service date (not in the past, not too far in future)
+            var now = DateTime.UtcNow;
+            if (command.ServiceDate < now.AddHours(2))
+            {
+                logger.LogWarning("Service date {ServiceDate} is too soon (need 2 hours notice)", command.ServiceDate);
+                return Result.Failure<long>("Service must be scheduled at least 2 hours in advance");
+            }
+
+            if (command.ServiceDate > now.AddDays(30))
+            {
+                logger.LogWarning("Service date {ServiceDate} is too far in future (max 30 days)", command.ServiceDate);
+                return Result.Failure<long>("Service can only be scheduled within 30 days");
+            }
+
+            // 5. Generate order ID and number
             var orderId = YitIdHelper.NextId();
             var orderNo = GenerateOrderNo();
 
-            // Send to JetStream queue instead of immediate DB insert
+            // 6. Cache order ID for idempotency (5 minutes)
+            await cache.SetAsync(
+                idempotencyKey,
+                orderId,
+                new FusionCacheEntryOptions { Duration = TimeSpan.FromMinutes(5) },
+                cancellationToken);
+
+            // 7. Send to JetStream queue instead of immediate DB insert
             var queueMessage = new OrderQueueMessage(
                 orderId,
                 orderNo,
@@ -123,6 +162,7 @@ public class OrderService(
 
     public async Task<Result> CancelOrderAsync(long orderId, long userId, CancellationToken cancellationToken = default)
     {
+        // 1. Check if order exists in DB
         var order = await orderRepository.GetByIdAsync(orderId);
 
         // If order not found in DB, it might still be in queue
@@ -139,47 +179,111 @@ public class OrderService(
             return Result.Success();
         }
 
+        // 2. Verify ownership
         if (order.CustomerId != userId)
-            return Result.Failure("Unauthorized");
+        {
+            logger.LogWarning("User {UserId} attempted to cancel order {OrderId} owned by {CustomerId}", 
+                userId, orderId, order.CustomerId);
+            return Result.Failure("Access denied: You can only cancel your own orders");
+        }
 
-        if (order.Status != OrderStatus.Pending && order.Status != OrderStatus.Queued)
-            return Result.Failure($"Cannot cancel order (Status: {order.Status})");
+        // 3. Validate state transition
+        if (!OrderStateMachine.IsValidTransition(order.Status, OrderStatus.Cancelled))
+        {
+            logger.LogWarning("Invalid status transition from {From} to Cancelled for order {OrderId}", 
+                order.Status, orderId);
+            return Result.Failure($"Cannot cancel order from status: {order.Status}");
+        }
 
+        // 5. Process refund (if payment was made)
+        // TODO: Implement refund logic with payment intent ID
+        if (order.Status != OrderStatus.Queued && order.Status != OrderStatus.Pending)
+        {
+            logger.LogInformation("Refund needed for order {OrderId} (payment logic pending)", orderId);
+            // var refundResult = await paymentService.RefundPaymentAsync(paymentIntentId);
+            // Handle refund result
+        }
+
+        // 6. Update order status
         var affectedRows = await orderRepository.UpdateStatusAsync(orderId, OrderStatus.Cancelled.ToString(), DateTime.UtcNow);
         if (affectedRows <= 0)
+        {
+            logger.LogError("Failed to update order {OrderId} status to Cancelled", orderId);
             return Result.Failure("Cancel order failed");
+        }
 
+        // 7. Notify service provider (if assigned)
+        if (order.ServiceProviderId.HasValue)
+        {
+            await messageQueue.PublishAsync(
+                "order.provider_notification",
+                new { OrderId = orderId, ProviderId = order.ServiceProviderId.Value, Type = "OrderCancelled" },
+                cancellationToken);
+        }
+
+        // 8. Publish status change event
         await messageQueue.PublishAsync(
             "order.status_changed",
             new { OrderId = orderId, Status = OrderStatus.Cancelled.ToString(), Notes = "User cancelled order" },
             cancellationToken);
+
+        logger.LogInformation("Order {OrderId} cancelled successfully by user {UserId}", orderId, userId);
 
         return Result.Success();
     }
 
     public async Task<Result> AcceptOrderAsync(long orderId, long providerId, CancellationToken cancellationToken = default)
     {
+        // 1. Get order
         var order = await orderRepository.GetByIdAsync(orderId);
         if (order == null)
+        {
+            logger.LogWarning("Order {OrderId} not found", orderId);
             return Result.Failure("Order not found");
+        }
 
-        if (order.Status != OrderStatus.Pending)
-            return Result.Failure($"Cannot accept order (Status: {order.Status})");
+        // 2. Validate state transition
+        if (!OrderStateMachine.IsValidTransition(order.Status, OrderStatus.Accepted))
+        {
+            logger.LogWarning("Invalid status transition from {From} to Accepted for order {OrderId}", 
+                order.Status, orderId);
+            return Result.Failure($"Cannot accept order from status: {order.Status}");
+        }
 
+        // 3. Check if already assigned
+        if (order.ServiceProviderId.HasValue)
+        {
+            logger.LogWarning("Order {OrderId} already assigned to provider {ProviderId}", 
+                orderId, order.ServiceProviderId.Value);
+            return Result.Failure("Order already assigned to another service provider");
+        }
+
+        // 4. Update order
         order.ServiceProviderId = providerId;
         order.Status = OrderStatus.Accepted;
         var affectedRows = await orderRepository.UpdateAsync(order);
 
-        if (affectedRows > 0)
+        if (affectedRows <= 0)
         {
-            await messageQueue.PublishAsync(
-                "order.status_changed",
-                new { OrderId = orderId, Status = OrderStatus.Accepted.ToString(), Notes = "Provider accepted order" },
-                cancellationToken);
-            return Result.Success();
+            logger.LogError("Failed to update order {OrderId} when accepting", orderId);
+            return Result.Failure("Accept order failed");
         }
 
-        return Result.Failure("Accept order failed");
+        // 5. Notify customer
+        await messageQueue.PublishAsync(
+            "order.customer_notification",
+            new { OrderId = orderId, CustomerId = order.CustomerId, Type = "OrderAccepted", ProviderId = providerId },
+            cancellationToken);
+
+        // 6. Publish status change event
+        await messageQueue.PublishAsync(
+            "order.status_changed",
+            new { OrderId = orderId, Status = OrderStatus.Accepted.ToString(), Notes = $"Provider {providerId} accepted order" },
+            cancellationToken);
+
+        logger.LogInformation("Order {OrderId} accepted by provider {ProviderId}", orderId, providerId);
+
+        return Result.Success();
     }
 
     public async Task<Result> StartServiceAsync(long orderId, long providerId, CancellationToken cancellationToken = default)
