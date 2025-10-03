@@ -136,6 +136,17 @@ builder.Services.AddSingleton(sp =>
     return new CatCat.Infrastructure.Tracing.TracingService(apiSource);
 });
 
+// Stripe Payment Service (with tracing support)
+builder.Services.AddSingleton<CatCat.Infrastructure.Payment.IPaymentService>(sp =>
+{
+    var activitySource = sp.GetServices<System.Diagnostics.ActivitySource>()
+        .FirstOrDefault(s => s.Name == "CatCat.Infrastructure");
+    return new CatCat.Infrastructure.Payment.StripePaymentService(
+        sp.GetRequiredService<IConfiguration>(),
+        sp.GetRequiredService<ILogger<CatCat.Infrastructure.Payment.StripePaymentService>>(),
+        activitySource);
+});
+
 // Repositories & Services
 builder.Services.AddRepositories();
 builder.Services.AddApplicationServices();
@@ -183,6 +194,7 @@ app.MapReviewEndpoints();
 app.MapAdminEndpoints();
 app.MapServiceProgressEndpoints();
 app.MapStorageEndpoints();
+app.MapStripeWebhookEndpoints();
 
 app.MapGet("/health", () => Results.Ok(new HealthResponse("healthy", DateTime.UtcNow)))
     .WithTags("Health");

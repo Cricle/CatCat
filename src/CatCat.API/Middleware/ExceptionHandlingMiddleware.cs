@@ -50,7 +50,17 @@ public class ExceptionHandlingMiddleware
         }
         else
         {
-            logger.LogWarning("Business exception: {Type} - {Message}", exception.GetType().Name, exception.Message);
+            // AOT-compatible: Use nameof or string literal instead of GetType()
+            var exceptionType = exception switch
+            {
+                BusinessException => nameof(BusinessException),
+                InvalidOperationException => nameof(InvalidOperationException),
+                ArgumentException => nameof(ArgumentException),
+                UnauthorizedAccessException => nameof(UnauthorizedAccessException),
+                KeyNotFoundException => nameof(KeyNotFoundException),
+                _ => "Exception"
+            };
+            logger.LogWarning("Business exception: {Type} - {Message}", exceptionType, exception.Message);
         }
 
         context.Response.StatusCode = (int)errorResponse.StatusCode;

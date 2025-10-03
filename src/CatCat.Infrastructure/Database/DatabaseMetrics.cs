@@ -88,9 +88,11 @@ public class DatabaseMetrics
             sw.Stop();
 
             // Record error
+            // AOT-compatible: Get exception type name
+            var errorType = ex.GetType().Name;
             _queryErrorCount.Add(1,
                 new KeyValuePair<string, object?>("query", queryName),
-                new KeyValuePair<string, object?>("error_type", ex.GetType().Name));
+                new KeyValuePair<string, object?>("error_type", errorType));
 
             _queryCount.Add(1,
                 new KeyValuePair<string, object?>("query", queryName),
