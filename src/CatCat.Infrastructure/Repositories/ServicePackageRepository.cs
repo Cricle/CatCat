@@ -21,6 +21,15 @@ public interface IServicePackageRepository
 
     [Sqlx("SELECT id FROM service_packages")]
     Task<List<long>> GetAllIdsAsync();
+
+    [Sqlx("{{insert:auto|exclude=Id}}")]
+    Task<int> CreateAsync(ServicePackage package);
+
+    [Sqlx("{{update}} SET {{set:auto|exclude=Id}} WHERE {{where:id}}")]
+    Task<int> UpdateAsync(ServicePackage package);
+
+    [Sqlx("{{delete}} WHERE {{where:id}}")]
+    Task<int> DeleteAsync(long id);
 }
 
 [RepositoryFor(typeof(IServicePackageRepository))]

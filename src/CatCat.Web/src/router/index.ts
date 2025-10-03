@@ -58,6 +58,36 @@ const router = createRouter({
       name: 'order-detail',
       component: () => import('@/views/OrderDetail.vue'),
       meta: { requiresAuth: true }
+    },
+    {
+      path: '/admin',
+      redirect: '/admin/dashboard',
+      children: [
+        {
+          path: '/admin/dashboard',
+          name: 'admin-dashboard',
+          component: () => import('@/views/admin/Dashboard.vue'),
+          meta: { requiresAuth: true, requiresAdmin: true }
+        },
+        {
+          path: '/admin/users',
+          name: 'admin-users',
+          component: () => import('@/views/admin/Users.vue'),
+          meta: { requiresAuth: true, requiresAdmin: true }
+        },
+        {
+          path: '/admin/pets',
+          name: 'admin-pets',
+          component: () => import('@/views/admin/Pets.vue'),
+          meta: { requiresAuth: true, requiresAdmin: true }
+        },
+        {
+          path: '/admin/packages',
+          name: 'admin-packages',
+          component: () => import('@/views/admin/Packages.vue'),
+          meta: { requiresAuth: true, requiresAdmin: true }
+        }
+      ]
     }
   ]
 })

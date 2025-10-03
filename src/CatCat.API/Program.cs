@@ -148,6 +148,7 @@ app.MapUserEndpoints();
 app.MapPetEndpoints();
 app.MapOrderEndpoints();
 app.MapReviewEndpoints();
+app.MapAdminEndpoints();
 
 app.MapGet("/health", () => Results.Ok(new HealthResponse("healthy", DateTime.UtcNow)))
     .WithTags("Health");
