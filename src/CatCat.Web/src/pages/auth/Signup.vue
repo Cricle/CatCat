@@ -1,26 +1,37 @@
 <template>
   <VaForm ref="form" @submit.prevent="submit">
-    <h1 class="font-semibold text-4xl mb-4">Sign up</h1>
+    <h1 class="font-semibold text-4xl mb-4">注册账号</h1>
     <p class="text-base mb-4 leading-5">
-      Have an account?
-      <RouterLink :to="{ name: 'login' }" class="font-semibold text-primary">Login</RouterLink>
+      已有账号？
+      <RouterLink :to="{ name: 'login' }" class="font-semibold text-primary">立即登录</RouterLink>
     </p>
     <VaInput
-      v-model="formData.email"
-      :rules="[(v) => !!v || 'Email field is required', (v) => /.+@.+\..+/.test(v) || 'Email should be valid']"
+      v-model="formData.userName"
+      :rules="[validators.required]"
+      :disabled="isLoading"
       class="mb-4"
-      label="Email"
-      type="email"
+      label="用户名"
+      placeholder="请输入用户名"
+    />
+    <VaInput
+      v-model="formData.phone"
+      :rules="[validators.required, phoneValidator]"
+      :disabled="isLoading"
+      class="mb-4"
+      label="手机号"
+      type="tel"
+      placeholder="请输入手机号"
     />
     <VaValue v-slot="isPasswordVisible" :default-value="false">
       <VaInput
-        ref="password1"
         v-model="formData.password"
-        :rules="passwordRules"
+        :rules="[validators.required, passwordValidator]"
         :type="isPasswordVisible.value ? 'text' : 'password'"
+        :disabled="isLoading"
         class="mb-4"
-        label="Password"
-        messages="Password should be 8+ characters: letters, numbers, and special characters."
+        label="密码"
+        placeholder="至少6位"
+        messages="密码至少6位，建议包含字母、数字和特殊字符"
         @clickAppendInner.stop="isPasswordVisible.value = !isPasswordVisible.value"
       >
         <template #appendInner>
@@ -32,15 +43,13 @@
         </template>
       </VaInput>
       <VaInput
-        ref="password2"
         v-model="formData.repeatPassword"
-        :rules="[
-          (v) => !!v || 'Repeat Password field is required',
-          (v) => v === formData.password || 'Passwords don\'t match',
-        ]"
+        :rules="[validators.required, (v: string) => v === formData.password || '两次密码不一致']"
         :type="isPasswordVisible.value ? 'text' : 'password'"
+        :disabled="isLoading"
         class="mb-4"
-        label="Repeat Password"
+        label="确认密码"
+        placeholder="请再次输入密码"
         @clickAppendInner.stop="isPasswordVisible.value = !isPasswordVisible.value"
       >
         <template #appendInner>
@@ -54,41 +63,67 @@
     </VaValue>
 
     <div class="flex justify-center mt-4">
-      <VaButton class="w-full" @click="submit"> Create account</VaButton>
+      <VaButton class="w-full" :loading="isLoading" @click="submit">
+        {{ isLoading ? '注册中...' : '创建账号' }}
+      </VaButton>
     </div>
   </VaForm>
 </template>
 
 <script lang="ts" setup>
-import { reactive } from 'vue'
+import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useForm, useToast } from 'vuestic-ui'
+import { validators } from '../../services/utils'
+import { useUserStore } from '../../stores/user-store'
 
 const { validate } = useForm('form')
 const { push } = useRouter()
 const { init } = useToast()
+const userStore = useUserStore()
+
+const isLoading = ref(false)
 
 const formData = reactive({
-  email: '',
+  userName: '',
+  phone: '',
   password: '',
   repeatPassword: '',
 })
 
-const submit = () => {
-  if (validate()) {
-    init({
-      message: "You've successfully signed up",
-      color: 'success',
-    })
-    push({ name: 'dashboard' })
-  }
+// Phone validator
+const phoneValidator = (value: string) => {
+  const phoneRegex = /^1[3-9]\d{9}$/
+  return phoneRegex.test(value) || '请输入有效的手机号'
 }
 
-const passwordRules: ((v: string) => boolean | string)[] = [
-  (v) => !!v || 'Password field is required',
-  (v) => (v && v.length >= 8) || 'Password must be at least 8 characters long',
-  (v) => (v && /[A-Za-z]/.test(v)) || 'Password must contain at least one letter',
-  (v) => (v && /\d/.test(v)) || 'Password must contain at least one number',
-  (v) => (v && /[!@#$%^&*(),.?":{}|<>]/.test(v)) || 'Password must contain at least one special character',
-]
+// Password validator
+const passwordValidator = (value: string) => {
+  return value.length >= 6 || '密码至少6位'
+}
+
+// Submit
+const submit = async () => {
+  if (!validate()) return
+
+  isLoading.value = true
+  try {
+    const result = await userStore.register({
+      userName: formData.userName,
+      phone: formData.phone,
+      password: formData.password,
+    })
+
+    if (result.success) {
+      init({ message: '注册成功！', color: 'success' })
+      push({ name: 'dashboard' })
+    } else {
+      init({ message: result.error || '注册失败，请稍后重试', color: 'danger' })
+    }
+  } catch (error: any) {
+    init({ message: error.message || '注册失败，请稍后重试', color: 'danger' })
+  } finally {
+    isLoading.value = false
+  }
+}
 </script>
