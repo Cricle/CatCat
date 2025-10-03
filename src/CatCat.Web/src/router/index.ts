@@ -42,6 +42,16 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import('../pages/orders/OrdersPage.vue'),
       },
       {
+        name: 'create-order',
+        path: 'orders/create',
+        component: () => import('../pages/orders/CreateOrderPage.vue'),
+      },
+      {
+        name: 'order-detail',
+        path: 'orders/:id',
+        component: () => import('../pages/orders/OrderDetailPage.vue'),
+      },
+      {
         name: 'users',
         path: 'users',
         component: () => import('../pages/users/UsersPage.vue'),

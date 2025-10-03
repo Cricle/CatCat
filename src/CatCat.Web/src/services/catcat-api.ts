@@ -47,9 +47,11 @@ export const petApi = {
 // Service Package API
 // ============================================
 export const servicePackageApi = {
-  getAll: () => apiClient.get<ServicePackage[]>('/package'),
+  getAll: (params?: { page?: number; pageSize?: number }) =>
+    apiClient.get<{ items: ServicePackage[]; total: number }>('/package', { params }),
   getById: (id: number) => apiClient.get<ServicePackage>(`/package/${id}`),
 }
+export const packageApi = servicePackageApi // Alias for convenience
 
 // ============================================
 // Order API
@@ -59,9 +61,18 @@ export const orderApi = {
     apiClient.get<{ items: Order[]; total: number; page: number; pageSize: number }>('/order', {
       params,
     }),
+  getById: (id: string) => apiClient.get<Order>(`/order/${id}`),
   getOrderById: (id: number) => apiClient.get<Order>(`/order/${id}`),
+  create: (data: {
+    petId: string
+    packageId: string
+    serviceDate: string
+    serviceTime: string
+    address: string
+    notes?: string
+  }) => apiClient.post<Order>('/order', data),
   createOrder: (data: OrderCreateRequest) => apiClient.post<Order>('/order', data),
-  cancelOrder: (id: number, reason: string) =>
+  cancelOrder: (id: string | number, reason: string) =>
     apiClient.post(`/order/${id}/cancel`, { reason }),
   acceptOrder: (id: number) => apiClient.post(`/order/${id}/accept`),
 }
@@ -70,7 +81,7 @@ export const orderApi = {
 // Service Progress API
 // ============================================
 export const progressApi = {
-  getByOrderId: (orderId: number) => apiClient.get<ServiceProgress[]>(`/progress/${orderId}`),
+  getByOrderId: (orderId: string) => apiClient.get<ServiceProgress[]>(`/progress/${orderId}`),
   updateProgress: (orderId: number, data: Partial<ServiceProgress>) =>
     apiClient.post<ServiceProgress>(`/progress/${orderId}`, data),
 }
@@ -80,6 +91,8 @@ export const progressApi = {
 // ============================================
 export const reviewApi = {
   getByOrderId: (orderId: number) => apiClient.get<Review>(`/review/order/${orderId}`),
+  create: (data: { orderId: string; rating: number; comment: string; photos?: string[] }) =>
+    apiClient.post<Review>('/review', data),
   createReview: (data: { orderId: number; rating: number; comment: string; photos?: string[] }) =>
     apiClient.post<Review>('/review', data),
   replyToReview: (reviewId: number, reply: string) =>
