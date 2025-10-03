@@ -53,49 +53,7 @@
   </div>
 
   <!-- Quick Actions -->
-  <VaCard class="mb-6">
-    <VaCardTitle>快速操作</VaCardTitle>
-    <VaCardContent>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <VaButton
-          to="/orders/create"
-          size="large"
-          color="primary"
-          class="flex-col h-24"
-          icon="add_circle"
-        >
-          创建订单
-        </VaButton>
-        <VaButton
-          to="/pets"
-          size="large"
-          color="success"
-          class="flex-col h-24"
-          icon="pets"
-        >
-          我的宠物
-        </VaButton>
-        <VaButton
-          to="/orders"
-          size="large"
-          color="warning"
-          class="flex-col h-24"
-          icon="receipt_long"
-        >
-          我的订单
-        </VaButton>
-        <VaButton
-          to="/preferences"
-          size="large"
-          color="info"
-          class="flex-col h-24"
-          icon="settings"
-        >
-          个人设置
-        </VaButton>
-      </div>
-    </VaCardContent>
-  </VaCard>
+  <QuickActions class="mb-6" />
 
   <!-- Business Stats -->
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
@@ -119,6 +77,7 @@ import OrderStatsCard from './cards/OrderStatsCard.vue'
 import PetStatsCard from './cards/PetStatsCard.vue'
 import RecentOrdersList from './cards/RecentOrdersList.vue'
 import MyPetsList from './cards/MyPetsList.vue'
+import QuickActions from '../../../components/QuickActions.vue'
 
 const router = useRouter()
 

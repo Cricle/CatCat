@@ -294,6 +294,27 @@
     "reviews": "Reviews",
     "noReviews": "No reviews yet"
   },
+  "orders": {
+    "createOrder": "Create Order",
+    "selectPet": "Select Pet",
+    "selectPackage": "Select Package",
+    "serviceDetails": "Service Details",
+    "confirmOrder": "Confirm Order",
+    "noPets": "No pets yet",
+    "addPetFirst": "Please add a pet first",
+    "serviceDate": "Service Date",
+    "serviceAddress": "Service Address",
+    "serviceAddressPlaceholder": "Enter service address",
+    "notes": "Notes",
+    "notesPlaceholder": "Enter notes",
+    "petInfo": "Pet Information",
+    "packageInfo": "Package Information",
+    "serviceInfo": "Service Information",
+    "paymentSummary": "Payment Summary",
+    "subtotal": "Subtotal",
+    "total": "Total",
+    "submitOrder": "Submit Order"
+  },
   "notifications": {
     "title": "Notifications",
     "all": "All",
@@ -302,5 +323,14 @@
     "system": "System",
     "markAllRead": "Mark All Read",
     "noNotifications": "No notifications"
+  },
+  "quickActions": {
+    "title": "Quick Actions",
+    "createOrder": "Create Order",
+    "myPets": "My Pets",
+    "browsePackages": "Browse Packages",
+    "myOrders": "My Orders",
+    "availableOrders": "Available Orders",
+    "manageUsers": "Manage Users"
   }
 }

@@ -368,6 +368,15 @@
     "markAllRead": "全部已读",
     "noNotifications": "暂无通知"
   },
+  "quickActions": {
+    "title": "快速操作",
+    "createOrder": "创建订单",
+    "myPets": "我的宠物",
+    "browsePackages": "浏览套餐",
+    "myOrders": "我的订单",
+    "availableOrders": "可接订单",
+    "manageUsers": "用户管理"
+  },
   "vuestic": {
     "search": "搜索",
     "noOptions": "未找到项目",
