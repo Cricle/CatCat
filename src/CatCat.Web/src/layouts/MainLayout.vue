@@ -169,7 +169,8 @@ const handleLogout = async () => {
   position: sticky;
   top: 0;
   z-index: 1000;
-  box-shadow: var(--va-shadow-sm);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
 }
 
 .brand {
@@ -219,13 +220,14 @@ const handleLogout = async () => {
   left: 0;
   right: 0;
   height: 64px;
-  background: var(--va-background-element);
-  border-top: 1px solid var(--va-background-border);
+  background: white;
+  border-top: 1px solid #e5e5e7;
   display: flex;
   justify-content: space-around;
   align-items: center;
   z-index: 999;
-  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(10px);
 }
 
 .nav-item {
