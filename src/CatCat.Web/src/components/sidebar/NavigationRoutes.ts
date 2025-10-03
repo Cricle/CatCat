@@ -19,6 +19,20 @@ export default {
       },
     },
     {
+      name: 'pets',
+      displayName: 'menu.pets',
+      meta: {
+        icon: 'pets',
+      },
+    },
+    {
+      name: 'orders',
+      displayName: 'menu.orders',
+      meta: {
+        icon: 'receipt_long',
+      },
+    },
+    {
       name: 'users',
       displayName: 'menu.users',
       meta: {
