@@ -147,7 +147,6 @@
                 type="number"
                 :label="t('pet.age')"
                 :placeholder="t('pet.age')"
-                :rules="[(v) => v >= 0 || t('pet.ageRequired')]"
               />
             </div>
 
@@ -238,11 +237,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useToast, useModal } from 'vuestic-ui'
-import { getPets, createPet, updatePet, deletePet } from '@/api/pets'
-import type { Pet } from '@/api/types'
+import { getMyPets, createPet, updatePet, deletePet } from '@/api/pets'
 
 const { t } = useI18n()
 const { init: notify } = useToast()
@@ -252,7 +250,7 @@ const loading = ref(false)
 const showModal = ref(false)
 const isEditMode = ref(false)
 const formRef = ref()
-const pets = ref<Pet[]>([])
+const pets = ref<any[]>([])
 
 const formData = ref({
   id: 0,
@@ -306,14 +304,14 @@ const getPetTypeKey = (type: number) => {
   return type === 1 ? 'cat' : type === 2 ? 'dog' : 'other'
 }
 
-const hasServiceInfo = (pet: Pet) => {
+const hasServiceInfo = (pet: any) => {
   return pet.foodLocation || pet.waterLocation || pet.needsWaterRefill
 }
 
 const fetchPets = async () => {
   loading.value = true
   try {
-    const res = await getPets()
+    const res = await getMyPets()
     pets.value = res.data
   } catch (error: any) {
     notify({ message: error.message || t('pet.failedToLoad'), color: 'danger' })
@@ -328,13 +326,13 @@ const showAddPetModal = () => {
   showModal.value = true
 }
 
-const editPet = (pet: Pet) => {
+const editPet = (pet: any) => {
   isEditMode.value = true
   formData.value = { ...pet }
   showModal.value = true
 }
 
-const viewPetDetail = (pet: Pet) => {
+const viewPetDetail = (pet: any) => {
   editPet(pet)
 }
 
@@ -356,7 +354,7 @@ const savePet = async () => {
   }
 }
 
-const confirmDelete = async (pet: Pet) => {
+const confirmDelete = async (pet: any) => {
   const agreed = await confirm({
     title: t('common.confirm'),
     message: t('pet.deleteConfirm'),
