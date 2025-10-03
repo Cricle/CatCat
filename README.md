@@ -149,9 +149,9 @@ cd CatCat
 cd src/CatCat.API
 dotnet run
 
-# 5. 启动前端（新终端）
+# 5. 启动前端（新终端，Vuestic Admin）
 cd src/CatCat.Web
-npm install
+npm install --legacy-peer-deps  # 注意: Vuestic Admin 需要此参数
 npm run dev
 ```
 
