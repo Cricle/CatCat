@@ -369,6 +369,12 @@
     "markAllRead": "全部已读",
     "noNotifications": "暂无通知"
   },
+  "pets": {
+    "subtitle": "管理您的宠物信息",
+    "searchPlaceholder": "搜索宠物名称...",
+    "addPet": "添加宠物",
+    "editPet": "编辑宠物"
+  },
   "quickActions": {
     "title": "快速操作",
     "createOrder": "创建订单",

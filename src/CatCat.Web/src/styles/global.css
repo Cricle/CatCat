@@ -1,0 +1,113 @@
+/* Global Styles for CatCat */
+
+/* Page Title Styles */
+.page-title {
+  font-size: 1.875rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: var(--va-text-primary);
+}
+
+.page-subtitle {
+  font-size: 0.975rem;
+  color: var(--va-text-secondary);
+  margin-bottom: 1.5rem;
+}
+
+/* Container Styles */
+.page-container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.narrow-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Card Styles */
+.stat-card {
+  background: var(--va-background-element);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  border: 1px solid var(--va-background-border);
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Utility Classes */
+.text-gradient {
+  background: linear-gradient(135deg, var(--va-primary) 0%, var(--va-info) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Smooth transitions */
+* {
+  transition-property: background-color, border-color, color, fill, stroke, box-shadow;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--va-background-element);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--va-background-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--va-text-secondary);
+}
+
+/* Empty state styles */
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--va-text-secondary);
+}
+
+.empty-state-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.empty-state-text {
+  font-size: 1.125rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Loading state */
+.loading-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 4rem 1rem;
+}
+
+/* Responsive spacing */
+@media (max-width: 768px) {
+  .page-title {
+    font-size: 1.5rem;
+  }
+  
+  .page-container,
+  .narrow-container {
+    padding: 0 1rem;
+  }
+}
+

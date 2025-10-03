@@ -340,6 +340,12 @@
     "markAllRead": "Mark All Read",
     "noNotifications": "No notifications"
   },
+  "pets": {
+    "subtitle": "Manage your pet information",
+    "searchPlaceholder": "Search pet name...",
+    "addPet": "Add Pet",
+    "editPet": "Edit Pet"
+  },
   "quickActions": {
     "title": "Quick Actions",
     "createOrder": "Create Order",
