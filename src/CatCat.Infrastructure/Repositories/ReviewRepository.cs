@@ -7,19 +7,19 @@ namespace CatCat.Infrastructure.Repositories;
 
 public interface IReviewRepository
 {
-    [Sqlx("SELECT * FROM reviews WHERE id = @id")]
+    [Sqlx("SELECT {{column:auto}} FROM reviews WHERE id = @id")]
     Task<Review?> GetByIdAsync(long id);
 
-    [Sqlx("SELECT * FROM reviews WHERE order_id = @orderId")]
+    [Sqlx("SELECT {{column:auto}} FROM reviews WHERE order_id = @orderId")]
     Task<Review?> GetByOrderIdAsync(long orderId);
 
-    [Sqlx("SELECT * FROM reviews WHERE service_provider_id = @serviceProviderId ORDER BY created_at DESC LIMIT @pageSize OFFSET @offset")]
+    [Sqlx("SELECT {{column:auto}} FROM reviews WHERE service_provider_id = @serviceProviderId ORDER BY created_at DESC LIMIT @pageSize OFFSET @offset")]
     Task<List<Review>> GetByServiceProviderIdPagedAsync(long serviceProviderId, int offset, int pageSize);
 
     [Sqlx("SELECT COUNT(*) FROM reviews WHERE service_provider_id = @serviceProviderId")]
     Task<int> CountByServiceProviderIdAsync(long serviceProviderId);
 
-    [Sqlx("INSERT INTO reviews (id, order_id, service_provider_id, customer_id, rating, comment, reply, replied_at, created_at, updated_at) VALUES (@Id, @OrderId, @ServiceProviderId, @CustomerId, @Rating, @Comment, @Reply, @RepliedAt, @CreatedAt, @UpdatedAt)")]
+    [Sqlx("INSERT INTO reviews {{column:auto}} VALUES {{value:auto}}")]
     Task<int> CreateAsync(Review review);
 
     [Sqlx("UPDATE reviews SET reply = @reply, replied_at = @repliedAt, updated_at = @updatedAt WHERE id = @id")]
