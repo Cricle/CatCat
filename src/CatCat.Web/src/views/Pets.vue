@@ -170,9 +170,14 @@ onMounted(() => {
   position: relative;
 }
 
+.pet-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: var(--primary);
+}
+
 .pet-card:active {
   transform: scale(0.98);
-  border-color: var(--primary);
 }
 
 .pet-avatar-wrapper {
@@ -225,5 +230,11 @@ onMounted(() => {
   right: 20px;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
   z-index: 10;
+  transition: all var(--transition);
+}
+
+.fab-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
 }
 </style>

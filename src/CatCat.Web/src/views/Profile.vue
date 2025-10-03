@@ -185,7 +185,14 @@ onMounted(() => {
 .stat-item {
   text-align: center;
   cursor: pointer;
-  transition: transform var(--transition);
+  transition: all var(--transition);
+  padding: 8px;
+  border-radius: var(--radius);
+}
+
+.stat-item:hover {
+  background: var(--gray-50);
+  transform: translateY(-2px);
 }
 
 .stat-item:active {
@@ -206,6 +213,14 @@ onMounted(() => {
 
 .van-cell-group {
   margin-bottom: 16px;
+}
+
+:deep(.van-cell) {
+  transition: background var(--transition);
+}
+
+:deep(.van-cell:active) {
+  background: var(--gray-50);
 }
 
 .logout-section {
