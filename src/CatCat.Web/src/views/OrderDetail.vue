@@ -1,98 +1,161 @@
 <template>
   <div class="order-detail-page">
-    <van-nav-bar
-      title="Order Details"
-      left-arrow
-      @click-left="$router.back()"
-      fixed
-      placeholder
-    />
-
-    <!-- Loading State -->
-    <div v-if="loading" class="loading-container">
-      <van-skeleton title :row="3" style="margin-bottom: 16px" />
-      <van-skeleton title :row="2" style="margin-bottom: 16px" />
-      <van-skeleton title :row="2" />
-    </div>
-
-    <template v-else-if="order">
-      <!-- Status Banner -->
-      <div class="status-banner" :class="`status-${order.status}`">
-        <div class="status-icon">
-          <van-icon :name="getStatusIcon(order.status)" />
+    <va-card>
+      <va-card-title>
+        <div class="page-header">
+          <va-button preset="plain" icon="arrow_back" @click="$router.back()" />
+          <h1 class="va-h1">Order Details</h1>
+          <div></div>
         </div>
-        <div class="status-content">
-          <van-tag round size="large" :type="getStatusType(order.status)">
-            {{ getStatusText(order.status) }}
-          </van-tag>
-          <div class="order-no">Order No: {{ order.orderNo }}</div>
-          <div v-if="order.status === -1" class="processing-tip">
-            <van-loading size="16px" vertical>Processing...</van-loading>
+      </va-card-title>
+
+      <va-card-content>
+        <!-- Loading State -->
+        <div v-if="loading" class="loading-state">
+          <va-skeleton height="120px" class="mb-3" />
+          <va-skeleton height="200px" class="mb-3" />
+          <va-skeleton height="100px" />
+        </div>
+
+        <!-- Order Content -->
+        <template v-else-if="order">
+          <!-- Status Banner -->
+          <va-card :color="getStatusColor(order.status)" gradient class="status-banner mb-4">
+            <va-card-content>
+              <div class="status-content">
+                <va-icon :name="getStatusIcon(order.status)" size="48px" color="white" />
+                <div class="status-info">
+                  <va-chip :color="getStatusColor(order.status)" size="large">
+                    {{ getStatusText(order.status) }}
+                  </va-chip>
+                  <div class="order-no">Order No: {{ order.orderNo }}</div>
+                  <div v-if="order.status === 0" class="processing-tip">
+                    <va-progress-circle indeterminate size="small" />
+                    <span>Processing...</span>
+                  </div>
+                </div>
+              </div>
+            </va-card-content>
+          </va-card>
+
+          <!-- Service Information -->
+          <va-card class="info-section mb-4">
+            <va-card-title>
+              <va-icon name="info" /> Service Information
+            </va-card-title>
+            <va-card-content>
+              <va-list>
+                <va-list-item>
+                  <va-list-item-section icon>
+                    <va-icon name="calendar_today" color="primary" />
+                  </va-list-item-section>
+                  <va-list-item-section>
+                    <va-list-item-label caption>Service Date & Time</va-list-item-label>
+                    <va-list-item-label>
+                      {{ order.serviceDate }} {{ order.serviceTime }}
+                    </va-list-item-label>
+                  </va-list-item-section>
+                </va-list-item>
+
+                <va-list-separator />
+
+                <va-list-item>
+                  <va-list-item-section icon>
+                    <va-icon name="location_on" color="danger" />
+                  </va-list-item-section>
+                  <va-list-item-section>
+                    <va-list-item-label caption>Service Address</va-list-item-label>
+                    <va-list-item-label>{{ order.address }}</va-list-item-label>
+                    <va-list-item-label v-if="order.addressDetail" caption>
+                      {{ order.addressDetail }}
+                    </va-list-item-label>
+                  </va-list-item-section>
+                </va-list-item>
+              </va-list>
+            </va-card-content>
+          </va-card>
+
+          <!-- Payment Information -->
+          <va-card class="info-section mb-4">
+            <va-card-title>
+              <va-icon name="payments" /> Payment Information
+            </va-card-title>
+            <va-card-content>
+              <div class="payment-row">
+                <span>Service Fee:</span>
+                <strong class="price">¥{{ order.price }}</strong>
+              </div>
+            </va-card-content>
+          </va-card>
+
+          <!-- Customer Remarks -->
+          <va-card v-if="order.customerRemark" class="info-section mb-4">
+            <va-card-title>
+              <va-icon name="comment" /> Customer Remarks
+            </va-card-title>
+            <va-card-content>
+              <p class="remarks-text">{{ order.customerRemark }}</p>
+            </va-card-content>
+          </va-card>
+
+          <!-- Order Information -->
+          <va-card class="info-section mb-4">
+            <va-card-title>
+              <va-icon name="receipt_long" /> Order Information
+            </va-card-title>
+            <va-card-content>
+              <va-list>
+                <va-list-item>
+                  <va-list-item-section icon>
+                    <va-icon name="schedule" />
+                  </va-list-item-section>
+                  <va-list-item-section>
+                    <va-list-item-label caption>Created At</va-list-item-label>
+                    <va-list-item-label>{{ formatDateTime(order.createdAt) }}</va-list-item-label>
+                  </va-list-item-section>
+                </va-list-item>
+
+                <va-list-separator v-if="order.serviceProviderId" />
+
+                <va-list-item v-if="order.serviceProviderId">
+                  <va-list-item-section icon>
+                    <va-icon name="person" />
+                  </va-list-item-section>
+                  <va-list-item-section>
+                    <va-list-item-label caption>Service Provider ID</va-list-item-label>
+                    <va-list-item-label>{{ order.serviceProviderId }}</va-list-item-label>
+                  </va-list-item-section>
+                </va-list-item>
+              </va-list>
+            </va-card-content>
+          </va-card>
+
+          <!-- Action Buttons -->
+          <div v-if="order.status === 0 || order.status === 1" class="action-buttons">
+            <va-button
+              block
+              color="danger"
+              :loading="cancelling"
+              @click="handleCancelOrder"
+            >
+              <va-icon name="cancel" /> Cancel Order
+            </va-button>
           </div>
-        </div>
-      </div>
+        </template>
 
-      <!-- Service Info -->
-      <van-cell-group title="Service Information" inset>
-        <van-cell title="Service Date & Time" icon="clock-o">
-          <template #value>
-            {{ order.serviceDate }} {{ order.serviceTime }}
-          </template>
-        </van-cell>
-        <van-cell title="Service Address" icon="location-o" :value="order.address" />
-        <van-cell v-if="order.addressDetail" icon="home-o" :value="order.addressDetail" />
-      </van-cell-group>
-
-      <!-- Payment Info -->
-      <van-cell-group title="Payment Information" inset>
-        <van-cell title="Service Fee" icon="paid">
-          <template #value>
-            <span class="price">¥{{ order.price }}</span>
-          </template>
-        </van-cell>
-      </van-cell-group>
-
-      <!-- Customer Remarks -->
-      <van-cell-group v-if="order.customerRemark" title="Customer Remarks" inset>
-        <div class="remarks-content">
-          <van-icon name="comment-o" class="remarks-icon" />
-          <p>{{ order.customerRemark }}</p>
-        </div>
-      </van-cell-group>
-
-      <!-- Action Buttons -->
-      <div class="action-buttons" v-if="order.status === -1 || order.status === 0">
-        <van-button
-          block
-          round
-          type="danger"
-          icon="cross"
-          @click="handleCancelOrder"
-          :loading="cancelling"
-        >
-          Cancel Order
-        </van-button>
-      </div>
-
-      <!-- Order Info -->
-      <van-cell-group title="Order Information" inset>
-        <van-cell title="Created At" icon="clock-o">
-          <template #value>
-            {{ formatDateTime(order.createdAt) }}
-          </template>
-        </van-cell>
-        <van-cell v-if="order.serviceProviderId" title="Provider ID" icon="user-o">
-          <template #value>
-            {{ order.serviceProviderId }}
-          </template>
-        </van-cell>
-      </van-cell-group>
-    </template>
-
-    <!-- Error State -->
-    <van-empty v-else description="Order not found">
-      <van-button round type="primary" @click="$router.back()">Go Back</van-button>
-    </van-empty>
+        <!-- Error State -->
+        <va-card v-else class="empty-state">
+          <va-card-content>
+            <div class="text-center">
+              <va-icon name="error" size="64px" color="danger" />
+              <h3 class="va-h3">Order Not Found</h3>
+              <p class="va-text-secondary">The order you're looking for doesn't exist.</p>
+              <va-button color="primary" @click="$router.back()">Go Back</va-button>
+            </div>
+          </va-card-content>
+        </va-card>
+      </va-card-content>
+    </va-card>
   </div>
 </template>
 
@@ -101,8 +164,10 @@ import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { getOrderDetail, cancelOrder } from '@/api/orders'
 import type { Order } from '@/api/orders'
-import { showToast, showConfirmDialog, showSuccessToast } from 'vant'
+import { useToast, useModal } from 'vuestic-ui'
 
+const { init: notify } = useToast()
+const { confirm } = useModal()
 const router = useRouter()
 const route = useRoute()
 
@@ -110,46 +175,45 @@ const loading = ref(false)
 const cancelling = ref(false)
 const order = ref<Order>()
 
-const getStatusType = (status: number) => {
-  const types: Record<number, any> = {
-    '-1': 'default',
-    0: 'warning',
-    1: 'primary',
+const getStatusColor = (status: number) => {
+  const colors: Record<number, string> = {
+    0: 'info',
+    1: 'warning',
     2: 'primary',
-    3: 'success',
-    4: 'danger'
+    3: 'info',
+    4: 'success',
+    5: 'danger'
   }
-  return types[status] || 'default'
+  return colors[status] || 'secondary'
 }
 
 const getStatusText = (status: number) => {
   const texts: Record<number, string> = {
-    '-1': 'Processing',
-    0: 'Pending',
-    1: 'Confirmed',
-    2: 'In Service',
-    3: 'Completed',
-    4: 'Cancelled'
+    0: 'Queued',
+    1: 'Pending',
+    2: 'Accepted',
+    3: 'In Service',
+    4: 'Completed',
+    5: 'Cancelled'
   }
   return texts[status] || 'Unknown'
 }
 
 const getStatusIcon = (status: number) => {
   const icons: Record<number, string> = {
-    '-1': 'clock-o',
-    0: 'todo-list-o',
-    1: 'checked',
-    2: 'service-o',
-    3: 'success',
-    4: 'cross'
+    0: 'schedule',
+    1: 'pending',
+    2: 'check_circle',
+    3: 'local_shipping',
+    4: 'done_all',
+    5: 'cancel'
   }
-  return icons[status] || 'info-o'
+  return icons[status] || 'info'
 }
 
 const formatDateTime = (dateTime: string) => {
   if (!dateTime) return '-'
-  const date = new Date(dateTime)
-  return date.toLocaleString('en-US', {
+  return new Date(dateTime).toLocaleString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -158,179 +222,167 @@ const formatDateTime = (dateTime: string) => {
   })
 }
 
-const fetchOrder = async () => {
+const fetchOrderDetail = async () => {
+  const orderId = route.params.id as string
+  if (!orderId) {
+    notify({ message: 'Invalid order ID', color: 'danger' })
+    router.back()
+    return
+  }
+
   loading.value = true
   try {
-    const id = Number(route.params.id)
-    const res = await getOrderDetail(id)
+    const res = await getOrderDetail(Number(orderId))
     order.value = res.data
   } catch (error: any) {
-    showToast({
-      message: error.message || 'Failed to load order',
-      icon: 'fail'
-    })
-    setTimeout(() => router.back(), 1500)
+    notify({ message: error.message || 'Failed to load order', color: 'danger' })
   } finally {
     loading.value = false
   }
 }
 
 const handleCancelOrder = async () => {
-  try {
-    await showConfirmDialog({
-      title: 'Cancel Order',
-      message: 'Are you sure you want to cancel this order?',
-      confirmButtonText: 'Yes, Cancel',
-      cancelButtonText: 'No'
-    })
+  if (!order.value) return
 
+  const agreed = await confirm({
+    title: 'Cancel Order',
+    message: 'Are you sure you want to cancel this order?',
+    okText: 'Yes, Cancel',
+    cancelText: 'No'
+  })
+
+  if (agreed) {
     cancelling.value = true
-    await cancelOrder(order.value!.id, 'User cancelled')
-    showSuccessToast({
-      message: 'Order cancelled successfully',
-      icon: 'success'
-    })
-    setTimeout(() => router.back(), 1500)
-  } catch (error: any) {
-    if (error !== 'cancel') {
-      showToast({
-        message: error.message || 'Cancellation failed',
-        icon: 'fail'
-      })
+    try {
+      await cancelOrder(order.value.id, 'Cancelled by user')
+      notify({ message: 'Order cancelled successfully', color: 'success' })
+      fetchOrderDetail()
+    } catch (error: any) {
+      notify({ message: error.message || 'Failed to cancel order', color: 'danger' })
+    } finally {
+      cancelling.value = false
     }
-  } finally {
-    cancelling.value = false
   }
 }
 
 onMounted(() => {
-  fetchOrder()
+  fetchOrderDetail()
 })
 </script>
 
 <style scoped>
 .order-detail-page {
-  min-height: 100vh;
-  background-color: #f7f8fa;
-  padding-bottom: 100px;
+  padding: var(--va-content-padding);
 }
 
-.loading-container {
-  padding: 20px 16px;
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.page-header h1 {
+  margin: 0;
+  flex: 1;
+  text-align: center;
+}
+
+.loading-state {
+  padding: 20px 0;
 }
 
 .status-banner {
-  background: white;
-  padding: 24px;
-  margin-bottom: 16px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  border-radius: 0;
-}
-
-.status-banner.status--1 {
-  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-}
-
-.status-banner.status-0 {
-  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
-}
-
-.status-banner.status-1,
-.status-banner.status-2 {
-  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-}
-
-.status-banner.status-3 {
-  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-}
-
-.status-banner.status-4 {
-  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-}
-
-.status-icon {
-  width: 56px;
-  height: 56px;
-  background: white;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  color: white;
 }
 
 .status-content {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.status-info {
   flex: 1;
-  text-align: left;
 }
 
 .order-no {
   margin-top: 8px;
-  font-size: 13px;
-  color: #646566;
-  font-family: monospace;
+  font-size: 14px;
+  opacity: 0.9;
 }
 
 .processing-tip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin-top: 8px;
-  font-size: 12px;
-  color: #969799;
+  font-size: 13px;
+  opacity: 0.9;
 }
 
-:deep(.van-cell-group) {
+.info-section {
   margin-bottom: 16px;
 }
 
-.remarks-content {
-  padding: 12px 16px;
+.payment-row {
   display: flex;
-  gap: 12px;
-  align-items: flex-start;
-}
-
-.remarks-icon {
-  color: var(--primary);
-  font-size: 20px;
-  flex-shrink: 0;
-}
-
-.remarks-content p {
-  margin: 0;
-  color: #646566;
-  line-height: 1.6;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 18px;
 }
 
 .price {
-  color: #ee0a24;
+  color: var(--va-success);
+  font-size: 24px;
   font-weight: 700;
-  font-size: 20px;
+}
+
+.remarks-text {
+  margin: 0;
+  line-height: 1.6;
+  color: var(--va-text-primary);
 }
 
 .action-buttons {
-  padding: 16px;
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: white;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
-  z-index: 100;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--va-background-border);
 }
 
-:deep(.van-steps) {
-  padding: 16px;
+.empty-state {
+  margin-top: 40px;
 }
 
-:deep(.van-step__title) {
-  font-size: 15px;
-  font-weight: 600;
+.text-center {
+  text-align: center;
+  padding: 40px 20px;
 }
 
-:deep(.van-step__circle) {
-  background: var(--primary);
+.text-center h3 {
+  margin: 16px 0 8px 0;
+}
+
+.text-center p {
+  margin-bottom: 20px;
+}
+
+@media (max-width: 768px) {
+  .order-detail-page {
+    padding: 12px;
+  }
+
+  .status-content {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .payment-row {
+    font-size: 16px;
+  }
+
+  .price {
+    font-size: 20px;
+  }
 }
 </style>
-
