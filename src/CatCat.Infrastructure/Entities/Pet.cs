@@ -14,6 +14,14 @@ public class Pet
     public string? DietaryHabits { get; set; }
     public string? HealthStatus { get; set; }
     public string? Remarks { get; set; }
+    
+    // Service Information (解决上门服务痛点)
+    public string? FoodLocation { get; set; }           // 猫粮位置
+    public string? WaterLocation { get; set; }          // 水盆位置
+    public string? LitterBoxLocation { get; set; }      // 猫砂盆位置
+    public string? CleaningSuppliesLocation { get; set; } // 清洁用品位置（扫把、猫屎袋等）
+    public bool NeedsWaterRefill { get; set; }          // 是否需要备水
+    public string? SpecialInstructions { get; set; }    // 特殊说明
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
 }
