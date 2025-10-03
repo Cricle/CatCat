@@ -33,6 +33,23 @@ export default {
       },
     },
     {
+      name: 'provider',
+      displayName: 'menu.provider',
+      meta: {
+        icon: 'work',
+      },
+      children: [
+        {
+          name: 'provider-available',
+          displayName: 'menu.availableOrders',
+        },
+        {
+          name: 'provider-tasks',
+          displayName: 'menu.myTasks',
+        },
+      ],
+    },
+    {
       name: 'users',
       displayName: 'menu.users',
       meta: {

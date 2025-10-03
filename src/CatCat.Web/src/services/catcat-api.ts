@@ -74,7 +74,7 @@ export const orderApi = {
   createOrder: (data: OrderCreateRequest) => apiClient.post<Order>('/order', data),
   cancelOrder: (id: string | number, reason: string) =>
     apiClient.post(`/order/${id}/cancel`, { reason }),
-  acceptOrder: (id: number) => apiClient.post(`/order/${id}/accept`),
+  acceptOrder: (id: string | number) => apiClient.post(`/order/${id}/accept`),
 }
 
 // ============================================

@@ -53,6 +53,18 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import('../pages/orders/OrderDetailPage.vue'),
       },
       {
+        name: 'provider-available',
+        path: 'provider/available',
+        component: () => import('../pages/provider/AvailableOrdersPage.vue'),
+        meta: { requiresRole: 2 }, // Service provider role
+      },
+      {
+        name: 'provider-tasks',
+        path: 'provider/tasks',
+        component: () => import('../pages/provider/MyTasksPage.vue'),
+        meta: { requiresRole: 2 },
+      },
+      {
         name: 'users',
         path: 'users',
         component: () => import('../pages/users/UsersPage.vue'),
