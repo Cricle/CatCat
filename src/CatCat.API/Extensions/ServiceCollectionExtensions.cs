@@ -27,6 +27,9 @@ public static class ServiceCollectionExtensions
     {
         services.AddScoped<IOrderService, OrderService>();
         services.AddScoped<IReviewService, ReviewService>();
+        services.AddScoped<IServicePackageService, ServicePackageService>();
+        services.AddScoped<IPetService, PetService>();
+        services.AddScoped<IUserService, UserService>();
         services.AddScoped<IPaymentService, StripePaymentService>();
 
         // Background Services

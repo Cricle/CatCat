@@ -3,6 +3,7 @@ using CatCat.Infrastructure.Entities;
 using CatCat.Infrastructure.MessageQueue;
 using CatCat.Infrastructure.Repositories;
 using Microsoft.Extensions.Logging;
+using ZiggyCreatures.Caching.Fusion;
 
 namespace CatCat.Infrastructure.Services;
 
@@ -19,17 +20,26 @@ public class ReviewService : IReviewService
     private readonly IReviewRepository _reviewRepository;
     private readonly IServiceOrderRepository _orderRepository;
     private readonly IMessageQueueService _messageQueue;
+    private readonly IFusionCache _cache;
     private readonly ILogger<ReviewService> _logger;
+
+    // Cache keys
+    private const string AvgRatingCacheKeyPrefix = "provider:rating:";
+    
+    // Cache duration (ratings update slowly)
+    private static readonly TimeSpan AvgRatingCacheDuration = TimeSpan.FromMinutes(10);
 
     public ReviewService(
         IReviewRepository reviewRepository,
         IServiceOrderRepository orderRepository,
         IMessageQueueService messageQueue,
+        IFusionCache cache,
         ILogger<ReviewService> logger)
     {
         _reviewRepository = reviewRepository;
         _orderRepository = orderRepository;
         _messageQueue = messageQueue;
+        _cache = cache;
         _logger = logger;
     }
 
@@ -82,6 +92,9 @@ public class ReviewService : IReviewService
 
         var reviewId = await _reviewRepository.CreateAsync(review);
 
+        // Invalidate average rating cache
+        await _cache.RemoveAsync($"{AvgRatingCacheKeyPrefix}{order.ServiceProviderId.Value}");
+
         // 4. Publish review created event to NATS (async update statistics)
         await _messageQueue.PublishAsync("review.created", new ReviewCreatedEvent
         {
@@ -119,6 +132,9 @@ public class ReviewService : IReviewService
 
         if (affectedRows > 0)
         {
+            // Invalidate average rating cache
+            await _cache.RemoveAsync($"{AvgRatingCacheKeyPrefix}{review.ServiceProviderId}");
+
             await _messageQueue.PublishAsync("review.replied", new ReviewRepliedEvent
             {
                 ReviewId = reviewId,
@@ -141,7 +157,17 @@ public class ReviewService : IReviewService
     public async Task<Result<ReviewPagedResult>> GetServiceProviderReviewsAsync(
         long serviceProviderId, int page, int pageSize, CancellationToken cancellationToken = default)
     {
-        var avgRating = await _reviewRepository.GetAverageRatingAsync(serviceProviderId);
+        // Cache average rating (can tolerate slight delay)
+        var avgRating = await _cache.GetOrSetAsync<double>(
+            $"{AvgRatingCacheKeyPrefix}{serviceProviderId}",
+            async (ctx, ct) =>
+            {
+                _logger.LogDebug("Cache miss for provider {ProviderId} rating, fetching from DB", serviceProviderId);
+                return await _reviewRepository.GetAverageRatingAsync(serviceProviderId);
+            },
+            options => options.SetDuration(AvgRatingCacheDuration),
+            cancellationToken);
+
         var offset = (page - 1) * pageSize;
         var items = await _reviewRepository.GetByServiceProviderIdPagedAsync(serviceProviderId, offset, pageSize);
         var total = await _reviewRepository.CountByServiceProviderIdAsync(serviceProviderId);
