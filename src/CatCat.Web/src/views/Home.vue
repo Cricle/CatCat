@@ -290,22 +290,29 @@ onMounted(() => {
 
 <style scoped>
 .home-page {
-  min-height: 100vh;
-  background-color: var(--va-background-element);
-  padding-bottom: 80px;
+  min-height: calc(100vh - 64px - 64px); /* navbar + bottom nav */
+  background: var(--va-background);
 }
 
 .hero-card {
-  margin-bottom: var(--va-content-padding);
+  margin: 0;
+  border-radius: 0;
   text-align: center;
+  background: linear-gradient(135deg, var(--va-primary) 0%, var(--va-info) 100%);
+  color: white;
 }
 
 .hero-content {
-  padding: var(--va-content-padding);
+  padding: 32px 20px;
 }
 
 .hero-content .va-h1 {
-  margin: var(--va-content-padding) 0 8px;
+  margin: 16px 0 8px;
+  color: white;
+}
+
+.hero-content .va-text-secondary {
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .search-input {
@@ -314,7 +321,9 @@ onMounted(() => {
 }
 
 .section-wrapper {
-  padding: var(--va-content-padding);
+  padding: 20px 16px;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .section-header {
@@ -394,15 +403,16 @@ onMounted(() => {
 
 .fab-button {
   position: fixed;
-  bottom: 80px;
+  bottom: 84px;
   right: 20px;
-  z-index: 100;
+  z-index: 998;
+  box-shadow: var(--va-shadow-lg);
 }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .section-wrapper {
-    padding: 12px;
+    padding: 16px 12px;
   }
   
   .hero-content {
@@ -414,7 +424,7 @@ onMounted(() => {
   }
   
   .fab-button {
-    bottom: 70px;
+    bottom: 76px;
     right: 16px;
   }
 }

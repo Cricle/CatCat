@@ -1,143 +1,246 @@
 <template>
-  <va-layout class="main-layout">
-    <template #top>
-      <va-navbar color="primary" class="navbar">
-        <template #left>
-          <va-navbar-item class="logo">
-            <span class="logo-icon">🐱</span>
-            <span class="logo-text">CatCat</span>
-          </va-navbar-item>
-        </template>
-        <template #center>
-          <va-input v-if="!isMobile" v-model="searchText" placeholder="搜索服务、订单..." class="nav-search">
-            <template #prepend><va-icon name="search" /></template>
-          </va-input>
-        </template>
-        <template #right>
-          <va-button preset="plain" color="#ffffff" icon="notifications" @click="showNotifications">
-            <va-badge v-if="unreadCount > 0" :text="unreadCount.toString()" overlap />
-          </va-button>
+  <div class="main-layout">
+    <!-- Top Navbar -->
+    <va-navbar class="top-navbar" color="primary">
+      <template #left>
+        <va-navbar-item class="brand" @click="goHome">
+          <va-icon name="pets" size="large" />
+          <span class="brand-text">CatCat</span>
+        </va-navbar-item>
+      </template>
+
+      <template #right>
+        <va-navbar-item v-if="userStore.isAuthenticated">
+          <va-button preset="plain" icon="notifications" color="textPrimary" />
+        </va-navbar-item>
+        <va-navbar-item v-if="userStore.isAuthenticated">
           <va-dropdown placement="bottom-end">
             <template #anchor>
-              <va-button preset="plain" color="#ffffff">
-                <va-avatar :src="userStore.userInfo?.avatar" size="small">{{ userStore.userInfo?.nickName?.charAt(0) || '?' }}</va-avatar>
-                <span v-if="!isMobile" class="user-name">{{ userStore.userInfo?.nickName }}</span>
-                <va-icon name="expand_more" size="small" />
-              </va-button>
+              <va-avatar size="small" color="warning">
+                <va-icon name="person" />
+              </va-avatar>
             </template>
-            <va-dropdown-content>
-              <va-list>
-                <va-list-item @click="goToProfile">
-                  <va-list-item-section avatar><va-icon name="person" /></va-list-item-section>
-                  <va-list-item-section><va-list-item-label>个人资料</va-list-item-label></va-list-item-section>
-                </va-list-item>
-                <va-list-item @click="goToSettings">
-                  <va-list-item-section avatar><va-icon name="settings" /></va-list-item-section>
-                  <va-list-item-section><va-list-item-label>设置</va-list-item-label></va-list-item-section>
-                </va-list-item>
-                <va-list-separator />
-                <va-list-item @click="logout">
-                  <va-list-item-section avatar><va-icon name="logout" /></va-list-item-section>
-                  <va-list-item-section><va-list-item-label>退出登录</va-list-item-label></va-list-item-section>
-                </va-list-item>
-              </va-list>
+            <va-dropdown-content class="user-menu">
+              <div class="user-info">
+                <va-avatar color="warning" size="large">
+                  <va-icon name="person" />
+                </va-avatar>
+                <div class="user-details">
+                  <div class="va-text-bold">{{ userStore.userInfo?.name || 'User' }}</div>
+                  <div class="va-text-secondary" style="font-size: 12px">
+                    {{ userStore.userInfo?.phone }}
+                  </div>
+                </div>
+              </div>
+              <va-divider style="margin: 12px 0" />
+              <va-button preset="plain" icon="person" @click="goToProfile" block class="menu-item">
+                My Profile
+              </va-button>
+              <va-button preset="plain" icon="settings" @click="goToSettings" block class="menu-item">
+                Settings
+              </va-button>
+              <va-divider style="margin: 12px 0" />
+              <va-button preset="plain" icon="logout" color="danger" @click="handleLogout" block class="menu-item">
+                Logout
+              </va-button>
             </va-dropdown-content>
           </va-dropdown>
-        </template>
-      </va-navbar>
-    </template>
+        </va-navbar-item>
+      </template>
+    </va-navbar>
 
-    <template v-if="!isMobile" #left>
-      <va-sidebar v-model="sidebarVisible" color="backgroundElement" width="240px">
-        <va-sidebar-item v-for="item in menuItems" :key="item.path" :to="item.path" :active="isActiveRoute(item.path)" hover-opacity="0.08">
-          <va-sidebar-item-content>
-            <va-icon :name="item.icon" />
-            <va-sidebar-item-title>{{ item.title }}</va-sidebar-item-title>
-          </va-sidebar-item-content>
-        </va-sidebar-item>
-      </va-sidebar>
-    </template>
+    <!-- Main Content -->
+    <div class="main-content">
+      <router-view />
+    </div>
 
-    <template #content>
-      <main class="main-content">
-        <router-view v-slot="{ Component }">
-          <transition name="fade" mode="out-in">
-            <component :is="Component" />
-          </transition>
-        </router-view>
-      </main>
-    </template>
-
-    <template v-if="isMobile" #bottom>
-      <va-app-bar color="backgroundElement" class="bottom-nav" gradient>
-        <va-button v-for="item in bottomNavItems" :key="item.path" preset="plain"
-          :color="isActiveRoute(item.path) ? 'primary' : 'secondary'" @click="router.push(item.path)" class="nav-item">
-          <div class="nav-item-content">
-            <va-icon :name="item.icon" />
-            <span class="nav-item-label">{{ item.title }}</span>
-          </div>
-        </va-button>
-      </va-app-bar>
-    </template>
-  </va-layout>
+    <!-- Bottom Navigation -->
+    <div v-if="userStore.isAuthenticated" class="bottom-nav">
+      <va-button 
+        v-for="item in navItems" 
+        :key="item.name"
+        preset="plain"
+        :icon="item.icon"
+        :color="isActive(item.path) ? 'primary' : 'secondary'"
+        class="nav-item"
+        @click="navigate(item.path)"
+      >
+        <div class="nav-content">
+          <va-icon :name="item.icon" :size="isActive(item.path) ? 'large' : 'medium'" />
+          <span class="nav-label" :class="{ active: isActive(item.path) }">
+            {{ item.label }}
+          </span>
+        </div>
+      </va-button>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import { useToast, useModal } from 'vuestic-ui'
 
+const { init: notify } = useToast()
+const { confirm } = useModal()
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
-const searchText = ref('')
-const sidebarVisible = ref(true)
-const unreadCount = ref(3)
-const isMobile = ref(window.innerWidth < 768)
 
-const menuItems = [
-  { path: '/', title: '首页', icon: 'home' },
-  { path: '/pets', title: '我的宠物', icon: 'pets' },
-  { path: '/orders', title: '我的订单', icon: 'receipt_long' },
-  { path: '/reviews', title: '我的评价', icon: 'star' },
-  { path: '/messages', title: '消息中心', icon: 'mail' },
-  { path: '/help', title: '帮助中心', icon: 'help' }
+const navItems = [
+  { name: 'home', label: 'Home', icon: 'home', path: '/' },
+  { name: 'pets', label: 'Pets', icon: 'pets', path: '/pets' },
+  { name: 'orders', label: 'Orders', icon: 'receipt_long', path: '/orders' },
+  { name: 'profile', label: 'Profile', icon: 'person', path: '/profile' }
 ]
 
-const bottomNavItems = [
-  { path: '/', title: '首页', icon: 'home' },
-  { path: '/pets', title: '宠物', icon: 'pets' },
-  { path: '/orders', title: '订单', icon: 'receipt' },
-  { path: '/profile', title: '我的', icon: 'person' }
-]
+const isActive = (path: string) => {
+  if (path === '/') {
+    return route.path === '/'
+  }
+  return route.path.startsWith(path)
+}
 
-const isActiveRoute = (path: string) => route.path === path
-const handleResize = () => { isMobile.value = window.innerWidth < 768 }
-const showNotifications = () => {}
-const goToProfile = () => router.push('/profile')
-const goToSettings = () => router.push('/settings')
-const logout = () => { userStore.logout(); router.push('/login') }
+const navigate = (path: string) => {
+  if (route.path !== path) {
+    router.push(path)
+  }
+}
 
-onMounted(() => window.addEventListener('resize', handleResize))
-onUnmounted(() => window.removeEventListener('resize', handleResize))
+const goHome = () => {
+  router.push('/')
+}
+
+const goToProfile = () => {
+  router.push('/profile')
+}
+
+const goToSettings = () => {
+  notify({ message: 'Settings page coming soon!', color: 'info' })
+}
+
+const handleLogout = async () => {
+  const agreed = await confirm({
+    title: 'Confirm Logout',
+    message: 'Are you sure you want to logout?',
+    okText: 'Logout',
+    cancelText: 'Cancel'
+  })
+
+  if (agreed) {
+    await userStore.logout()
+    notify({ message: 'Logged out successfully', color: 'success' })
+    router.push('/login')
+  }
+}
 </script>
 
 <style scoped>
-.main-layout { height: 100vh; }
-.navbar { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); }
-.logo { display: flex; align-items: center; gap: 8px; font-weight: 600; }
-.logo-icon { font-size: 24px; }
-.logo-text { font-size: 18px; color: white; }
-.nav-search { max-width: 400px; }
-.user-name { margin: 0 8px; color: white; }
-.main-content { padding: 20px; min-height: 100%; background: var(--va-background-secondary); }
-.bottom-nav { display: flex; justify-content: space-around; padding: 8px 0; box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08); }
-.nav-item { flex: 1; height: 100%; }
-.nav-item-content { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-.nav-item-label { font-size: 12px; }
-.fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
-.fade-enter-from, .fade-leave-to { opacity: 0; }
+.main-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--va-background);
+}
+
+.top-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: var(--va-shadow-sm);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.brand-text {
+  font-size: 20px;
+  font-weight: 700;
+  color: white;
+}
+
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 80px; /* Space for bottom nav */
+}
+
+.user-menu {
+  min-width: 240px;
+  padding: 12px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+}
+
+.user-details {
+  flex: 1;
+}
+
+.menu-item {
+  justify-content: flex-start !important;
+  margin-bottom: 4px;
+}
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background: var(--va-background-element);
+  border-top: 1px solid var(--va-background-border);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 999;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.nav-item {
+  flex: 1;
+  height: 100%;
+  border-radius: 0 !important;
+  padding: 0 !important;
+}
+
+.nav-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 100%;
+}
+
+.nav-label {
+  font-size: 11px;
+  font-weight: 500;
+  transition: all 0.2s;
+  color: var(--va-text-secondary);
+}
+
+.nav-label.active {
+  font-weight: 700;
+  color: var(--va-primary);
+}
+
 @media (max-width: 768px) {
-  .main-content { padding: 12px; padding-bottom: 60px; }
+  .brand-text {
+    font-size: 18px;
+  }
+  
+  .nav-label {
+    font-size: 10px;
+  }
 }
 </style>
