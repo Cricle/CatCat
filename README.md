@@ -16,7 +16,7 @@
 - ✅ **一键部署**: Docker Compose + .NET Aspire + GitHub Actions CI/CD
 - ✅ **清晰架构**: 静态方法端点 + Result 模式 + 统一错误处理
 - ✅ **现代语法**: C# 12 主构造函数，精简代码
-- ✅ **现代 UI/UX**: 扁平设计，骨架屏加载，一致的交互反馈
+- ✅ **现代 UI/UX**: 美团风格卡片布局，渐变色彩，大图标设计，完全响应式
 
 ---
 
@@ -35,11 +35,12 @@
 
 ### 前端
 - **框架**: Vue 3 + TypeScript
-- **UI库**: Vuestic UI + Vant (移动端)
+- **UI库**: Vuestic UI (组件库)
 - **状态管理**: Pinia
 - **路由**: Vue Router 4
+- **国际化**: Vue I18n (中/英)
 - **构建**: Vite
-- **设计**: 扁平化设计，骨架屏加载，一致交互
+- **设计**: 美团风格卡片式布局 + 渐变色彩 + 大图标 + 响应式
 
 ### DevOps
 - **容器**: Docker + Docker Compose
