@@ -46,7 +46,7 @@ public static class AuthEndpoints
         // TODO: Integrate SMS service (e.g., Twilio, Aliyun SMS)
         logger.LogInformation("SMS code {Code} for {Phone}", code, request.Phone);
 
-        return Results.Ok(new MessageResponse("验证码已发送"));
+        return Results.Ok(new MessageResponse("Verification code sent"));
     }
 
     private static async Task<IResult> Register(
@@ -58,13 +58,13 @@ public static class AuthEndpoints
         var cachedCode = await cache.TryGetAsync<string>($"sms:code:{request.Phone}");
         if (!cachedCode.HasValue || cachedCode.Value != request.Code)
         {
-            return Results.BadRequest(new MessageResponse("验证码错误或已过期"));
+            return Results.BadRequest(new MessageResponse("Invalid or expired verification code"));
         }
 
         var existingUser = await userRepository.GetByPhoneAsync(request.Phone);
         if (existingUser != null)
         {
-            return Results.BadRequest(new MessageResponse("该手机号已注册"));
+            return Results.BadRequest(new MessageResponse("Phone number already registered"));
         }
 
         var user = new User
@@ -98,12 +98,12 @@ public static class AuthEndpoints
         var user = await userRepository.GetByPhoneAsync(request.Phone);
         if (user == null || !VerifyPassword(request.Password, user.PasswordHash, configuration))
         {
-            return Results.BadRequest(new MessageResponse("手机号或密码错误"));
+            return Results.BadRequest(new MessageResponse("Invalid phone number or password"));
         }
 
         if (user.Status != UserStatus.Active)
         {
-            return Results.BadRequest(new MessageResponse("账号已被禁用"));
+            return Results.BadRequest(new MessageResponse("Account has been disabled"));
         }
 
         var token = GenerateJwtToken(user, configuration);

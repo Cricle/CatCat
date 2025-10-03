@@ -17,15 +17,15 @@ public static class UserEndpoints
 
         group.MapGet("/me", GetCurrentUser)
             .WithName("GetCurrentUser")
-            .WithSummary("获取当前用户信息");
+            .WithSummary("Get current user info");
 
         group.MapPut("/me", UpdateCurrentUser)
             .WithName("UpdateCurrentUser")
-            .WithSummary("更新当前用户信息");
+            .WithSummary("Update current user info");
 
         group.MapGet("/", GetUserList)
             .WithName("GetUserList")
-            .WithSummary("获取用户列表（管理员）");
+            .WithSummary("Get user list (Admin only)");
     }
 
     private static async Task<IResult> GetCurrentUser(ClaimsPrincipal user, IUserRepository userRepository)
@@ -35,7 +35,7 @@ public static class UserEndpoints
 
         var userInfo = await userRepository.GetByIdAsync(userId);
         return userInfo == null
-            ? Results.NotFound(ApiResult.NotFound("用户不存在"))
+            ? Results.NotFound(ApiResult.NotFound("User not found"))
             : Results.Ok(userInfo);
     }
 
@@ -49,7 +49,7 @@ public static class UserEndpoints
 
         var userInfo = await userRepository.GetByIdAsync(userId);
         if (userInfo == null)
-            return Results.NotFound(ApiResult.NotFound("用户不存在"));
+            return Results.NotFound(ApiResult.NotFound("User not found"));
 
         if (!string.IsNullOrEmpty(request.NickName)) userInfo.NickName = request.NickName;
         if (!string.IsNullOrEmpty(request.Email)) userInfo.Email = request.Email;
@@ -57,7 +57,7 @@ public static class UserEndpoints
         userInfo.UpdatedAt = DateTime.UtcNow;
 
         await userRepository.UpdateAsync(userInfo);
-        return Results.Ok(new MessageResponse("更新成功"));
+        return Results.Ok(new MessageResponse("Update successful"));
     }
 
     private static async Task<IResult> GetUserList(

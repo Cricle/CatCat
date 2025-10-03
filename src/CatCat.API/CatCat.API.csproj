@@ -20,7 +20,7 @@
     <ProjectReference Include="..\CatCat.Infrastructure\CatCat.Infrastructure.csproj" />
   </ItemGroup>
 
-  <!-- Swagger 仅在 Debug 配置下引用（生产环境不需要） -->
+  <!-- Swagger only in Debug mode (excluded from production) -->
   <ItemGroup Condition="'$(Configuration)' == 'Debug'">
     <PackageReference Include="Swashbuckle.AspNetCore" />
   </ItemGroup>

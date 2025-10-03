@@ -5,14 +5,9 @@ using OpenTelemetry.Trace;
 
 namespace CatCat.API.Configuration;
 
-/// <summary>
-/// OpenTelemetry 可观察性配置（支持 AOT）
-/// </summary>
+// OpenTelemetry observability configuration (AOT-compatible)
 public static class OpenTelemetryConfiguration
 {
-    /// <summary>
-    /// 添加 OpenTelemetry 可观察性支持
-    /// </summary>
     [RequiresUnreferencedCode("OpenTelemetry instrumentation may require unreferenced code")]
     public static IServiceCollection AddOpenTelemetryObservability(
         this IServiceCollection services,
@@ -21,7 +16,7 @@ public static class OpenTelemetryConfiguration
     {
         var serviceVersion = typeof(Program).Assembly.GetName().Version?.ToString() ?? "1.0.0";
 
-        // 配置 Resource（服务标识）
+        // Configure Resource (Service identification)
         var resourceBuilder = ResourceBuilder
             .CreateDefault()
             .AddService(
@@ -36,24 +31,24 @@ public static class OpenTelemetryConfiguration
                 ["process.runtime.version"] = Environment.Version.ToString()
             });
 
-        // 获取 OTLP 导出配置
+        // Get OTLP export configuration
         var otlpEndpoint = configuration["OpenTelemetry:OtlpEndpoint"] ?? "http://localhost:4317";
         var useConsoleExporter = configuration.GetValue<bool>("OpenTelemetry:UseConsoleExporter", false);
 
-        // 添加 OpenTelemetry Tracing（分布式追踪）
+        // Add OpenTelemetry Tracing (distributed tracing)
         services.AddOpenTelemetry()
             .ConfigureResource(resource => resource.AddAttributes(resourceBuilder.Build().Attributes))
             .WithTracing(tracing =>
             {
                 tracing
                     .SetResourceBuilder(resourceBuilder)
-                    // ASP.NET Core 请求追踪
+                    // ASP.NET Core request tracing
                     .AddAspNetCoreInstrumentation(options =>
                     {
                         options.RecordException = true;
                         options.Filter = httpContext =>
                         {
-                            // 排除健康检查和 Swagger 端点
+                            // Exclude health check and Swagger endpoints
                             var path = httpContext.Request.Path.Value ?? string.Empty;
                             return !path.StartsWith("/health") &&
                                    !path.StartsWith("/swagger");
@@ -68,20 +63,20 @@ public static class OpenTelemetryConfiguration
                             activity.SetTag("http.response_content_length", httpResponse.ContentLength);
                         };
                     })
-                    // HTTP Client 追踪
+                    // HTTP Client tracing
                     .AddHttpClientInstrumentation(options =>
                     {
                         options.RecordException = true;
                         options.FilterHttpRequestMessage = request =>
                         {
-                            // 排除对 OpenTelemetry Collector 的请求
+                            // Exclude requests to OpenTelemetry Collector
                             return !request.RequestUri?.ToString().Contains("otlp") ?? true;
                         };
                     })
-                    // 自定义 Source（应用内部追踪）
+                    // Custom source (application internal tracing)
                     .AddSource("CatCat.*");
 
-                // 导出到 OTLP（推荐用于生产环境）
+                // Export to OTLP (recommended for production)
                 if (!string.IsNullOrEmpty(otlpEndpoint))
                 {
                     tracing.AddOtlpExporter(options =>
@@ -91,7 +86,7 @@ public static class OpenTelemetryConfiguration
                     });
                 }
 
-                // 控制台导出（用于开发和调试）
+                // Console export (for development and debugging)
                 if (useConsoleExporter)
                 {
                     tracing.AddConsoleExporter();
@@ -101,16 +96,16 @@ public static class OpenTelemetryConfiguration
             {
                 metrics
                     .SetResourceBuilder(resourceBuilder)
-                    // ASP.NET Core 指标
+                    // ASP.NET Core metrics
                     .AddAspNetCoreInstrumentation()
-                    // HTTP Client 指标
+                    // HTTP Client metrics
                     .AddHttpClientInstrumentation()
-                    // .NET Runtime 指标（内存、GC、线程池等）
+                    // .NET Runtime metrics (memory, GC, thread pool, etc.)
                     .AddRuntimeInstrumentation()
-                    // 自定义 Meter
+                    // Custom Meter
                     .AddMeter("CatCat.*");
 
-                // 导出到 OTLP
+                // Export to OTLP
                 if (!string.IsNullOrEmpty(otlpEndpoint))
                 {
                     metrics.AddOtlpExporter(options =>
@@ -120,7 +115,7 @@ public static class OpenTelemetryConfiguration
                     });
                 }
 
-                // 控制台导出
+                // Console export
                 if (useConsoleExporter)
                 {
                     metrics.AddConsoleExporter();
@@ -130,12 +125,9 @@ public static class OpenTelemetryConfiguration
         return services;
     }
 
-    /// <summary>
-    /// 添加自定义活动源（用于应用内部追踪）
-    /// </summary>
     public static IServiceCollection AddCustomActivitySources(this IServiceCollection services)
     {
-        // 注册自定义 ActivitySource（用于手动追踪）
+        // Register custom ActivitySource (for manual tracing)
         services.AddSingleton(new System.Diagnostics.ActivitySource("CatCat.API"));
         services.AddSingleton(new System.Diagnostics.ActivitySource("CatCat.Infrastructure"));
         services.AddSingleton(new System.Diagnostics.ActivitySource("CatCat.Core"));
@@ -143,15 +135,11 @@ public static class OpenTelemetryConfiguration
         return services;
     }
 
-    /// <summary>
-    /// 添加自定义指标（Meter）
-    /// </summary>
     public static IServiceCollection AddCustomMetrics(this IServiceCollection services)
     {
-        // 注册自定义 Meter（用于业务指标）
+        // Register custom Meter (for business metrics)
         services.AddSingleton(new System.Diagnostics.Metrics.Meter("CatCat.API", "1.0.0"));
 
         return services;
     }
 }
-

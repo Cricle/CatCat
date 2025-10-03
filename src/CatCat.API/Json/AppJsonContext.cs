@@ -8,9 +8,7 @@ using System.Text.Json.Serialization;
 
 namespace CatCat.API.Json;
 
-/// <summary>
-/// AOT-friendly JSON serialization context - 完整的源生成配置
-/// </summary>
+// AOT-friendly JSON serialization context with full source generation
 // API Response Models
 [JsonSerializable(typeof(ApiResult))]
 [JsonSerializable(typeof(ApiResult<long>))]

@@ -18,23 +18,23 @@ public static class PetEndpoints
 
         group.MapGet("/", GetMyPets)
             .WithName("GetMyPets")
-            .WithSummary("获取我的猫猫档案列表");
+            .WithSummary("Get my pet profiles");
 
         group.MapPost("/", CreatePet)
             .WithName("CreatePet")
-            .WithSummary("创建猫猫档案");
+            .WithSummary("Create pet profile");
 
         group.MapGet("/{id}", GetPetById)
             .WithName("GetPetById")
-            .WithSummary("获取猫猫档案详情");
+            .WithSummary("Get pet profile by ID");
 
         group.MapPut("/{id}", UpdatePet)
             .WithName("UpdatePet")
-            .WithSummary("更新猫猫档案");
+            .WithSummary("Update pet profile");
 
         group.MapDelete("/{id}", DeletePet)
             .WithName("DeletePet")
-            .WithSummary("删除猫猫档案");
+            .WithSummary("Delete pet profile");
     }
 
     private static async Task<IResult> GetMyPets(ClaimsPrincipal user, IPetRepository petRepository)
@@ -71,14 +71,14 @@ public static class PetEndpoints
         };
 
         var petId = await petRepository.CreateAsync(pet);
-        return Results.Ok(new PetCreateResponse(petId, "猫猫档案创建成功"));
+        return Results.Ok(new PetCreateResponse(petId, "Pet profile created successfully"));
     }
 
     private static async Task<IResult> GetPetById(long id, IPetRepository petRepository)
     {
         var pet = await petRepository.GetByIdAsync(id);
         return pet == null
-            ? Results.NotFound(ApiResult.NotFound("猫猫档案不存在"))
+            ? Results.NotFound(ApiResult.NotFound("Pet profile not found"))
             : Results.Ok(pet);
     }
 
@@ -89,7 +89,7 @@ public static class PetEndpoints
     {
         var pet = await petRepository.GetByIdAsync(id);
         if (pet == null)
-            return Results.NotFound(ApiResult.NotFound("猫猫档案不存在"));
+            return Results.NotFound(ApiResult.NotFound("Pet profile not found"));
 
         if (request.Name != null) pet.Name = request.Name;
         if (request.Breed != null) pet.Breed = request.Breed;
@@ -102,12 +102,12 @@ public static class PetEndpoints
         pet.UpdatedAt = DateTime.UtcNow;
 
         await petRepository.UpdateAsync(pet);
-        return Results.Ok(new MessageResponse("猫猫档案更新成功"));
+        return Results.Ok(new MessageResponse("Pet profile updated successfully"));
     }
 
     private static async Task<IResult> DeletePet(long id, IPetRepository petRepository)
     {
         await petRepository.DeleteAsync(id);
-        return Results.Ok(new MessageResponse("猫猫档案已删除"));
+        return Results.Ok(new MessageResponse("Pet profile deleted successfully"));
     }
 }
