@@ -61,6 +61,27 @@ export default {
       ],
     },
     {
+      name: 'admin',
+      displayName: 'menu.admin',
+      meta: {
+        icon: 'admin_panel_settings',
+      },
+      children: [
+        {
+          name: 'admin-users',
+          displayName: 'menu.adminUsers',
+        },
+        {
+          name: 'admin-packages',
+          displayName: 'menu.adminPackages',
+        },
+        {
+          name: 'admin-orders',
+          displayName: 'menu.adminOrders',
+        },
+      ],
+    },
+    {
       name: 'preferences',
       displayName: 'menu.preferences',
       meta: {

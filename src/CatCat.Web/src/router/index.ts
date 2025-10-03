@@ -86,6 +86,24 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import('../pages/provider/EarningsPage.vue'),
         meta: { requiresRole: 2 },
       },
+      {
+        name: 'admin-users',
+        path: 'admin/users',
+        component: () => import('../pages/admin/users/UsersManagement.vue'),
+        meta: { requiresRole: 99 },
+      },
+      {
+        name: 'admin-packages',
+        path: 'admin/packages',
+        component: () => import('../pages/admin/packages/PackagesManagement.vue'),
+        meta: { requiresRole: 99 },
+      },
+      {
+        name: 'admin-orders',
+        path: 'admin/orders',
+        component: () => import('../pages/admin/orders/OrdersMonitoring.vue'),
+        meta: { requiresRole: 99 },
+      },
     ],
   },
   {
