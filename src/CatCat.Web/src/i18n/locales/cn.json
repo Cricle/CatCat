@@ -519,5 +519,10 @@
     "inputField": "输入框",
     "fileTypeIncorrect": "文件类型不正确",
     "select": "选择一个选项"
+  },
+  "404": {
+    "pageNotFound": "页面未找到",
+    "description": "您访问的页面不存在或已被移除",
+    "backToHome": "返回首页"
   }
 }
