@@ -7,25 +7,25 @@ namespace CatCat.Infrastructure.Repositories;
 
 public interface IReviewRepository
 {
-    [Sqlx("SELECT {{column:auto}} FROM reviews WHERE id = @id")]
+    [Sqlx("SELECT {{columns}} FROM {{table}} WHERE id = @id")]
     Task<Review?> GetByIdAsync(long id);
 
-    [Sqlx("SELECT {{column:auto}} FROM reviews WHERE order_id = @orderId")]
+    [Sqlx("SELECT {{columns}} FROM {{table}} WHERE order_id = @orderId")]
     Task<Review?> GetByOrderIdAsync(long orderId);
 
-    [Sqlx("SELECT {{column:auto}} FROM reviews WHERE service_provider_id = @serviceProviderId ORDER BY created_at DESC LIMIT @pageSize OFFSET @offset")]
+    [Sqlx("SELECT {{columns}} FROM {{table}} WHERE service_provider_id = @serviceProviderId ORDER BY created_at DESC LIMIT @pageSize OFFSET @offset")]
     Task<List<Review>> GetByServiceProviderIdPagedAsync(long serviceProviderId, int offset, int pageSize);
 
-    [Sqlx("SELECT COUNT(*) FROM reviews WHERE service_provider_id = @serviceProviderId")]
+    [Sqlx("SELECT COUNT(*) FROM {{table}} WHERE service_provider_id = @serviceProviderId")]
     Task<int> CountByServiceProviderIdAsync(long serviceProviderId);
 
-    [Sqlx("INSERT INTO reviews {{insert:auto}}")]
+    [Sqlx("INSERT INTO {{table}} ({{columns --exclude Id}}) VALUES ({{values}})")]
     Task<int> CreateAsync(Review review);
 
-    [Sqlx("UPDATE reviews {{update:auto}} WHERE id = @id")]
+    [Sqlx("UPDATE {{table}} SET reply = @reply, replied_at = @repliedAt, updated_at = @updatedAt WHERE id = @id")]
     Task<int> UpdateReplyAsync(long id, string reply, DateTime repliedAt, DateTime updatedAt);
 
-    [Sqlx("SELECT AVG(rating) FROM reviews WHERE service_provider_id = @serviceProviderId")]
+    [Sqlx("SELECT AVG(rating) FROM {{table}} WHERE service_provider_id = @serviceProviderId")]
     Task<double> GetAverageRatingAsync(long serviceProviderId);
 }
 

@@ -7,22 +7,22 @@ namespace CatCat.Infrastructure.Repositories;
 
 public interface IUserRepository
 {
-    [Sqlx("SELECT {{column:auto}} FROM users WHERE id = @id")]
+    [Sqlx("SELECT {{columns}} FROM {{table}} WHERE id = @id")]
     Task<User?> GetByIdAsync(long id);
 
-    [Sqlx("SELECT {{column:auto}} FROM users WHERE phone = @phone")]
+    [Sqlx("SELECT {{columns}} FROM {{table}} WHERE phone = @phone")]
     Task<User?> GetByPhoneAsync(string phone);
 
-    [Sqlx("INSERT INTO users {{insert:auto}}")]
+    [Sqlx("INSERT INTO {{table}} ({{columns --exclude Id}}) VALUES ({{values}})")]
     Task<int> CreateAsync(User user);
 
-    [Sqlx("UPDATE users {{update:auto}} WHERE id = @Id")]
+    [Sqlx("UPDATE {{table}} SET {{set --exclude Id}} WHERE id = @Id")]
     Task<int> UpdateAsync(User user);
 
-    [Sqlx("SELECT {{column:auto}} FROM users ORDER BY id LIMIT @pageSize OFFSET @offset")]
+    [Sqlx("SELECT {{columns}} FROM {{table}} ORDER BY id LIMIT @pageSize OFFSET @offset")]
     Task<List<User>> GetPagedAsync(int offset, int pageSize);
 
-    [Sqlx("SELECT COUNT(*) FROM users")]
+    [Sqlx("SELECT COUNT(*) FROM {{table}}")]
     Task<int> GetCountAsync();
 }
 

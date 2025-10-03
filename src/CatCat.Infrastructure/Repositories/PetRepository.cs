@@ -7,19 +7,19 @@ namespace CatCat.Infrastructure.Repositories;
 
 public interface IPetRepository
 {
-    [Sqlx("SELECT {{column:auto}} FROM pets WHERE id = @id")]
+    [Sqlx("SELECT {{columns}} FROM {{table}} WHERE id = @id")]
     Task<Pet?> GetByIdAsync(long id);
 
-    [Sqlx("SELECT {{column:auto}} FROM pets WHERE user_id = @userId ORDER BY created_at DESC")]
+    [Sqlx("SELECT {{columns}} FROM {{table}} WHERE user_id = @userId ORDER BY created_at DESC")]
     Task<List<Pet>> GetByUserIdAsync(long userId);
 
-    [Sqlx("INSERT INTO pets {{insert:auto}}")]
+    [Sqlx("INSERT INTO {{table}} ({{columns --exclude Id}}) VALUES ({{values}})")]
     Task<int> CreateAsync(Pet pet);
 
-    [Sqlx("UPDATE pets {{update:auto}} WHERE id = @Id")]
+    [Sqlx("UPDATE {{table}} SET {{set --exclude Id}} WHERE id = @Id")]
     Task<int> UpdateAsync(Pet pet);
 
-    [Sqlx("DELETE FROM pets WHERE id = @id")]
+    [Sqlx("DELETE FROM {{table}} WHERE id = @id")]
     Task<int> DeleteAsync(long id);
 }
 
