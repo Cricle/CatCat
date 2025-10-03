@@ -20,36 +20,42 @@ export default {
       },
     },
     {
-      name: 'pets',
-      displayName: 'menu.pets',
+      name: 'customer',
+      displayName: 'menu.customer',
       meta: {
-        icon: 'pets',
+        icon: 'storefront',
       },
       roles: [1, 99], // 客户和管理员
-    },
-    {
-      name: 'packages',
-      displayName: 'menu.packages',
-      meta: {
-        icon: 'inventory_2',
-      },
-      roles: [1, 99], // 客户和管理员
-    },
-    {
-      name: 'orders',
-      displayName: 'menu.orders',
-      meta: {
-        icon: 'receipt_long',
-      },
-      roles: [1, 99], // 客户和管理员
-    },
-    {
-      name: 'providers',
-      displayName: 'menu.providers',
-      meta: {
-        icon: 'people',
-      },
-      roles: [1, 99], // 客户和管理员
+      children: [
+        {
+          name: 'pets',
+          displayName: 'menu.pets',
+          meta: {
+            icon: 'pets',
+          },
+        },
+        {
+          name: 'orders',
+          displayName: 'menu.orders',
+          meta: {
+            icon: 'receipt_long',
+          },
+        },
+        {
+          name: 'packages',
+          displayName: 'menu.packages',
+          meta: {
+            icon: 'inventory_2',
+          },
+        },
+        {
+          name: 'providers',
+          displayName: 'menu.providers',
+          meta: {
+            icon: 'people',
+          },
+        },
+      ],
     },
     {
       name: 'provider',

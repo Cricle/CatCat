@@ -23,6 +23,12 @@
   },
   "dashboard": {
     "welcome": "欢迎回来，祝您今天愉快！",
+    "stats": {
+      "totalOrders": "总订单数",
+      "totalPets": "托管宠物",
+      "inProgress": "进行中",
+      "totalRevenue": "总收入"
+    },
     "cards": {
       "totalOrders": "总订单数",
       "pending": "待接单",
@@ -115,6 +121,7 @@
     "buttons": "按钮",
     "timelines": "时间线",
     "dashboard": "仪表板",
+    "customer": "客户服务",
     "pets": "我的宠物",
     "packages": "服务套餐",
     "orders": "我的订单",

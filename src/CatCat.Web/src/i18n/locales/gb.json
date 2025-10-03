@@ -23,6 +23,12 @@
   },
   "dashboard": {
     "welcome": "Welcome back, have a great day!",
+    "stats": {
+      "totalOrders": "Total Orders",
+      "totalPets": "Total Pets",
+      "inProgress": "In Progress",
+      "totalRevenue": "Total Revenue"
+    },
     "cards": {
       "totalOrders": "Total Orders",
       "pending": "Pending",
@@ -61,6 +67,7 @@
     "buttons": "Buttons",
     "timelines": "Timelines",
     "dashboard": "Dashboard",
+    "customer": "Customer Service",
     "pets": "My Pets",
     "packages": "Packages",
     "orders": "My Orders",
