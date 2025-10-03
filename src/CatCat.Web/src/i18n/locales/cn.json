@@ -22,6 +22,25 @@
     "secondary": "次要文本样式"
   },
   "dashboard": {
+    "cards": {
+      "totalOrders": "总订单数",
+      "pending": "待接单",
+      "inProgress": "服务中",
+      "completed": "已完成",
+      "cancelled": "已取消",
+      "totalPets": "托管宠物",
+      "cats": "猫咪",
+      "dogs": "狗狗",
+      "avgAge": "平均年龄",
+      "years": "岁",
+      "yearsOld": "岁",
+      "recentOrders": "最近订单",
+      "viewAll": "查看全部",
+      "noOrders": "暂无订单",
+      "myPets": "我的宠物",
+      "noPets": "暂无宠物",
+      "addPet": "添加宠物"
+    },
     "versions": "版本",
     "setupRemoteConnections": "设置远程连接",
     "currentVisitors": "当前访问者",

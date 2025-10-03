@@ -97,81 +97,16 @@
     </VaCardContent>
   </VaCard>
 
-  <!-- Recent Orders & Pets -->
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-    <!-- Recent Orders -->
-    <VaCard>
-      <VaCardTitle>
-        <div class="flex items-center justify-between">
-          <span>最近订单</span>
-          <VaButton preset="plain" to="/orders">查看全部</VaButton>
-        </div>
-      </VaCardTitle>
-      <VaCardContent>
-        <div v-if="loadingOrders" class="flex justify-center py-4">
-          <VaProgressCircle indeterminate />
-        </div>
-        <div v-else-if="recentOrders.length === 0" class="text-center py-8 text-secondary">
-          暂无订单
-        </div>
-        <div v-else class="space-y-3">
-          <div
-            v-for="order in recentOrders"
-            :key="order.id"
-            class="flex items-center justify-between p-3 rounded hover:bg-backgroundElement cursor-pointer"
-            @click="$router.push(`/orders/${order.id}`)"
-          >
-            <div class="flex items-center gap-3">
-              <VaChip :color="getOrderStatusColor(order.status)" size="small">
-                {{ getOrderStatusText(order.status) }}
-              </VaChip>
-              <div>
-                <div class="font-semibold">{{ order.pet?.name || '宠物' }}</div>
-                <div class="text-sm text-secondary">{{ formatDate(order.serviceDate) }}</div>
-              </div>
-            </div>
-            <div class="text-right">
-              <div class="font-bold text-primary">¥{{ order.totalAmount.toFixed(2) }}</div>
-            </div>
-          </div>
-        </div>
-      </VaCardContent>
-    </VaCard>
+  <!-- Business Stats -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+    <OrderStatsCard />
+    <PetStatsCard />
+  </div>
 
-    <!-- My Pets -->
-    <VaCard>
-      <VaCardTitle>
-        <div class="flex items-center justify-between">
-          <span>我的宠物</span>
-          <VaButton preset="plain" to="/pets">查看全部</VaButton>
-        </div>
-      </VaCardTitle>
-      <VaCardContent>
-        <div v-if="loadingPets" class="flex justify-center py-4">
-          <VaProgressCircle indeterminate />
-        </div>
-        <div v-else-if="myPets.length === 0" class="text-center py-8 text-secondary">
-          暂无宠物
-          <VaButton class="mt-2" to="/pets">添加宠物</VaButton>
-        </div>
-        <div v-else class="space-y-3">
-          <div
-            v-for="pet in myPets"
-            :key="pet.id"
-            class="flex items-center gap-3 p-3 rounded hover:bg-backgroundElement cursor-pointer"
-          >
-            <VaAvatar :src="pet.avatarUrl || '/default-pet.png'" />
-            <div class="flex-grow">
-              <div class="font-semibold">{{ pet.name }}</div>
-              <div class="text-sm text-secondary">{{ pet.type }} · {{ pet.age }}岁</div>
-            </div>
-            <VaChip size="small" :color="getPetTypeColor(pet.type)">
-              {{ pet.type }}
-            </VaChip>
-          </div>
-        </div>
-      </VaCardContent>
-    </VaCard>
+  <!-- Recent Data -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <RecentOrdersList />
+    <MyPetsList />
   </div>
 </template>
 
@@ -180,6 +115,10 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { orderApi, petApi, adminApi } from '../../../services/catcat-api'
 import type { Order, Pet, OrderStatus } from '../../../types/catcat-types'
+import OrderStatsCard from './cards/OrderStatsCard.vue'
+import PetStatsCard from './cards/PetStatsCard.vue'
+import RecentOrdersList from './cards/RecentOrdersList.vue'
+import MyPetsList from './cards/MyPetsList.vue'
 
 const router = useRouter()
 
@@ -189,11 +128,6 @@ const stats = ref({
   totalUsers: 0,
   totalRevenue: 0,
 })
-
-const recentOrders = ref<Order[]>([])
-const myPets = ref<Pet[]>([])
-const loadingOrders = ref(false)
-const loadingPets = ref(false)
 
 // Load statistics
 const loadStats = async () => {
@@ -219,32 +153,6 @@ const loadStats = async () => {
   }
 }
 
-// Load recent orders
-const loadRecentOrders = async () => {
-  loadingOrders.value = true
-  try {
-    const response = await orderApi.getMyOrders({ page: 1, pageSize: 5 })
-    recentOrders.value = response.data.items || []
-  } catch (error) {
-    console.error('Failed to load orders:', error)
-  } finally {
-    loadingOrders.value = false
-  }
-}
-
-// Load my pets
-const loadMyPets = async () => {
-  loadingPets.value = true
-  try {
-    const response = await petApi.getMyPets()
-    myPets.value = (response.data || []).slice(0, 5) // Show only first 5
-  } catch (error) {
-    console.error('Failed to load pets:', error)
-  } finally {
-    loadingPets.value = false
-  }
-}
-
 // Helper functions
 const formatCurrency = (amount: number) => {
   return amount.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -254,43 +162,8 @@ const formatDate = (dateStr: string) => {
   return new Date(dateStr).toLocaleDateString('zh-CN')
 }
 
-const getOrderStatusText = (status: OrderStatus) => {
-  const map: Record<OrderStatus, string> = {
-    0: '队列中',
-    1: '待接单',
-    2: '已接单',
-    3: '服务中',
-    4: '已完成',
-    5: '已取消',
-  }
-  return map[status] || '未知'
-}
-
-const getOrderStatusColor = (status: OrderStatus) => {
-  const map: Record<OrderStatus, string> = {
-    0: 'info',
-    1: 'warning',
-    2: 'primary',
-    3: 'success',
-    4: 'success',
-    5: 'danger',
-  }
-  return map[status] || 'secondary'
-}
-
-const getPetTypeColor = (type: string) => {
-  const map: Record<string, string> = {
-    猫: 'primary',
-    狗: 'success',
-    其他: 'warning',
-  }
-  return map[type] || 'secondary'
-}
-
 onMounted(() => {
   loadStats()
-  loadRecentOrders()
-  loadMyPets()
 })
 </script>
 
