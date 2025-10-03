@@ -322,11 +322,25 @@ public partial class UserRepository : IUserRepository
 
 ## 📚 文档
 
-- [全面优化报告](COMPREHENSIVE_OPTIMIZATION.md)
-- [限流配置指南](RATE_LIMITING_GUIDE.md)
-- [OpenTelemetry 指南](OPENTELEMETRY_GUIDE.md)
-- [中央包管理说明](CENTRAL_PACKAGE_MANAGEMENT.md)
-- [贡献指南](CONTRIBUTING.md)
+### 核心文档
+- **[📖 完整文档索引](docs/README.md)** - 所有文档导航
+- **[🏗️ 架构设计](docs/ARCHITECTURE.md)** - 系统架构详解
+- **[📡 API 文档](docs/API.md)** - REST API 接口说明
+- **[📂 项目结构](docs/PROJECT_STRUCTURE.md)** - 代码组织说明
+
+### 部署指南
+- **[🐳 Docker & Aspire](docs/DOCKER_ASPIRE_GUIDE.md)** - 本地开发和 Docker 部署
+- **[☸️ Kubernetes 部署](docs/ASPIRE_K8S_DEPLOYMENT.md)** - 生产 K8s 部署
+
+### 技术指南
+- **[🔐 JWT 双令牌](docs/JWT_DUAL_TOKEN.md)** - 认证机制详解
+- **[📊 NATS 削峰](docs/NATS_PEAK_CLIPPING.md)** - 异步订单处理
+- **[📈 OpenTelemetry](docs/OPENTELEMETRY_GUIDE.md)** - 可观测性配置
+- **[🛡️ 限流配置](docs/RATE_LIMITING_GUIDE.md)** - API 防护策略
+- **[⚡ AOT & 集群](docs/AOT_AND_CLUSTER.md)** - 性能优化
+
+### 其他
+- **[🤝 贡献指南](CONTRIBUTING.md)** - 如何参与贡献
 
 ---
 
