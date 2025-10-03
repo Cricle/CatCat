@@ -98,6 +98,9 @@ router.beforeEach((to, _from, next) => {
 
   if (to.meta.requiresAuth && !userStore.isAuthenticated) {
     next({ name: 'login', query: { redirect: to.fullPath } })
+  } else if (to.meta.requiresAdmin && userStore.userInfo?.role !== 99) {
+    // Check if user is admin (role 99)
+    next({ name: 'home' })
   } else {
     next()
   }
