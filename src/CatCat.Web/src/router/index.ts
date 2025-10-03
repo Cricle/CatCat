@@ -4,6 +4,7 @@ import AuthLayout from '../layouts/AuthLayout.vue'
 import AppLayout from '../layouts/AppLayout.vue'
 
 import RouteViewComponent from '../layouts/RouterBypass.vue'
+import { authGuard, guestGuard, roleGuard } from './guards'
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -141,6 +142,28 @@ const router = createRouter({
     }
   },
   routes,
+})
+
+// Global navigation guards
+router.beforeEach((to, from, next) => {
+  // Check if route is public (auth pages)
+  const isAuthRoute = to.path.startsWith('/auth')
+
+  if (isAuthRoute) {
+    // Apply guest guard (redirect if already logged in)
+    guestGuard(to, from, next)
+  } else {
+    // Apply auth guard (require login) then role guard (check permissions)
+    authGuard(to, from, (result) => {
+      if (result === undefined || result === true) {
+        // Auth check passed, now check role permissions
+        roleGuard(to, from, next)
+      } else {
+        // Auth check failed, result is the redirect
+        next(result)
+      }
+    })
+  }
 })
 
 export default router
