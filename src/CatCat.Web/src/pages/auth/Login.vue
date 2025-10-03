@@ -16,7 +16,7 @@
 
     <VaInput
       v-model="formData.phone"
-      :rules="[validators.required, phoneValidator]"
+      :rules="[FormValidators.required, FormValidators.phone]"
       :disabled="isLoading"
       class="mb-4"
       label="手机号"
@@ -26,7 +26,7 @@
     <VaValue v-slot="isPasswordVisible" :default-value="false">
       <VaInput
         v-model="formData.password"
-        :rules="[validators.required, passwordValidator]"
+        :rules="[FormValidators.required, FormValidators.password(6)]"
         :type="isPasswordVisible.value ? 'text' : 'password'"
         :disabled="isLoading"
         class="mb-4"
@@ -63,7 +63,7 @@
 import { reactive, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useForm, useToast } from 'vuestic-ui'
-import { validators } from '../../services/utils'
+import { FormValidators } from '../../components/FormValidators'
 import { useUserStore } from '../../stores/user-store'
 
 const { validate } = useForm('form')
@@ -79,17 +79,6 @@ const formData = reactive({
   password: '',
   keepLoggedIn: false,
 })
-
-// Phone validator
-const phoneValidator = (value: string) => {
-  const phoneRegex = /^1[3-9]\d{9}$/
-  return phoneRegex.test(value) || '请输入有效的手机号'
-}
-
-// Password validator
-const passwordValidator = (value: string) => {
-  return value.length >= 6 || '密码至少6位'
-}
 
 // Debug login
 const handleDebugLogin = () => {

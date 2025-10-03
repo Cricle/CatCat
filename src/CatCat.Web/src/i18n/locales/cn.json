@@ -424,10 +424,51 @@
   },
   "imageUploader": {
     "clickToUpload": "点击上传照片",
+    "clickOrDrag": "点击或拖拽上传图片",
     "supportedFormats": "支持 JPG、PNG 格式，最大 5MB",
     "preview": "预览",
-    "invalidFormat": "仅支持图片格式",
-    "fileTooLarge": "文件大小不能超过 5MB"
+    "invalidFormat": "不支持的文件格式，请上传图片文件",
+    "fileTooLarge": "文件过大，最大支持 {max}MB",
+    "uploadFailed": "上传失败，请重试",
+    "max": "以内"
+  },
+  "emptyState": {
+    "noData": "暂无数据",
+    "noPets": "还没有添加宠物",
+    "noPetsDesc": "添加您的爱宠信息，开始使用服务",
+    "noOrders": "还没有订单",
+    "noOrdersDesc": "创建订单，让我们为您的爱宠提供服务",
+    "noPackages": "暂无可用套餐",
+    "noPackagesDesc": "请等待管理员添加服务套餐",
+    "noTasks": "暂无任务",
+    "noTasksDesc": "当前没有待处理的任务",
+    "noProviders": "暂无服务人员",
+    "noProvidersDesc": "暂时没有可用的服务人员"
+  },
+  "confirmDialog": {
+    "deleteTitle": "确认删除",
+    "deleteMessage": "确定要删除吗？",
+    "deleteDetail": "此操作无法撤销",
+    "cancelTitle": "确认取消",
+    "cancelMessage": "确定要取消吗？",
+    "submitTitle": "确认提交",
+    "submitMessage": "确定要提交吗？",
+    "confirm": "确认",
+    "cancel": "取消"
+  },
+  "validation": {
+    "required": "此字段为必填项",
+    "phoneInvalid": "请输入有效的手机号",
+    "emailInvalid": "请输入有效的邮箱地址",
+    "passwordMinLength": "密码至少需要 {min} 位",
+    "passwordMismatch": "两次输入的密码不一致",
+    "minLength": "最少需要 {min} 个字符",
+    "maxLength": "最多允许 {max} 个字符",
+    "minValue": "最小值为 {min}",
+    "maxValue": "最大值为 {max}",
+    "invalidDate": "请选择有效的日期",
+    "pastDate": "日期不能早于今天",
+    "futureDate": "日期不能晚于今天"
   },
   "quickActions": {
     "title": "快速操作",

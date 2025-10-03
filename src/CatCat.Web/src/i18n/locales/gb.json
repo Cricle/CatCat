@@ -395,10 +395,51 @@
   },
   "imageUploader": {
     "clickToUpload": "Click to upload photo",
+    "clickOrDrag": "Click or drag to upload image",
     "supportedFormats": "Supports JPG, PNG format, max 5MB",
     "preview": "Preview",
-    "invalidFormat": "Only image formats are supported",
-    "fileTooLarge": "File size cannot exceed 5MB"
+    "invalidFormat": "Unsupported file format, please upload an image file",
+    "fileTooLarge": "File too large, maximum {max}MB supported",
+    "uploadFailed": "Upload failed, please try again",
+    "max": "max"
+  },
+  "emptyState": {
+    "noData": "No data",
+    "noPets": "No pets added yet",
+    "noPetsDesc": "Add your pet's information to start using the service",
+    "noOrders": "No orders yet",
+    "noOrdersDesc": "Create an order and let us take care of your pet",
+    "noPackages": "No packages available",
+    "noPackagesDesc": "Please wait for administrators to add service packages",
+    "noTasks": "No tasks",
+    "noTasksDesc": "No pending tasks at the moment",
+    "noProviders": "No service providers",
+    "noProvidersDesc": "No service providers available at the moment"
+  },
+  "confirmDialog": {
+    "deleteTitle": "Confirm Delete",
+    "deleteMessage": "Are you sure you want to delete?",
+    "deleteDetail": "This action cannot be undone",
+    "cancelTitle": "Confirm Cancel",
+    "cancelMessage": "Are you sure you want to cancel?",
+    "submitTitle": "Confirm Submit",
+    "submitMessage": "Are you sure you want to submit?",
+    "confirm": "Confirm",
+    "cancel": "Cancel"
+  },
+  "validation": {
+    "required": "This field is required",
+    "phoneInvalid": "Please enter a valid phone number",
+    "emailInvalid": "Please enter a valid email address",
+    "passwordMinLength": "Password must be at least {min} characters",
+    "passwordMismatch": "Passwords do not match",
+    "minLength": "Minimum {min} characters required",
+    "maxLength": "Maximum {max} characters allowed",
+    "minValue": "Minimum value is {min}",
+    "maxValue": "Maximum value is {max}",
+    "invalidDate": "Please select a valid date",
+    "pastDate": "Date cannot be earlier than today",
+    "futureDate": "Date cannot be later than today"
   },
   "quickActions": {
     "title": "Quick Actions",

@@ -1,0 +1,187 @@
+/* Mobile Optimized Styles */
+
+/* Touch-friendly button sizes */
+@media (max-width: 768px) {
+  .va-button {
+    min-height: 44px;
+    min-width: 44px;
+    font-size: 1rem;
+  }
+
+  .va-button--small {
+    min-height: 36px;
+    min-width: 36px;
+    font-size: 0.875rem;
+  }
+
+  .va-input__container {
+    min-height: 48px;
+  }
+
+  .va-input__label {
+    font-size: 0.875rem;
+  }
+
+  /* Card spacing optimization */
+  .va-card {
+    margin-bottom: 1rem;
+  }
+
+  .va-card__content {
+    padding: 1rem;
+  }
+
+  /* Modal optimization */
+  .va-modal__container {
+    max-height: 90vh;
+    margin: 1rem;
+  }
+
+  .va-modal__dialog {
+    max-width: calc(100vw - 2rem);
+  }
+
+  /* Table horizontal scroll */
+  .va-data-table {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Stepper optimization */
+  .va-stepper__step-content {
+    padding: 1rem 0.5rem;
+  }
+
+  /* Reduce padding for compact mobile view */
+  .page-container {
+    padding: 1rem;
+  }
+
+  /* Grid responsive */
+  .grid {
+    gap: 0.75rem;
+  }
+
+  /* Typography */
+  .page-title {
+    font-size: 1.5rem;
+  }
+
+  h2 {
+    font-size: 1.25rem;
+  }
+
+  h3 {
+    font-size: 1.125rem;
+  }
+
+  /* Touch-friendly checkboxes and radios */
+  .va-checkbox,
+  .va-radio {
+    padding: 0.5rem 0;
+  }
+
+  /* Better tap targets for icons */
+  .va-icon {
+    padding: 0.25rem;
+  }
+
+  /* Improve form spacing */
+  .va-input,
+  .va-select,
+  .va-textarea,
+  .va-date-input {
+    margin-bottom: 1rem;
+  }
+
+  /* Bottom navigation safe area */
+  .va-layout__content {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Floating action button positioning */
+  .fab-mobile {
+    position: fixed;
+    bottom: calc(1rem + env(safe-area-inset-bottom));
+    right: 1rem;
+    z-index: 100;
+  }
+
+  /* Improve scrolling */
+  .scrollable-content {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    max-height: calc(100vh - 200px);
+  }
+}
+
+/* Extra small devices */
+@media (max-width: 375px) {
+  .page-container {
+    padding: 0.75rem;
+  }
+
+  .va-card__content {
+    padding: 0.75rem;
+  }
+
+  .page-title {
+    font-size: 1.25rem;
+  }
+
+  /* Smaller buttons on very small screens */
+  .va-button {
+    font-size: 0.875rem;
+    padding: 0.5rem 0.75rem;
+  }
+}
+
+/* Tablet optimization */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .grid {
+    gap: 1rem;
+  }
+
+  .va-card__content {
+    padding: 1.5rem;
+  }
+}
+
+/* Prevent text selection on buttons/cards (better mobile UX) */
+@media (hover: none) and (pointer: coarse) {
+  .va-button,
+  .va-card,
+  .va-chip {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Improve focus states for accessibility */
+@media (prefers-reduced-motion: no-preference) {
+  *:focus-visible {
+    outline: 2px solid var(--va-primary);
+    outline-offset: 2px;
+  }
+}
+
+/* Dark mode optimizations */
+@media (prefers-color-scheme: dark) {
+  .va-card {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* Landscape mobile optimization */
+@media (max-width: 896px) and (orientation: landscape) {
+  .va-modal__dialog {
+    max-height: 85vh;
+    overflow-y: auto;
+  }
+
+  .page-container {
+    padding: 0.5rem 1rem;
+  }
+}
+

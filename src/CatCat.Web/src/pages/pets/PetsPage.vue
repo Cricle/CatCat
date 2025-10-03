@@ -27,14 +27,27 @@
           </div>
         </div>
 
+        <!-- Loading Skeleton -->
+        <LoadingSkeleton v-if="loading" type="grid" :count="8" />
+
+        <!-- Empty State -->
+        <EmptyState
+          v-else-if="pets.length === 0"
+          icon="pets"
+          :title="t('emptyState.noPets')"
+          :description="t('emptyState.noPetsDesc')"
+          :action-text="t('pets.addPet')"
+          @action="showAddModal = true"
+        />
+
         <!-- Card View -->
-        <div v-if="viewMode === 'card'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div v-else-if="viewMode === 'card'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           <PetCard
             v-for="pet in paginatedPets"
             :key="pet.id"
             :pet="pet"
             @edit-pet="editPet"
-            @delete-pet="deletePet"
+            @delete-pet="confirmDelete"
           />
         </div>
 
@@ -47,7 +60,7 @@
           :loading="loading"
           :pagination="pagination"
           @edit-pet="editPet"
-          @delete-pet="deletePet"
+          @delete-pet="confirmDelete"
         />
 
         <!-- Pagination for Card View -->
@@ -82,6 +95,20 @@
     >
       <PetForm v-model="editedPet" />
     </VaModal>
+
+    <!-- Delete Confirmation Dialog -->
+    <ConfirmDialog
+      v-model="showDeleteConfirm"
+      :title="t('confirmDialog.deleteTitle')"
+      :message="t('confirmDialog.deleteMessage')"
+      :detail="deleteTarget ? `${t('pets.pet')}: ${deleteTarget.name}` : ''"
+      icon="warning"
+      icon-color="danger"
+      confirm-color="danger"
+      :confirm-text="t('confirmDialog.confirm')"
+      :cancel-text="t('confirmDialog.cancel')"
+      @confirm="handleDeleteConfirm"
+    />
   </div>
 </template>
 
@@ -94,6 +121,9 @@ import type { Pet } from '../../types/catcat-types'
 import PetsTable from './widgets/PetsTable.vue'
 import PetCard from './widgets/PetCard.vue'
 import PetForm from './widgets/PetForm.vue'
+import LoadingSkeleton from '../../components/LoadingSkeleton.vue'
+import EmptyState from '../../components/EmptyState.vue'
+import ConfirmDialog from '../../components/ConfirmDialog.vue'
 
 const { init: notify } = useToast()
 const { t } = useI18n()
@@ -112,7 +142,9 @@ const viewModeOptions = [
 
 const showAddModal = ref(false)
 const showEditModal = ref(false)
+const showDeleteConfirm = ref(false)
 const editedPet = ref<Partial<Pet>>({})
+const deleteTarget = ref<Pet | null>(null)
 
 const pagination = ref({
   page: 1,
@@ -173,15 +205,23 @@ const editPet = (pet: Pet) => {
 }
 
 // Delete pet
-const deletePet = async (pet: Pet) => {
-  if (!confirm(`确定要删除宠物 "${pet.name}" 吗？`)) return
+// Confirm delete
+const confirmDelete = (pet: Pet) => {
+  deleteTarget.value = pet
+  showDeleteConfirm.value = true
+}
+
+// Delete pet
+const handleDeleteConfirm = async () => {
+  if (!deleteTarget.value) return
 
   try {
-    await petApi.deletePet(pet.id)
-    notify({ message: '宠物已删除', color: 'success' })
+    await petApi.deletePet(deleteTarget.value.id)
+    notify({ message: t('pets.deleteSuccess'), color: 'success' })
+    deleteTarget.value = null
     await loadPets()
   } catch (error: any) {
-    notify({ message: '删除宠物失败', color: 'danger' })
+    notify({ message: t('pets.deleteFailed'), color: 'danger' })
   }
 }
 

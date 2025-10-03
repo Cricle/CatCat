@@ -1,5 +1,6 @@
 import './scss/main.scss'
 import './styles/global.css'
+import './components/MobileOptimized.css'
 
 import { createApp } from 'vue'
 import App from './App.vue'
