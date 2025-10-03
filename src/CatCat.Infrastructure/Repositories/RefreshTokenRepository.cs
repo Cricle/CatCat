@@ -22,7 +22,7 @@ public interface IRefreshTokenRepository
     [Sqlx("UPDATE refresh_tokens SET {{set:auto}} WHERE token = @token")]
     Task RevokeAndReplaceAsync(string token, DateTime revokedAt, string? revokedByIp, string? reasonRevoked, string? replacedByToken);
 
-    [Sqlx("UPDATE refresh_tokens SET revoked_at = @revokedAt, reason_revoked = 'Logout' WHERE user_id = @userId AND revoked_at IS NULL")]
+    [Sqlx("UPDATE refresh_tokens SET {{set:auto}} WHERE user_id = @userId AND revoked_at IS NULL")]
     Task RevokeAllByUserIdAsync(long userId, DateTime revokedAt);
 }
 

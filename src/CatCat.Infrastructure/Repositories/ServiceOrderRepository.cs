@@ -19,7 +19,7 @@ public interface IServiceOrderRepository
     [Sqlx("UPDATE service_orders SET {{set:auto}} WHERE id = @Id")]
     Task<int> UpdateAsync(ServiceOrder order);
 
-    [Sqlx("UPDATE service_orders SET status = @status, updated_at = @updatedAt WHERE id = @id")]
+    [Sqlx("UPDATE service_orders SET {{set:auto}} WHERE id = @id")]
     Task<int> UpdateStatusAsync(long id, string status, DateTime updatedAt);
 
     [Sqlx("SELECT {{column:auto}} FROM service_orders WHERE customer_id = @customerId ORDER BY created_at DESC LIMIT @pageSize OFFSET @offset")]

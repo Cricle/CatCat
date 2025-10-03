@@ -20,10 +20,10 @@ public interface IPaymentRepository
     [Sqlx("INSERT INTO payments {{column:auto}} VALUES {{value:auto}}")]
     Task<int> CreateAsync(PaymentEntity payment);
 
-    [Sqlx("UPDATE payments SET status = @status, paid_at = @paidAt, updated_at = @updatedAt WHERE id = @id")]
+    [Sqlx("UPDATE payments SET {{set:auto}} WHERE id = @id")]
     Task<int> UpdateStatusSuccessAsync(long id, string status, DateTime paidAt, DateTime updatedAt);
 
-    [Sqlx("UPDATE payments SET status = @status, error_message = @errorMessage, updated_at = @updatedAt WHERE id = @id")]
+    [Sqlx("UPDATE payments SET {{set:auto}} WHERE id = @id")]
     Task<int> UpdateStatusFailedAsync(long id, string status, string errorMessage, DateTime updatedAt);
 }
 

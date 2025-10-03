@@ -22,7 +22,7 @@ public interface IReviewRepository
     [Sqlx("INSERT INTO reviews {{column:auto}} VALUES {{value:auto}}")]
     Task<int> CreateAsync(Review review);
 
-    [Sqlx("UPDATE reviews SET reply = @reply, replied_at = @repliedAt, updated_at = @updatedAt WHERE id = @id")]
+    [Sqlx("UPDATE reviews SET {{set:auto}} WHERE id = @id")]
     Task<int> UpdateReplyAsync(long id, string reply, DateTime repliedAt, DateTime updatedAt);
 
     [Sqlx("SELECT AVG(rating) FROM reviews WHERE service_provider_id = @serviceProviderId")]
