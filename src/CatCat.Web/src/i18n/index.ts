@@ -1,18 +1,25 @@
 import { createI18n } from 'vue-i18n'
-import zhCN from './locales/zh-CN'
-import enUS from './locales/en-US'
 
-export type MessageSchema = typeof zhCN
-
-const i18n = createI18n<[MessageSchema], 'zh-CN' | 'en-US'>({
-  legacy: false,
-  locale: localStorage.getItem('locale') || 'zh-CN',
-  fallbackLocale: 'zh-CN',
-  messages: {
-    'zh-CN': zhCN,
-    'en-US': enUS
-  }
+const fileNameToLocaleModuleDict = import.meta.glob<{ default: Record<string, string> }>('./locales/*.json', {
+  eager: true,
 })
 
-export default i18n
+const messages: { [P: string]: Record<string, string> } = {}
+Object.entries(fileNameToLocaleModuleDict)
+  .map(([fileName, localeModule]) => {
+    const fileNameParts = fileName.split('/')
+    const fileNameWithoutPath = fileNameParts[fileNameParts.length - 1]
+    const localeName = fileNameWithoutPath.split('.json')[0]
 
+    return [localeName, localeModule.default] as const
+  })
+  .forEach((localeNameLocaleMessagesTuple) => {
+    messages[localeNameLocaleMessagesTuple[0]] = localeNameLocaleMessagesTuple[1]
+  })
+
+export default createI18n({
+  legacy: false,
+  locale: 'gb',
+  fallbackLocale: 'gb',
+  messages,
+})

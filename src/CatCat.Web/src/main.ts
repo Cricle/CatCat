@@ -1,34 +1,30 @@
+import './scss/main.scss'
+
 import { createApp } from 'vue'
-import { createPinia } from 'pinia'
 import App from './App.vue'
-import router from './router'
 import i18n from './i18n'
-
-// Vuestic UI - Modern Vue 3 UI Framework
 import { createVuestic } from 'vuestic-ui'
-import 'vuestic-ui/styles/essential.css'
-import 'vuestic-ui/styles/typography.css'
+import { createGtm } from '@gtm-support/vue-gtm'
 
-import './style.css'
+import stores from './stores'
+import router from './router'
+import vuesticGlobalConfig from './services/vuestic-ui/global-config'
 
 const app = createApp(App)
 
-app.use(createPinia())
+app.use(stores)
 app.use(router)
 app.use(i18n)
-app.use(createVuestic({
-  config: {
-    colors: {
-      variables: {
-        primary: '#667eea',
-        secondary: '#764ba2',
-        success: '#07c160',
-        info: '#1989fa',
-        danger: '#ee0a24',
-        warning: '#ff976a',
-      }
-    }
-  }
-}))
+app.use(createVuestic({ config: vuesticGlobalConfig }))
+
+if (import.meta.env.VITE_APP_GTM_ENABLED) {
+  app.use(
+    createGtm({
+      id: import.meta.env.VITE_APP_GTM_KEY,
+      debug: false,
+      vueRouter: router,
+    }),
+  )
+}
 
 app.mount('#app')
