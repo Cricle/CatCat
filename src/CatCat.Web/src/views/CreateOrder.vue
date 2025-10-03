@@ -1,427 +1,314 @@
 <template>
   <div class="create-order-page">
-    <van-nav-bar
-      title="Create Order"
-      left-arrow
-      @click-left="$router.back()"
-      fixed
-      placeholder
-    />
-
-    <!-- Progress Indicator -->
-    <div class="progress-bar">
-      <div class="progress-step" :class="{ active: step >= 1, completed: step > 1 }">
-        <div class="step-circle">1</div>
-        <span>Pet & Service</span>
-      </div>
-      <div class="progress-line" :class="{ active: step > 1 }"></div>
-      <div class="progress-step" :class="{ active: step >= 2, completed: step > 2 }">
-        <div class="step-circle">2</div>
-        <span>Time & Location</span>
-      </div>
-      <div class="progress-line" :class="{ active: step > 2 }"></div>
-      <div class="progress-step" :class="{ active: step >= 3 }">
-        <div class="step-circle">3</div>
-        <span>Confirm</span>
-      </div>
-    </div>
-
-    <van-form @submit="onSubmit">
-      <!-- Pet Selection -->
-      <van-cell-group title="Pet Information" inset>
-        <van-field
-          v-model="petName"
-          label="Select Pet"
-          placeholder="Choose your pet"
-          readonly
-          is-link
-          @click="openPetPicker"
-          :rules="[{ required: true, message: 'Please select a pet' }]"
-          :error-message="errors.pet"
-        >
-          <template #left-icon>
-            <van-icon name="paw" />
-          </template>
-        </van-field>
-        <div v-if="!pets.length && !loadingData" class="inline-tip">
-          <van-icon name="info-o" />
-          <span>No pets found. <a @click="$router.push('/pets')">Add a pet</a> first</span>
+    <va-card>
+      <va-card-title>
+        <div class="page-header">
+          <va-button preset="plain" icon="arrow_back" @click="$router.back()" />
+          <h1 class="va-h1">Create Order</h1>
+          <div></div>
         </div>
-      </van-cell-group>
+      </va-card-title>
 
-      <!-- Service Package -->
-      <van-cell-group title="Service Package" inset>
-        <van-field
-          v-model="packageName"
-          label="Package"
-          placeholder="Choose service package"
-          readonly
-          is-link
-          @click="openPackagePicker"
-          :rules="[{ required: true, message: 'Please select a package' }]"
-          :error-message="errors.package"
-        >
-          <template #left-icon>
-            <van-icon name="service-o" />
-          </template>
-        </van-field>
-        <div v-if="selectedPackage" class="package-preview">
-          <div class="preview-item">
-            <span>Duration:</span>
-            <strong>{{ selectedPackage.duration }} min</strong>
+      <va-card-content>
+        <!-- Progress Steps -->
+        <va-stepper v-model="currentStep" :steps="steps" :controls-hidden="true" />
+
+        <!-- Step 1: Pet & Service -->
+        <div v-show="currentStep === 0" class="step-content">
+          <h3 class="va-h3">Select Pet & Service</h3>
+
+          <!-- Loading -->
+          <div v-if="loading" class="loading-state">
+            <va-skeleton height="60px" class="mb-3" />
+            <va-skeleton height="60px" class="mb-3" />
           </div>
-          <div class="preview-item">
-            <span>Price:</span>
-            <strong class="price">¥{{ selectedPackage.price }}</strong>
-          </div>
+
+          <!-- Pet Selection -->
+          <va-select
+            v-else
+            v-model="formData.petId"
+            label="Select Pet"
+            :options="pets"
+            text-by="name"
+            value-by="id"
+            class="mb-4"
+          >
+            <template #prepend>
+              <va-icon name="pets" />
+            </template>
+          </va-select>
+
+          <va-alert v-if="!pets.length && !loading" color="info" class="mb-4">
+            No pets found. <router-link to="/pets">Add a pet</router-link> first.
+          </va-alert>
+
+          <!-- Package Selection -->
+          <va-select
+            v-model="formData.packageId"
+            label="Select Service Package"
+            :options="packages"
+            text-by="name"
+            value-by="id"
+          >
+            <template #prepend>
+              <va-icon name="category" />
+            </template>
+          </va-select>
+
+          <!-- Package Preview -->
+          <va-card v-if="selectedPackage" class="package-preview mt-4" outlined>
+            <va-card-content>
+              <div class="preview-row">
+                <span>Duration:</span>
+                <strong>{{ selectedPackage.duration }} min</strong>
+              </div>
+              <div class="preview-row">
+                <span>Price:</span>
+                <strong class="price">¥{{ selectedPackage.price }}</strong>
+              </div>
+              <div class="preview-row">
+                <span>Items:</span>
+                <span>{{ selectedPackage.serviceItems }}</span>
+              </div>
+            </va-card-content>
+          </va-card>
         </div>
-      </van-cell-group>
 
-      <!-- Service Time -->
-      <van-cell-group title="Service Time" inset>
-        <van-field
-          v-model="formData.serviceDate"
-          label="Date"
-          placeholder="Select date"
-          readonly
-          is-link
-          @click="showDatePicker = true"
-          :rules="[{ required: true, message: 'Please select date' }]"
-          :error-message="errors.date"
-        >
-          <template #left-icon>
-            <van-icon name="calendar-o" />
-          </template>
-        </van-field>
-        <van-field
-          v-model="formData.serviceTime"
-          label="Time"
-          placeholder="Select time"
-          readonly
-          is-link
-          @click="showTimePicker = true"
-          :rules="[{ required: true, message: 'Please select time' }]"
-          :error-message="errors.time"
-        >
-          <template #left-icon>
-            <van-icon name="clock-o" />
-          </template>
-        </van-field>
-      </van-cell-group>
+        <!-- Step 2: Time & Location -->
+        <div v-show="currentStep === 1" class="step-content">
+          <h3 class="va-h3">Schedule Service</h3>
 
-      <!-- Service Address -->
-      <van-cell-group title="Service Address" inset>
-        <van-field
-          v-model="formData.address"
-          label="Address"
-          placeholder="Enter detailed address"
-          :rules="[{ required: true, message: 'Please enter address' }]"
-          :error-message="errors.address"
-          @blur="validateField('address')"
-        >
-          <template #left-icon>
-            <van-icon name="location-o" />
-          </template>
-        </van-field>
-        <van-field
-          v-model="formData.addressDetail"
-          label="Unit/Room"
-          placeholder="e.g., Building 3, Unit 2, Room 501"
-        />
-      </van-cell-group>
+          <va-date-input
+            v-model="formData.serviceDate"
+            label="Service Date"
+            class="mb-4"
+          >
+            <template #prepend>
+              <va-icon name="calendar_today" />
+            </template>
+          </va-date-input>
 
-      <!-- Remarks -->
-      <van-cell-group title="Remarks (Optional)" inset>
-        <van-field
-          v-model="formData.customerRemark"
-          type="textarea"
-          rows="3"
-          placeholder="Enter any special requests or pet preferences..."
-          maxlength="200"
-          show-word-limit
-        />
-      </van-cell-group>
+          <va-time-input
+            v-model="formData.serviceTime"
+            label="Service Time"
+            class="mb-4"
+          >
+            <template #prepend>
+              <va-icon name="schedule" />
+            </template>
+          </va-time-input>
 
-      <!-- 价格 -->
-      <van-cell-group inset>
-        <van-cell title="服务费用">
-          <template #value>
-            <span class="price">¥{{ selectedPackage?.price || 0 }}</span>
-          </template>
-        </van-cell>
-      </van-cell-group>
+          <va-input
+            v-model="formData.address"
+            label="Service Address"
+          >
+            <template #prepend>
+              <va-icon name="location_on" />
+            </template>
+          </va-input>
+        </div>
 
-      <div class="submit-button">
-        <van-button
-          round
-          block
-          type="primary"
-          native-type="submit"
-          :loading="loading"
-        >
-          提交订单
-        </van-button>
-      </div>
-    </van-form>
+        <!-- Step 3: Confirm -->
+        <div v-show="currentStep === 2" class="step-content">
+          <h3 class="va-h3">Confirm Order</h3>
 
-    <!-- 宠物选择器 -->
-    <van-popup v-model:show="showPetPicker" position="bottom">
-      <van-picker
-        :columns="petColumns"
-        @confirm="onPetConfirm"
-        @cancel="showPetPicker = false"
-      />
-    </van-popup>
+          <va-card outlined class="summary-card">
+            <va-card-content>
+              <div class="summary-row">
+                <va-icon name="pets" color="primary" />
+                <span class="label">Pet:</span>
+                <strong>{{ selectedPet?.name }}</strong>
+              </div>
+              <va-divider />
+              <div class="summary-row">
+                <va-icon name="category" color="primary" />
+                <span class="label">Package:</span>
+                <strong>{{ selectedPackage?.name }}</strong>
+              </div>
+              <va-divider />
+              <div class="summary-row">
+                <va-icon name="calendar_today" color="primary" />
+                <span class="label">Date:</span>
+                <strong>{{ formatDate(formData.serviceDate) }}</strong>
+              </div>
+              <va-divider />
+              <div class="summary-row">
+                <va-icon name="schedule" color="primary" />
+                <span class="label">Time:</span>
+                <strong>{{ formatTime(formData.serviceTime) }}</strong>
+              </div>
+              <va-divider />
+              <div class="summary-row">
+                <va-icon name="location_on" color="primary" />
+                <span class="label">Address:</span>
+                <strong>{{ formData.address }}</strong>
+              </div>
+              <va-divider />
+              <div class="summary-row total-row">
+                <va-icon name="payments" color="success" />
+                <span class="label">Total:</span>
+                <strong class="price">¥{{ selectedPackage?.price }}</strong>
+              </div>
+            </va-card-content>
+          </va-card>
 
-    <!-- 套餐选择器 -->
-    <van-popup v-model:show="showPackagePicker" position="bottom">
-      <van-picker
-        :columns="packageColumns"
-        @confirm="onPackageConfirm"
-        @cancel="showPackagePicker = false"
-      />
-    </van-popup>
+          <va-textarea
+            v-model="formData.notes"
+            label="Additional Notes (Optional)"
+            placeholder="Any special requirements..."
+            :max-rows="4"
+            class="mt-4"
+          />
+        </div>
 
-    <!-- 日期选择器 -->
-    <van-popup v-model:show="showDatePicker" position="bottom">
-      <van-date-picker
-        v-model="currentDate"
-        title="选择日期"
-        :min-date="minDate"
-        @confirm="onDateConfirm"
-        @cancel="showDatePicker = false"
-      />
-    </van-popup>
-
-    <!-- 时间选择器 -->
-    <van-popup v-model:show="showTimePicker" position="bottom">
-      <van-time-picker
-        v-model="currentTime"
-        title="选择时间"
-        @confirm="onTimeConfirm"
-        @cancel="showTimePicker = false"
-      />
-    </van-popup>
+        <!-- Actions -->
+        <div class="actions-bar">
+          <va-button v-if="currentStep > 0" preset="secondary" @click="prevStep">
+            <va-icon name="arrow_back" /> Back
+          </va-button>
+          <va-spacer />
+          <va-button
+            v-if="currentStep < 2"
+            color="primary"
+            :disabled="!canProceed"
+            @click="nextStep"
+          >
+            Next <va-icon name="arrow_forward" />
+          </va-button>
+          <va-button
+            v-else
+            color="success"
+            :disabled="!canProceed || submitting"
+            :loading="submitting"
+            @click="submitOrder"
+          >
+            <va-icon name="check" /> Confirm Order
+          </va-button>
+        </div>
+      </va-card-content>
+    </va-card>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { getMyPets } from '@/api/pets'
-import { getActivePackages } from '@/api/packages'
+import { getServicePackages } from '@/api/packages'
 import { createOrder } from '@/api/orders'
-import type { Pet } from '@/api/pets'
-import type { ServicePackage } from '@/api/packages'
-import { showToast, showSuccessToast } from 'vant'
+import { useToast } from 'vuestic-ui'
 
+const { init: notify } = useToast()
 const router = useRouter()
-const route = useRoute()
 
+const currentStep = ref(0)
 const loading = ref(false)
-const loadingData = ref(false)
-const step = ref(1)
-const pets = ref<Pet[]>([])
-const packages = ref<ServicePackage[]>([])
+const submitting = ref(false)
 
-const showPetPicker = ref(false)
-const showPackagePicker = ref(false)
-const showDatePicker = ref(false)
-const showTimePicker = ref(false)
+const pets = ref<any[]>([])
+const packages = ref<any[]>([])
 
-const selectedPetId = ref<number>()
-const petName = ref('')
-const selectedPackageId = ref<number>()
-const packageName = ref('')
-
-const errors = reactive({
-  pet: '',
-  package: '',
-  date: '',
-  time: '',
-  address: ''
-})
-
-const minDate = new Date()
-const currentDate = ref(['2024', '01', '01'])
-const currentTime = ref(['09', '00'])
-
-const formData = reactive({
-  serviceDate: '',
-  serviceTime: '',
+const formData = ref({
+  petId: null as number | null,
+  packageId: null as number | null,
+  serviceDate: undefined as Date | undefined,
+  serviceTime: undefined as Date | undefined,
   address: '',
-  addressDetail: '',
-  customerRemark: ''
+  notes: ''
 })
 
-const petColumns = computed(() =>
-  pets.value.map(pet => ({
-    text: `${pet.name} (${pet.breed || '未知品种'})`,
-    value: pet.id
-  }))
-)
+const steps = [
+  { label: 'Pet & Service' },
+  { label: 'Time & Location' },
+  { label: 'Confirm' }
+]
 
-const packageColumns = computed(() =>
-  packages.value.map(pkg => ({
-    text: `${pkg.name} - ¥${pkg.price}`,
-    value: pkg.id
-  }))
-)
+const selectedPet = computed(() => pets.value.find(p => p.id === formData.value.petId))
+const selectedPackage = computed(() => packages.value.find(p => p.id === formData.value.packageId))
 
-const selectedPackage = computed(() =>
-  packages.value.find(p => p.id === selectedPackageId.value)
-)
-
-const openPetPicker = () => {
-  if (!pets.value.length) {
-    showToast({
-      message: 'Please add a pet first',
-      icon: 'fail'
-    })
-    setTimeout(() => router.push('/pets'), 1500)
-    return
+const canProceed = computed(() => {
+  if (currentStep.value === 0) {
+    return formData.value.petId && formData.value.packageId
   }
-  showPetPicker.value = true
+  if (currentStep.value === 1) {
+    return formData.value.serviceDate && formData.value.serviceTime && formData.value.address
+  }
+  return true
+})
+
+const formatDate = (date: Date | undefined) => {
+  if (!date) return ''
+  return new Date(date).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })
 }
 
-const openPackagePicker = () => {
-  if (!packages.value.length) {
-    showToast({
-      message: 'No service packages available',
-      icon: 'fail'
-    })
-    return
-  }
-  showPackagePicker.value = true
-}
-
-const validateField = (field: keyof typeof errors) => {
-  errors[field] = ''
-  if (field === 'address' && !formData.address) {
-    errors.address = 'Address is required'
-  }
+const formatTime = (time: Date | undefined) => {
+  if (!time) return ''
+  return new Date(time).toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit'
+  })
 }
 
 const fetchData = async () => {
-  loadingData.value = true
+  loading.value = true
   try {
     const [petsRes, packagesRes] = await Promise.all([
       getMyPets(),
-      getActivePackages()
+      getServicePackages()
     ])
     pets.value = petsRes.data
     packages.value = packagesRes.data
-
-    const packageId = route.query.packageId
-    if (packageId) {
-      selectedPackageId.value = Number(packageId)
-      const pkg = packages.value.find(p => p.id === selectedPackageId.value)
-      if (pkg) {
-        packageName.value = pkg.name
-        step.value = 2
-      }
-    }
   } catch (error: any) {
-    showToast({
-      message: error.message || 'Loading failed',
-      icon: 'fail'
-    })
-  } finally {
-    loadingData.value = false
-  }
-}
-
-const onPetConfirm = ({ selectedOptions }: any) => {
-  const option = selectedOptions[0]
-  selectedPetId.value = option.value
-  petName.value = option.text
-  errors.pet = ''
-  showPetPicker.value = false
-  if (selectedPackageId.value) step.value = 2
-}
-
-const onPackageConfirm = ({ selectedOptions }: any) => {
-  const option = selectedOptions[0]
-  selectedPackageId.value = option.value
-  packageName.value = option.text.split(' - ')[0]
-  errors.package = ''
-  showPackagePicker.value = false
-  if (selectedPetId.value) step.value = 2
-}
-
-const onDateConfirm = ({ selectedValues }: any) => {
-  formData.serviceDate = selectedValues.join('-')
-  errors.date = ''
-  showDatePicker.value = false
-  if (formData.serviceTime) step.value = 3
-}
-
-const onTimeConfirm = ({ selectedValues }: any) => {
-  formData.serviceTime = selectedValues.join(':')
-  errors.time = ''
-  showTimePicker.value = false
-  if (formData.serviceDate) step.value = 3
-}
-
-const onSubmit = async () => {
-  // Validate all fields
-  let hasError = false
-  if (!selectedPetId.value) {
-    errors.pet = 'Please select a pet'
-    hasError = true
-  }
-  if (!selectedPackageId.value) {
-    errors.package = 'Please select a package'
-    hasError = true
-  }
-  if (!formData.serviceDate) {
-    errors.date = 'Please select a date'
-    hasError = true
-  }
-  if (!formData.serviceTime) {
-    errors.time = 'Please select a time'
-    hasError = true
-  }
-  if (!formData.address) {
-    errors.address = 'Please enter an address'
-    hasError = true
-  }
-
-  if (hasError) {
-    showToast({
-      message: 'Please complete all required fields',
-      icon: 'fail'
-    })
-    return
-  }
-
-  loading.value = true
-  try {
-    const res = await createOrder({
-      petId: selectedPetId.value!,
-      servicePackageId: selectedPackageId.value!,
-      serviceDate: formData.serviceDate,
-      serviceTime: formData.serviceTime,
-      address: formData.address,
-      addressDetail: formData.addressDetail || undefined,
-      customerRemark: formData.customerRemark || undefined
-    })
-
-    showSuccessToast({
-      message: 'Order submitted successfully!',
-      duration: 1500
-    })
-    
-    setTimeout(() => {
-      router.replace(`/orders/${res.data.orderId}`)
-    }, 1500)
-  } catch (error: any) {
-    showToast({
-      message: error.message || 'Order creation failed',
-      icon: 'fail'
-    })
+    notify({ message: error.message || 'Failed to load data', color: 'danger' })
   } finally {
     loading.value = false
+  }
+}
+
+const nextStep = () => {
+  if (canProceed.value && currentStep.value < 2) {
+    currentStep.value++
+  }
+}
+
+const prevStep = () => {
+  if (currentStep.value > 0) {
+    currentStep.value--
+  }
+}
+
+const submitOrder = async () => {
+  if (!canProceed.value) return
+
+  submitting.value = true
+  try {
+    const serviceDate = formData.value.serviceDate 
+      ? new Date(formData.value.serviceDate).toISOString().split('T')[0]
+      : ''
+    
+    const serviceTime = formData.value.serviceTime
+      ? new Date(formData.value.serviceTime).toTimeString().slice(0, 5)
+      : ''
+
+    await createOrder({
+      petId: formData.value.petId!,
+      servicePackageId: formData.value.packageId!,
+      serviceDate,
+      serviceTime,
+      address: formData.value.address,
+      customerRemark: formData.value.notes
+    })
+
+    notify({ message: 'Order created successfully! Processing...', color: 'success' })
+    router.push('/orders')
+  } catch (error: any) {
+    notify({ message: error.message || 'Failed to create order', color: 'danger' })
+  } finally {
+    submitting.value = false
   }
 }
 
@@ -432,154 +319,116 @@ onMounted(() => {
 
 <style scoped>
 .create-order-page {
-  min-height: 100vh;
-  background-color: #f7f8fa;
-  padding-bottom: 80px;
+  padding: var(--va-content-padding);
 }
 
-/* Progress Bar */
-.progress-bar {
+.page-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px;
-  background: white;
-  margin-bottom: 12px;
+  width: 100%;
 }
 
-.progress-step {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  flex: 0 0 auto;
-  opacity: 0.4;
-  transition: opacity 0.3s;
-}
-
-.progress-step.active {
-  opacity: 1;
-}
-
-.step-circle {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: #f0f0f0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-  font-size: 14px;
-  color: #999;
-  transition: all 0.3s;
-}
-
-.progress-step.active .step-circle {
-  background: #1989fa;
-  color: white;
-}
-
-.progress-step.completed .step-circle {
-  background: #07c160;
-  color: white;
-}
-
-.progress-step span {
-  font-size: 12px;
-  color: #999;
-  white-space: nowrap;
-}
-
-.progress-step.active span {
-  color: #323233;
-  font-weight: 500;
-}
-
-.progress-line {
+.page-header h1 {
+  margin: 0;
   flex: 1;
-  height: 2px;
-  background: #f0f0f0;
-  margin: 0 8px;
-  transition: background 0.3s;
+  text-align: center;
 }
 
-.progress-line.active {
-  background: #1989fa;
+.step-content {
+  margin: 24px 0;
+  min-height: 300px;
 }
 
-:deep(.van-cell-group) {
-  margin-bottom: 16px;
+.step-content h3 {
+  margin-bottom: 24px;
 }
 
-.inline-tip {
-  padding: 12px 16px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: #646566;
-  background: #f7f8fa;
-  border-radius: 4px;
-  margin: -8px 16px 8px;
-}
-
-.inline-tip a {
-  color: #1989fa;
-  text-decoration: underline;
+.loading-state {
+  margin: 24px 0;
 }
 
 .package-preview {
-  padding: 12px 16px;
-  background: #f7f8fa;
-  border-radius: 4px;
-  margin: -8px 16px 8px;
+  margin-top: 16px;
 }
 
-.preview-item {
+.preview-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 14px;
-  padding: 4px 0;
+  margin-bottom: 12px;
 }
 
-.preview-item span {
-  color: #646566;
-}
-
-.preview-item strong {
-  color: #323233;
+.preview-row:last-child {
+  margin-bottom: 0;
 }
 
 .price {
-  color: #ee0a24;
-  font-weight: 600;
+  color: var(--va-success);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.summary-card {
+  margin-bottom: 16px;
+}
+
+.summary-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+}
+
+.summary-row .label {
+  min-width: 80px;
+  color: var(--va-text-secondary);
+}
+
+.summary-row strong {
+  flex: 1;
+  text-align: right;
+}
+
+.total-row {
   font-size: 18px;
 }
 
-.submit-button {
-  padding: 16px;
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: white;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
-  z-index: 100;
+.total-row .price {
+  font-size: 24px;
 }
 
-/* Mobile Responsive */
-@media (max-width: 640px) {
-  .progress-step span {
-    font-size: 10px;
+.actions-bar {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--va-background-border);
+}
+
+@media (max-width: 768px) {
+  .create-order-page {
+    padding: 12px;
   }
-  
-  .step-circle {
-    width: 28px;
-    height: 28px;
-    font-size: 12px;
+
+  .page-header h1 {
+    font-size: 20px;
+  }
+
+  .step-content {
+    min-height: 250px;
+  }
+
+  .summary-row {
+    font-size: 14px;
+  }
+
+  .total-row {
+    font-size: 16px;
+  }
+
+  .total-row .price {
+    font-size: 20px;
   }
 }
 </style>
-
