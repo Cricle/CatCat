@@ -1,145 +1,160 @@
 <template>
   <div class="orders-page">
-    <van-nav-bar title="My Orders" fixed placeholder />
+    <va-card>
+      <va-card-title>
+        <h1 class="va-h1">My Orders</h1>
+      </va-card-title>
 
-    <van-tabs v-model:active="activeTab" @change="onTabChange" sticky>
-      <van-tab title="All" />
-      <van-tab title="Pending" />
-      <van-tab title="In Service" />
-      <van-tab title="Completed" />
-    </van-tabs>
+      <va-card-content>
+        <!-- Tabs -->
+        <va-tabs v-model="activeTab" grow>
+          <va-tab v-for="tab in tabs" :key="tab.value" :label="tab.label" />
+        </va-tabs>
 
-    <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
-      <div class="order-list">
-        <!-- Skeleton Loading -->
-        <template v-if="loading && !refreshing">
-          <van-skeleton title :row="3" class="skeleton-item" v-for="i in 3" :key="i" />
-        </template>
+        <!-- Loading State -->
+        <div v-if="loading" class="loading-container">
+          <va-skeleton height="120px" v-for="i in 3" :key="i" class="skeleton-item" />
+        </div>
 
         <!-- Empty State -->
-        <van-empty 
-          v-else-if="orders.length === 0" 
-          image="search"
-          description="No orders yet"
-        >
-          <van-button type="primary" round @click="$router.push('/')">
-            <van-icon name="plus" />
-            Create Order
-          </van-button>
-        </van-empty>
+        <va-card v-else-if="orders.length === 0" class="empty-state">
+          <va-card-content>
+            <div class="text-center">
+              <va-icon name="receipt_long" size="64px" color="secondary" />
+              <h3 class="va-h3">No Orders Yet</h3>
+              <p class="va-text-secondary">Start by creating your first order</p>
+              <va-button color="primary" @click="$router.push('/order/create')">
+                <va-icon name="add" /> Create Order
+              </va-button>
+            </div>
+          </va-card-content>
+        </va-card>
 
         <!-- Order List -->
-        <div v-else class="order-items">
-          <div
-            v-for="order in orders"
-            :key="order.id"
-            class="order-card"
-            @click="viewDetail(order.id)"
-          >
-            <div class="order-header">
-              <span class="order-no">{{ order.orderNo }}</span>
-              <van-tag 
-                :type="getStatusType(order.status)" 
-                size="medium"
-                round
-              >
-                {{ getStatusText(order.status) }}
-              </van-tag>
-            </div>
+        <div v-else class="va-row">
+          <div v-for="order in orders" :key="order.id" class="flex xs12 md6">
+            <va-card hover class="order-card" @click="viewDetail(order.id)">
+              <va-card-content>
+                <!-- Header -->
+                <div class="order-header">
+                  <span class="order-no">{{ order.orderNo }}</span>
+                  <va-badge
+                    :text="getStatusText(order.status)"
+                    :color="getStatusColor(order.status)"
+                  />
+                </div>
 
-            <van-divider />
+                <va-divider />
 
-            <div class="order-info">
-              <div class="info-row">
-                <van-icon name="clock-o" />
-                <span>{{ formatDateTime(order.scheduledTime) }}</span>
-              </div>
-              <div class="info-row">
-                <van-icon name="location-o" />
-                <span>{{ order.address }}</span>
-              </div>
-              <div class="info-row">
-                <van-icon name="paid" />
-                <span class="price">¥{{ order.totalPrice }}</span>
-              </div>
-            </div>
+                <!-- Info -->
+                <div class="order-info">
+                  <div class="info-row">
+                    <va-icon name="schedule" color="secondary" />
+                    <span>{{ formatDateTime(order.scheduledTime) }}</span>
+                  </div>
+                  <div class="info-row">
+                    <va-icon name="location_on" color="secondary" />
+                    <span>{{ order.address }}</span>
+                  </div>
+                  <div class="info-row">
+                    <va-icon name="payments" color="success" />
+                    <span class="price">¥{{ order.totalPrice }}</span>
+                  </div>
+                </div>
 
-            <div class="order-footer" @click.stop>
-              <van-button
-                v-if="canCancel(order.status)"
-                size="small"
-                plain
-                @click="handleCancelOrder(order.id)"
-              >
-                Cancel
-              </van-button>
-              <van-button
-                size="small"
-                type="primary"
-                @click="viewDetail(order.id)"
-              >
-                View Details
-              </van-button>
-            </div>
+                <va-divider />
+
+                <!-- Footer -->
+                <div class="order-footer">
+                  <va-button
+                    v-if="canCancel(order.status)"
+                    size="small"
+                    preset="plain"
+                    @click.stop="handleCancelOrder(order.id)"
+                  >
+                    Cancel
+                  </va-button>
+                  <va-button size="small" color="primary" @click.stop="viewDetail(order.id)">
+                    View Details
+                  </va-button>
+                </div>
+              </va-card-content>
+            </va-card>
           </div>
         </div>
-      </div>
-    </van-pull-refresh>
+
+        <!-- Pagination -->
+        <div v-if="orders.length > 0" class="pagination-wrapper">
+          <va-pagination
+            v-model="currentPage"
+            :pages="totalPages"
+            @update:modelValue="fetchOrders"
+          />
+        </div>
+      </va-card-content>
+    </va-card>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getMyOrders, cancelOrder } from '@/api/orders'
-import { showToast, showConfirmDialog, showLoadingToast, closeToast } from 'vant'
+import { useToast, useModal } from 'vuestic-ui'
 
+const { init: notify } = useToast()
+const { confirm } = useModal()
 const router = useRouter()
+
 const activeTab = ref(0)
 const loading = ref(false)
-const refreshing = ref(false)
 const orders = ref<any[]>([])
+const currentPage = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
 
-const statusMap = [
-  { value: undefined, text: 'All' },
-  { value: 0, text: 'Pending' },
-  { value: 2, text: 'In Service' },
-  { value: 3, text: 'Completed' }
+const tabs = [
+  { label: 'All', value: undefined },
+  { label: 'Queued', value: 0 },
+  { label: 'Pending', value: 1 },
+  { label: 'In Service', value: 3 },
+  { label: 'Completed', value: 4 }
 ]
 
-const getStatusType = (status: number) => {
-  const types: Record<number, any> = {
-    '-1': 'default',
-    0: 'warning',
-    1: 'primary',
-    2: 'primary',
-    3: 'success',
-    4: 'danger'
-  }
-  return types[status] || 'default'
-}
+const totalPages = computed(() => Math.ceil(total.value / pageSize.value))
 
 const getStatusText = (status: number) => {
-  const texts: Record<number, string> = {
-    '-1': 'Processing',
-    0: 'Pending',
-    1: 'Accepted',
-    2: 'In Service',
-    3: 'Completed',
-    4: 'Cancelled'
+  const map: Record<number, string> = {
+    0: 'Queued',
+    1: 'Pending',
+    2: 'Accepted',
+    3: 'In Service',
+    4: 'Completed',
+    5: 'Cancelled'
   }
-  return texts[status] || 'Unknown'
+  return map[status] || 'Unknown'
+}
+
+const getStatusColor = (status: number) => {
+  const map: Record<number, string> = {
+    0: 'info',
+    1: 'warning',
+    2: 'primary',
+    3: 'info',
+    4: 'success',
+    5: 'danger'
+  }
+  return map[status] || 'secondary'
 }
 
 const canCancel = (status: number) => {
-  return status === -1 || status === 0
+  return status === 0 || status === 1
 }
 
 const formatDateTime = (dateTime: string) => {
-  if (!dateTime) return '-'
-  const date = new Date(dateTime)
-  return date.toLocaleString('en-US', { 
-    month: 'short', 
+  return new Date(dateTime).toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit'
@@ -149,31 +164,19 @@ const formatDateTime = (dateTime: string) => {
 const fetchOrders = async () => {
   loading.value = true
   try {
-    const status = statusMap[activeTab.value].value
+    const statusFilter = tabs[activeTab.value]?.value
     const res = await getMyOrders({
-      page: 1,
-      pageSize: 20,
-      status
+      page: currentPage.value,
+      pageSize: pageSize.value,
+      status: statusFilter as number | undefined
     })
-    orders.value = res.data.items || []
+    orders.value = res.data.items
+    total.value = res.data.total
   } catch (error: any) {
-    showToast({
-      message: error.message || 'Failed to load orders',
-      icon: 'fail'
-    })
+    notify({ message: error.message || 'Failed to load orders', color: 'danger' })
   } finally {
     loading.value = false
-    refreshing.value = false
   }
-}
-
-const onTabChange = () => {
-  fetchOrders()
-}
-
-const onRefresh = () => {
-  refreshing.value = true
-  fetchOrders()
 }
 
 const viewDetail = (orderId: number) => {
@@ -181,36 +184,20 @@ const viewDetail = (orderId: number) => {
 }
 
 const handleCancelOrder = async (orderId: number) => {
-  try {
-    await showConfirmDialog({
-      title: 'Cancel Order',
-      message: 'Are you sure you want to cancel this order?',
-      confirmButtonText: 'Yes, Cancel',
-      cancelButtonText: 'No'
-    })
+  const agreed = await confirm({
+    title: 'Cancel Order',
+    message: 'Are you sure you want to cancel this order?',
+    okText: 'Yes, Cancel',
+    cancelText: 'No'
+  })
 
-    showLoadingToast({
-      message: 'Cancelling...',
-      forbidClick: true,
-      duration: 0
-    })
-
-    await cancelOrder(orderId, 'User cancelled')
-    
-    closeToast()
-    showToast({
-      message: 'Order cancelled successfully',
-      icon: 'success'
-    })
-    
-    fetchOrders()
-  } catch (error: any) {
-    closeToast()
-    if (error !== 'cancel') {
-      showToast({
-        message: error.message || 'Failed to cancel order',
-        icon: 'fail'
-      })
+  if (agreed) {
+    try {
+      await cancelOrder(orderId)
+      notify({ message: 'Order cancelled successfully', color: 'success' })
+      fetchOrders()
+    } catch (error: any) {
+      notify({ message: error.message || 'Failed to cancel order', color: 'danger' })
     }
   }
 }
@@ -222,57 +209,52 @@ onMounted(() => {
 
 <style scoped>
 .orders-page {
-  min-height: 100vh;
-  background: var(--gray-50);
-  padding-bottom: 70px;
+  padding: var(--va-content-padding);
 }
 
-.order-list {
-  padding: 12px;
-  min-height: 400px;
+.loading-container {
+  padding: var(--va-content-padding) 0;
 }
 
 .skeleton-item {
-  margin-bottom: 12px;
-  padding: 16px;
-  background: white;
-  border-radius: var(--radius);
+  margin-bottom: 16px;
 }
 
-.order-items {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+.empty-state {
+  margin-top: var(--va-content-padding);
+}
+
+.text-center {
+  text-align: center;
+  padding: var(--va-content-padding);
 }
 
 .order-card {
-  background: white;
-  border-radius: var(--radius);
-  padding: 16px;
+  width: 100%;
+  margin-bottom: var(--va-content-padding);
   cursor: pointer;
-  transition: all var(--transition);
-  border: 1px solid var(--gray-200);
+  transition: transform 0.2s;
 }
 
-.order-card:active {
-  transform: scale(0.98);
-  border-color: var(--primary);
+.order-card:hover {
+  transform: translateY(-4px);
 }
 
 .order-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 12px;
 }
 
 .order-no {
-  font-size: 14px;
   font-weight: 600;
-  color: var(--gray-700);
+  font-size: 14px;
+  color: var(--va-text-primary);
 }
 
 .order-info {
-  margin: 12px 0;
+  margin: 16px 0;
 }
 
 .info-row {
@@ -281,23 +263,35 @@ onMounted(() => {
   gap: 8px;
   margin-bottom: 8px;
   font-size: 14px;
-  color: var(--gray-600);
-}
-
-.info-row .va-icon {
-  color: var(--gray-400);
+  color: var(--va-text-secondary);
 }
 
 .price {
-  color: var(--primary);
-  font-weight: 600;
+  font-weight: 700;
   font-size: 16px;
+  color: var(--va-success);
 }
 
 .order-footer {
   display: flex;
-  gap: 8px;
   justify-content: flex-end;
+  gap: 8px;
   margin-top: 12px;
+}
+
+.pagination-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--va-content-padding);
+}
+
+@media (max-width: 768px) {
+  .orders-page {
+    padding: 12px;
+  }
+
+  .order-card {
+    margin-bottom: 12px;
+  }
 }
 </style>
