@@ -65,6 +65,12 @@ const routes: Array<RouteRecordRaw> = [
         meta: { requiresRole: 2 },
       },
       {
+        name: 'provider-progress',
+        path: 'provider/progress/:id',
+        component: () => import('../pages/provider/ProgressUpdatePage.vue'),
+        meta: { requiresRole: 2 },
+      },
+      {
         name: 'users',
         path: 'users',
         component: () => import('../pages/users/UsersPage.vue'),
