@@ -28,13 +28,31 @@ export const useUserStore = defineStore('user', () => {
     localStorage.removeItem('token')
   }
 
+  function debugLogin() {
+    const debugToken = 'debug_token_' + Date.now()
+    const debugUser = {
+      id: 1,
+      phone: '13800138000',
+      nickName: 'Debug User',
+      email: 'debug@catcat.com',
+      role: 1,
+      avatar: '🐱'
+    }
+
+    token.value = debugToken
+    userInfo.value = debugUser
+    localStorage.setItem('token', debugToken)
+    localStorage.setItem('userInfo', JSON.stringify(debugUser))
+  }
+
   return {
     token,
     userInfo,
     isAuthenticated,
     loginUser,
     registerUser,
-    logout
+    logout,
+    debugLogin
   }
 })
 

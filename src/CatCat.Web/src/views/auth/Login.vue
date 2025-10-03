@@ -35,6 +35,16 @@
             Login
           </va-button>
 
+          <va-button
+            v-if="isDebugMode"
+            class="debug-button"
+            color="warning"
+            @click="handleDebugLogin"
+            size="large"
+            block>
+            🚀 Debug: Skip Login
+          </va-button>
+
           <div class="links">
             <router-link to="/register" class="link">Create account</router-link>
           </div>
@@ -51,7 +61,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import type { LoginRequest } from '@/api/auth'
@@ -61,6 +71,8 @@ const router = useRouter()
 const userStore = useUserStore()
 const formRef = ref<InstanceType<typeof VaForm>>()
 const loading = ref(false)
+
+const isDebugMode = computed(() => import.meta.env.VITE_DEBUG_MODE === 'true')
 
 const form = reactive<LoginRequest>({
   phone: '',
@@ -90,6 +102,12 @@ const handleLogin = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const handleDebugLogin = () => {
+  userStore.debugLogin()
+  console.log('🚀 Debug mode: Logged in as Debug User')
+  router.push('/')
 }
 </script>
 
@@ -147,6 +165,17 @@ const handleLogin = async () => {
 
 .login-button {
   margin-top: 8px;
+}
+
+.debug-button {
+  margin-top: 12px;
+  border: 2px dashed var(--va-warning);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
 }
 
 .links {
