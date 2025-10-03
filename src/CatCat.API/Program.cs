@@ -127,6 +127,15 @@ builder.Services.AddSingleton<CatCat.Infrastructure.Storage.IStorageService, Cat
 // Business Metrics
 builder.Services.AddSingleton<CatCat.API.Observability.BusinessMetrics>();
 
+// Distributed Tracing
+builder.Services.AddSingleton(sp =>
+{
+    var apiSource = sp.GetServices<System.Diagnostics.ActivitySource>()
+        .FirstOrDefault(s => s.Name == "CatCat.Infrastructure")
+        ?? new System.Diagnostics.ActivitySource("CatCat.Infrastructure");
+    return new CatCat.Infrastructure.Tracing.TracingService(apiSource);
+});
+
 // Repositories & Services
 builder.Services.AddRepositories();
 builder.Services.AddApplicationServices();
@@ -156,6 +165,9 @@ app.UseHttpMetrics(options =>
 {
     options.AddCustomLabel("service", _ => "catcat-api");
 });
+
+// Distributed Tracing Middleware
+app.UseMiddleware<CatCat.API.Middleware.TracingMiddleware>();
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseRateLimiter();
