@@ -1,101 +1,93 @@
 <template>
-  <div class="login-page">
-    <va-card class="login-card">
-      <va-card-content>
-        <div class="logo-section">
-          <div class="logo-icon">🐱</div>
-          <h1 class="logo-title">CatCat</h1>
-          <p class="logo-subtitle">Professional Cat Sitting Service</p>
+  <div class="auth-page">
+    <div class="auth-container">
+      <div class="auth-header">
+        <div class="auth-icon">🐱</div>
+        <h1 class="auth-title">Welcome Back</h1>
+        <p class="auth-subtitle">Sign in to your account</p>
+      </div>
+
+      <va-form class="auth-form">
+        <va-input
+          v-model="form.phone"
+          label="Phone Number"
+          placeholder="Enter your phone number"
+          :rules="[(v) => !!v || 'Phone is required']"
+        >
+          <template #prepend>
+            <va-icon name="phone" />
+          </template>
+        </va-input>
+
+        <va-input
+          v-model="form.password"
+          label="Password"
+          type="password"
+          placeholder="Enter your password"
+          :rules="[(v) => !!v || 'Password is required']"
+        >
+          <template #prepend>
+            <va-icon name="lock" />
+          </template>
+        </va-input>
+
+        <div class="form-footer">
+          <va-checkbox v-model="rememberMe" label="Remember me" />
+          <va-button preset="plain" size="small">Forgot password?</va-button>
         </div>
 
-        <va-form ref="formRef" class="login-form">
-          <va-input
-            v-model="form.phone"
-            label="Phone"
-            placeholder="Enter phone number"
-            :rules="phoneRules">
-            <template #prepend><va-icon name="phone" /></template>
-          </va-input>
+        <va-button
+          class="submit-button"
+          @click="handleLogin"
+          :loading="loading"
+          block
+        >
+          Sign In
+        </va-button>
 
-          <va-input
-            v-model="form.password"
-            type="password"
-            label="Password"
-            placeholder="Enter password"
-            :rules="passwordRules">
-            <template #prepend><va-icon name="lock" /></template>
-          </va-input>
+        <div class="auth-divider">
+          <span>or</span>
+        </div>
 
-          <va-button
-            class="login-button"
-            :loading="loading"
-            @click="handleLogin"
-            size="large"
-            block>
-            Login
-          </va-button>
+        <va-button
+          v-if="isDebugMode"
+          class="debug-button"
+          @click="handleDebugLogin"
+          preset="secondary"
+          block
+        >
+          🚀 Debug: Skip Login
+        </va-button>
 
-          <va-button
-            v-if="isDebugMode"
-            class="debug-button"
-            color="warning"
-            @click="handleDebugLogin"
-            size="large"
-            block>
-            🚀 Debug: Skip Login
-          </va-button>
-
-          <div class="links">
-            <router-link to="/register" class="link">Create account</router-link>
-          </div>
-        </va-form>
-      </va-card-content>
-    </va-card>
-
-    <div class="background-decoration">
-      <div class="decoration-circle circle-1"></div>
-      <div class="decoration-circle circle-2"></div>
-      <div class="decoration-circle circle-3"></div>
+        <div class="auth-link">
+          Don't have an account?
+          <router-link to="/register" class="link">Sign up</router-link>
+        </div>
+      </va-form>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import type { LoginRequest } from '@/api/auth'
-import { VaForm } from 'vuestic-ui'
 
 const router = useRouter()
 const userStore = useUserStore()
-const formRef = ref<InstanceType<typeof VaForm>>()
 const loading = ref(false)
+const rememberMe = ref(false)
+const isDebugMode = import.meta.env.VITE_DEBUG_MODE === 'true'
 
-const isDebugMode = computed(() => import.meta.env.VITE_DEBUG_MODE === 'true')
-
-const form = reactive<LoginRequest>({
+const form = ref({
   phone: '',
   password: ''
 })
 
-const phoneRules = [
-  (v: string) => !!v || 'Phone number required',
-  (v: string) => /^1[3-9]\d{9}$/.test(v) || 'Invalid phone format'
-]
-
-const passwordRules = [
-  (v: string) => !!v || 'Password required',
-  (v: string) => v.length >= 6 || 'Password must be at least 6 characters'
-]
-
 const handleLogin = async () => {
-  const valid = await formRef.value?.validate()
-  if (!valid) return
-
   loading.value = true
   try {
-    await userStore.loginUser(form)
+    await userStore.loginUser(form.value)
     router.push('/')
   } catch (error: any) {
     console.error('Login failed:', error)
@@ -106,153 +98,108 @@ const handleLogin = async () => {
 
 const handleDebugLogin = () => {
   userStore.debugLogin()
-  console.log('🚀 Debug mode: Logged in as Debug User')
   router.push('/')
 }
 </script>
 
 <style scoped>
-.login-page {
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+.auth-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, var(--va-primary) 0%, var(--va-secondary) 100%);
-  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: var(--gray-50);
 }
 
-.login-card {
-  position: relative;
-  z-index: 1;
+.auth-container {
   width: 100%;
-  max-width: 420px;
-  margin: 20px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-width: 400px;
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  padding: 40px;
 }
 
-.logo-section {
+.auth-header {
   text-align: center;
   margin-bottom: 32px;
 }
 
-.logo-icon {
-  font-size: 64px;
-  animation: bounce 2s infinite;
+.auth-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
 }
 
-.logo-title {
-  margin: 12px 0 8px;
-  font-size: 32px;
+.auth-title {
+  font-size: 1.75rem;
   font-weight: 700;
-  background: linear-gradient(135deg, var(--va-primary), var(--va-secondary));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--gray-900);
+  margin-bottom: 8px;
 }
 
-.logo-subtitle {
-  margin: 0;
-  color: var(--va-text-secondary);
-  font-size: 14px;
+.auth-subtitle {
+  font-size: 0.875rem;
+  color: var(--gray-600);
 }
 
-.login-form {
+.auth-form {
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
 
-.login-button {
+.form-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.submit-button {
   margin-top: 8px;
 }
 
-.debug-button {
-  margin-top: 12px;
-  border: 2px dashed var(--va-warning);
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-}
-
-.links {
+.auth-divider {
+  position: relative;
   text-align: center;
-  font-size: 14px;
+  margin: 8px 0;
+}
+
+.auth-divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--gray-200);
+}
+
+.auth-divider span {
+  position: relative;
+  background: white;
+  padding: 0 12px;
+  color: var(--gray-600);
+  font-size: 0.875rem;
+}
+
+.debug-button {
+  border: 1px dashed var(--warning) !important;
+}
+
+.auth-link {
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--gray-600);
 }
 
 .link {
-  color: var(--va-primary);
+  color: var(--primary);
   text-decoration: none;
+  font-weight: 500;
 }
 
 .link:hover {
   text-decoration: underline;
-}
-
-.background-decoration {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.decoration-circle {
-  position: absolute;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-}
-
-.circle-1 {
-  width: 300px;
-  height: 300px;
-  top: -100px;
-  left: -100px;
-  animation: float 6s ease-in-out infinite;
-}
-
-.circle-2 {
-  width: 200px;
-  height: 200px;
-  top: 50%;
-  right: -50px;
-  animation: float 8s ease-in-out infinite;
-}
-
-.circle-3 {
-  width: 150px;
-  height: 150px;
-  bottom: -50px;
-  left: 30%;
-  animation: float 7s ease-in-out infinite;
-}
-
-@keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-20px) rotate(10deg); }
-}
-
-@media (max-width: 768px) {
-  .login-card {
-    margin: 0;
-    border-radius: 0;
-    box-shadow: none;
-  }
-
-  .logo-icon {
-    font-size: 48px;
-  }
-
-  .logo-title {
-    font-size: 24px;
-  }
 }
 </style>

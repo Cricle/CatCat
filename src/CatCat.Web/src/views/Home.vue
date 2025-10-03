@@ -1,120 +1,119 @@
 <template>
   <div class="home-page">
-    <!-- Hero Section with Gradient -->
+    <!-- Flat Hero Section -->
     <div class="hero-section">
       <div class="hero-content">
-        <div class="logo-container">
-          <div class="logo">🐱</div>
-          <div class="logo-shadow"></div>
-        </div>
-        <h1 class="hero-title fade-in">CatCat 上门喂猫</h1>
-        <p class="hero-subtitle fade-in">专业·安全·可靠的宠物照护服务</p>
-        <div class="search-container slide-up">
-          <va-input v-model="searchText" placeholder="搜索服务、地点..." class="search-input" size="large">
+        <div class="hero-icon">🐱</div>
+        <h1 class="hero-title">CatCat Pet Care</h1>
+        <p class="hero-subtitle">Professional & Reliable Pet Sitting Services</p>
+        <div class="search-bar">
+          <va-input 
+            v-model="searchText" 
+            placeholder="Search services, locations..." 
+            size="large"
+          >
             <template #prepend>
               <va-icon name="search" />
             </template>
           </va-input>
         </div>
       </div>
-      <div class="wave-divider">
-        <svg viewBox="0 0 1200 120" preserveAspectRatio="none">
-          <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z" fill="currentColor"></path>
-        </svg>
-      </div>
     </div>
 
     <!-- Quick Actions -->
-    <div class="quick-actions scale-in">
-      <va-card v-for="(action, index) in quickActions" :key="action.title" class="action-card" @click="action.onClick" :style="{ animationDelay: `${index * 0.1}s` }">
-        <va-card-content>
-          <div class="action-icon-wrapper" :style="{ background: action.gradient }">
-            <va-icon :name="action.icon" size="medium" color="#fff" />
-          </div>
+    <div class="quick-actions">
+      <div 
+        v-for="action in quickActions" 
+        :key="action.title" 
+        class="action-item"
+        @click="action.onClick"
+      >
+        <div class="action-icon" :style="{ color: action.color }">
+          <va-icon :name="action.icon" size="medium" />
+        </div>
+        <div class="action-text">
           <div class="action-title">{{ action.title }}</div>
           <div class="action-subtitle">{{ action.subtitle }}</div>
-        </va-card-content>
-      </va-card>
+        </div>
+      </div>
     </div>
 
     <!-- Service Packages -->
     <div class="packages-section">
       <div class="section-header">
-        <h2 class="section-title">
-          <span class="gradient-text">精选套餐</span>
-        </h2>
-        <va-button size="small" preset="plain" @click="viewAllPackages" icon-right="arrow_forward">
-          查看全部
+        <h2 class="section-title">Our Services</h2>
+        <va-button preset="plain" size="small" @click="viewAllPackages">
+          View All
+          <va-icon name="arrow_forward" size="small" />
         </va-button>
       </div>
 
-      <div v-if="loading" class="loading-container">
+      <div v-if="loading" class="loading-state">
         <va-progress-circle indeterminate color="primary" />
-        <p class="loading-text">正在加载精彩内容...</p>
+        <p>Loading services...</p>
       </div>
 
       <div v-else class="packages-grid">
-        <va-card v-for="(pkg, index) in packages" :key="pkg.id" class="package-card slide-up" :style="{ animationDelay: `${index * 0.1}s` }" @click="selectPackage(pkg)">
-          <div class="package-ribbon" v-if="index === 0">
-            <span>推荐</span>
-          </div>
+        <va-card 
+          v-for="(pkg, index) in packages" 
+          :key="pkg.id" 
+          class="package-card"
+          @click="selectPackage(pkg)"
+        >
           <va-card-content>
             <div class="package-header">
-              <div class="package-icon-wrapper" :style="{ background: getPackageGradient(pkg.name) }">
-                <va-icon :name="getPackageIcon(pkg.name)" size="large" color="#fff" />
+              <div class="package-icon" :style="{ background: getPackageColor(index) }">
+                <va-icon :name="getPackageIcon(pkg.name)" color="white" />
               </div>
-              <div class="package-meta">
-                <h3 class="package-name">{{ pkg.name }}</h3>
-                <va-badge :text="`${pkg.duration}分钟`" color="info" />
-              </div>
+              <va-badge v-if="isRecommended(index)" text="Recommended" color="warning" />
             </div>
+            <h3 class="package-name">{{ pkg.name }}</h3>
             <p class="package-desc">{{ pkg.description }}</p>
-            <div class="package-items">
-              <va-chip v-for="(item, idx) in getServiceItems(pkg.serviceItems)" :key="idx" size="small" color="primary" outline>
-                <va-icon name="check_circle" size="small" />
+            <div class="package-tags">
+              <va-chip 
+                v-for="(item, idx) in getServiceItems(pkg.serviceItems)" 
+                :key="idx" 
+                size="small" 
+                outline
+              >
                 {{ item }}
               </va-chip>
             </div>
             <div class="package-footer">
-              <div class="package-price">
-                <span class="price-symbol">¥</span>
-                <span class="price-value">{{ pkg.price }}</span>
-                <span class="price-unit">/次</span>
+              <div class="package-info">
+                <span class="package-duration">{{ pkg.duration }} min</span>
               </div>
-              <va-button size="small" color="primary">
-                立即预约
-                <va-icon name="arrow_forward" size="small" />
-              </va-button>
+              <div class="package-price">
+                <span class="price">¥{{ pkg.price }}</span>
+              </div>
             </div>
           </va-card-content>
         </va-card>
       </div>
     </div>
 
-    <!-- Features Section -->
+    <!-- Features -->
     <div class="features-section">
-      <h2 class="section-title">
-        <span class="gradient-text">为什么选择我们</span>
-      </h2>
+      <h2 class="section-title">Why Choose Us</h2>
       <div class="features-grid">
-        <va-card v-for="(feature, index) in features" :key="feature.title" class="feature-card scale-in" :style="{ animationDelay: `${index * 0.1}s` }">
-          <va-card-content>
-            <div class="feature-icon-wrapper" :style="{ background: feature.gradient }">
-              <va-icon :name="feature.icon" size="large" color="#fff" />
-            </div>
-            <h3 class="feature-title">{{ feature.title }}</h3>
-            <p class="feature-desc">{{ feature.description }}</p>
-          </va-card-content>
-        </va-card>
+        <div v-for="feature in features" :key="feature.title" class="feature-item">
+          <div class="feature-icon" :style="{ color: feature.color }">
+            <va-icon :name="feature.icon" size="large" />
+          </div>
+          <h3 class="feature-title">{{ feature.title }}</h3>
+          <p class="feature-desc">{{ feature.description }}</p>
+        </div>
       </div>
     </div>
 
-    <!-- Floating Action Button -->
-    <va-button class="fab" fab color="primary" icon="add" size="large" @click="quickOrder">
-      <template #append>
-        <div class="fab-tooltip">快速下单</div>
-      </template>
-    </va-button>
+    <!-- FAB -->
+    <va-button 
+      class="fab-button" 
+      fab 
+      color="primary" 
+      icon="add" 
+      @click="quickOrder"
+    />
   </div>
 </template>
 
@@ -131,77 +130,70 @@ const packages = ref<ServicePackage[]>([])
 
 const quickActions = [
   { 
-    title: '我的宠物', 
-    subtitle: '管理档案',
+    title: 'My Pets', 
+    subtitle: 'Manage profiles', 
     icon: 'pets', 
-    gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    color: 'var(--primary)', 
     onClick: () => router.push('/pets') 
   },
   { 
-    title: '我的订单', 
-    subtitle: '查看进度',
+    title: 'Orders', 
+    subtitle: 'Track status', 
     icon: 'receipt_long', 
-    gradient: 'linear-gradient(135deg, #06d6a0 0%, #07c160 100%)',
+    color: 'var(--success)', 
     onClick: () => router.push('/orders') 
   },
   { 
-    title: '在线客服', 
-    subtitle: '7x24服务',
+    title: 'Support', 
+    subtitle: '24/7 help', 
     icon: 'support_agent', 
-    gradient: 'linear-gradient(135deg, #42a5f5 0%, #1989fa 100%)',
+    color: 'var(--info)', 
     onClick: () => {} 
   },
   { 
-    title: '优惠活动', 
-    subtitle: '限时福利',
-    icon: 'local_offer', 
-    gradient: 'linear-gradient(135deg, #ffa726 0%, #ff976a 100%)',
-    onClick: () => {} 
+    title: 'Profile', 
+    subtitle: 'Account info', 
+    icon: 'person', 
+    color: 'var(--warning)', 
+    onClick: () => router.push('/profile') 
   }
 ]
 
 const features = [
   { 
-    title: '实名认证', 
+    title: 'Verified Sitters', 
     icon: 'verified_user', 
-    gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    description: '所有服务人员实名认证，背景审查，确保安全可靠' 
+    color: 'var(--primary)', 
+    description: 'All sitters are background-checked and certified' 
   },
   { 
-    title: '服务保障', 
+    title: 'Service Guarantee', 
     icon: 'shield', 
-    gradient: 'linear-gradient(135deg, #06d6a0 0%, #07c160 100%)',
-    description: '服务质量保障，问题全额赔付，让您无后顾之忧' 
+    color: 'var(--success)', 
+    description: 'Quality service guaranteed, full refund for any issues' 
   },
   { 
-    title: '实时反馈', 
+    title: 'Real-time Updates', 
     icon: 'photo_camera', 
-    gradient: 'linear-gradient(135deg, #42a5f5 0%, #1989fa 100%)',
-    description: '服务过程图片视频实时反馈，随时了解宠物状态' 
+    color: 'var(--info)', 
+    description: 'Receive photo/video updates during service' 
   },
   { 
-    title: '专业团队', 
+    title: 'Expert Team', 
     icon: 'groups', 
-    gradient: 'linear-gradient(135deg, #ffa726 0%, #ff976a 100%)',
-    description: '专业宠物护理团队，持证上岗，经验丰富可靠' 
+    color: 'var(--warning)', 
+    description: 'Experienced and certified pet care professionals' 
   }
 ]
 
 const getPackageIcon = (name: string) => {
-  if (name.includes('基础')) return 'food_bank'
-  if (name.includes('标准')) return 'favorite'
-  if (name.includes('高级') || name.includes('豪华')) return 'star'
+  if (name.includes('Basic')) return 'food_bank'
+  if (name.includes('Standard')) return 'favorite'
+  if (name.includes('Premium')) return 'star'
   return 'pets'
 }
 
-const getPackageGradient = (name: string) => {
-  if (name.includes('基础')) return 'linear-gradient(135deg, #42a5f5 0%, #1989fa 100%)'
-  if (name.includes('标准')) return 'linear-gradient(135deg, #06d6a0 0%, #07c160 100%)'
-  if (name.includes('高级') || name.includes('豪华')) return 'linear-gradient(135deg, #ffa726 0%, #ff976a 100%)'
-  return 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-}
-
-const getServiceItems = (items: string) => items.split('、').slice(0, 4)
+const getServiceItems = (items: string) => items.split('、').slice(0, 3)
 
 const fetchPackages = async () => {
   loading.value = true
@@ -209,14 +201,20 @@ const fetchPackages = async () => {
     const res = await getActivePackages()
     packages.value = res.data
   } catch (error: any) {
-    console.error('Loading failed:', error)
+    console.error('Failed to load packages:', error)
   } finally {
     loading.value = false
   }
 }
 
+const getPackageColor = (index: number) => {
+  return ['var(--primary)', 'var(--success)', 'var(--info)'][index % 3]
+}
+
+const isRecommended = (index: number) => index === 0
+
 const selectPackage = (pkg: ServicePackage) => router.push({ path: '/order/create', query: { packageId: pkg.id } })
-const viewAllPackages = () => {}
+const viewAllPackages = () => console.log('View all packages')
 const quickOrder = () => router.push('/order/create')
 
 onMounted(() => fetchPackages())
@@ -225,172 +223,102 @@ onMounted(() => fetchPackages())
 <style scoped>
 .home-page {
   min-height: 100vh;
-  background: linear-gradient(180deg, #f8f9fa 0%, #e9ecef 100%);
-  padding-bottom: 100px;
+  padding-bottom: 80px;
 }
 
-/* Hero Section */
+/* Flat Hero */
 .hero-section {
-  position: relative;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 60px 20px 80px;
-  overflow: hidden;
-}
-
-.hero-section::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="rgba(255,255,255,0.05)"/></svg>');
-  background-size: 100px 100px;
-  opacity: 0.3;
+  background: white;
+  border-bottom: 1px solid var(--gray-200);
+  padding: 48px 20px;
 }
 
 .hero-content {
-  position: relative;
-  z-index: 1;
+  max-width: 800px;
+  margin: 0 auto;
   text-align: center;
-  color: white;
 }
 
-.logo-container {
-  position: relative;
-  display: inline-block;
-  margin-bottom: 20px;
-}
-
-.logo {
-  font-size: 80px;
-  animation: float 3s ease-in-out infinite;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
-}
-
-.logo-shadow {
-  position: absolute;
-  bottom: -10px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 60px;
-  height: 10px;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 50%;
-  filter: blur(5px);
-  animation: shadow 3s ease-in-out infinite;
+.hero-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
 }
 
 .hero-title {
-  font-size: 32px;
+  font-size: 2.5rem;
   font-weight: 700;
-  margin: 0 0 12px 0;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  letter-spacing: 1px;
+  color: var(--gray-900);
+  margin-bottom: 8px;
 }
 
 .hero-subtitle {
-  font-size: 16px;
-  opacity: 0.95;
-  margin: 0 0 30px 0;
-  font-weight: 300;
-  letter-spacing: 2px;
+  font-size: 1.125rem;
+  color: var(--gray-600);
+  margin-bottom: 32px;
 }
 
-.search-container {
+.search-bar {
   max-width: 500px;
   margin: 0 auto;
-}
-
-.search-input {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-}
-
-.search-input :deep(.va-input__container) {
-  border-radius: 50px !important;
-  padding: 8px 20px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-}
-
-.wave-divider {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  overflow: hidden;
-  line-height: 0;
-  color: #f8f9fa;
-}
-
-.wave-divider svg {
-  position: relative;
-  display: block;
-  width: calc(100% + 1.3px);
-  height: 60px;
 }
 
 /* Quick Actions */
 .quick-actions {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  padding: 24px 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.action-item {
+  display: flex;
+  align-items: center;
   gap: 16px;
   padding: 20px;
-  margin-top: -40px;
-  position: relative;
-  z-index: 2;
-}
-
-.action-card {
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  animation: scaleIn 0.5s ease-out backwards;
+  transition: border-color var(--transition);
 }
 
-.action-card:hover {
-  transform: translateY(-8px) scale(1.02);
-  box-shadow: 0 12px 32px rgba(102, 126, 234, 0.2) !important;
+.action-item:hover {
+  border-color: var(--primary);
 }
 
-.action-card :deep(.va-card__content) {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  padding: 20px 12px;
-}
-
-.action-icon-wrapper {
-  width: 50px;
-  height: 50px;
-  border-radius: 16px;
+.action-icon {
+  width: 48px;
+  height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  transition: transform 0.3s;
+  background: var(--gray-100);
+  border-radius: var(--radius);
 }
 
-.action-card:hover .action-icon-wrapper {
-  transform: scale(1.1) rotate(5deg);
+.action-text {
+  flex: 1;
 }
 
 .action-title {
-  font-size: 14px;
+  font-size: 1rem;
   font-weight: 600;
-  text-align: center;
-  color: #2c3e50;
+  color: var(--gray-900);
+  margin-bottom: 2px;
 }
 
 .action-subtitle {
-  font-size: 11px;
-  color: #7f8c8d;
-  text-align: center;
+  font-size: 0.875rem;
+  color: var(--gray-600);
 }
 
 /* Packages Section */
 .packages-section {
   padding: 40px 20px;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .section-header {
@@ -401,112 +329,67 @@ onMounted(() => fetchPackages())
 }
 
 .section-title {
-  font-size: 24px;
-  margin: 0;
+  font-size: 1.75rem;
   font-weight: 700;
+  color: var(--gray-900);
 }
 
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 80px 20px;
-  gap: 20px;
-}
-
-.loading-text {
-  color: #7f8c8d;
-  font-size: 14px;
+.loading-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--gray-600);
 }
 
 .packages-grid {
   display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 20px;
 }
 
 .package-card {
-  position: relative;
   cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  animation: slideUp 0.6s ease-out backwards;
-  overflow: visible;
+  transition: border-color var(--transition);
 }
 
 .package-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12) !important;
-}
-
-.package-ribbon {
-  position: absolute;
-  top: -6px;
-  right: 20px;
-  z-index: 10;
-  background: linear-gradient(135deg, #ff6b6b 0%, #ee0a24 100%);
-  color: white;
-  padding: 4px 16px;
-  border-radius: 0 0 8px 8px;
-  font-size: 12px;
-  font-weight: 600;
-  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.4);
+  border-color: var(--primary) !important;
 }
 
 .package-header {
   display: flex;
-  gap: 16px;
-  align-items: flex-start;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 16px;
 }
 
-.package-icon-wrapper {
-  flex-shrink: 0;
-  width: 64px;
-  height: 64px;
-  border-radius: 20px;
+.package-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-  transition: transform 0.3s;
-}
-
-.package-card:hover .package-icon-wrapper {
-  transform: scale(1.05) rotate(-5deg);
-}
-
-.package-meta {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
 }
 
 .package-name {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 700;
-  color: #2c3e50;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--gray-900);
+  margin-bottom: 8px;
 }
 
 .package-desc {
-  margin: 0 0 16px 0;
-  font-size: 14px;
-  color: #7f8c8d;
-  line-height: 1.6;
+  font-size: 0.875rem;
+  color: var(--gray-600);
+  margin-bottom: 16px;
+  line-height: 1.5;
 }
 
-.package-items {
+.package-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 20px;
-}
-
-.package-items .va-chip {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  margin-bottom: 16px;
 }
 
 .package-footer {
@@ -514,209 +397,90 @@ onMounted(() => fetchPackages())
   justify-content: space-between;
   align-items: center;
   padding-top: 16px;
-  border-top: 1px solid #ecf0f1;
+  border-top: 1px solid var(--gray-200);
 }
 
-.package-price {
-  display: flex;
-  align-items: baseline;
-  gap: 2px;
+.package-duration {
+  font-size: 0.875rem;
+  color: var(--gray-600);
 }
 
-.price-symbol {
-  font-size: 18px;
-  font-weight: 600;
-  color: #ff6b6b;
-}
-
-.price-value {
-  font-size: 32px;
+.package-price .price {
+  font-size: 1.5rem;
   font-weight: 700;
-  color: #ff6b6b;
+  color: var(--primary);
 }
 
-.price-unit {
-  font-size: 14px;
-  color: #95a5a6;
-  margin-left: 4px;
-}
-
-/* Features Section */
+/* Features */
 .features-section {
   padding: 40px 20px;
-  background: white;
-  border-radius: 32px 32px 0 0;
-  margin-top: 20px;
-}
-
-.features-section .section-title {
-  text-align: center;
-  margin-bottom: 32px;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .features-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 24px;
+  margin-top: 24px;
 }
 
-.feature-card {
-  animation: scaleIn 0.5s ease-out backwards;
-}
-
-.feature-card :deep(.va-card__content) {
+.feature-item {
   text-align: center;
-  padding: 28px 20px;
+  padding: 32px 20px;
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
 }
 
-.feature-icon-wrapper {
+.feature-icon {
   width: 64px;
   height: 64px;
-  border-radius: 20px;
+  margin: 0 auto 16px;
+  background: var(--gray-100);
+  border-radius: var(--radius);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 16px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-  transition: transform 0.3s;
-}
-
-.feature-card:hover .feature-icon-wrapper {
-  transform: scale(1.1) rotate(5deg);
 }
 
 .feature-title {
-  margin: 0 0 12px 0;
-  font-size: 17px;
+  font-size: 1.125rem;
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--gray-900);
+  margin-bottom: 8px;
 }
 
 .feature-desc {
-  margin: 0;
-  font-size: 13px;
-  color: #7f8c8d;
-  line-height: 1.6;
+  font-size: 0.875rem;
+  color: var(--gray-600);
+  line-height: 1.5;
 }
 
 /* FAB */
-.fab {
+.fab-button {
   position: fixed;
-  bottom: 100px;
+  bottom: 24px;
   right: 24px;
-  z-index: 1000;
-  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4) !important;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.fab:hover {
-  transform: scale(1.1) rotate(90deg);
-  box-shadow: 0 12px 32px rgba(102, 126, 234, 0.6) !important;
-}
-
-.fab-tooltip {
-  position: absolute;
-  right: 60px;
-  background: #2c3e50;
-  color: white;
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 13px;
-  white-space: nowrap;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s;
-}
-
-.fab:hover .fab-tooltip {
-  opacity: 1;
-}
-
-/* Animations */
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-15px);
-  }
-}
-
-@keyframes shadow {
-  0%, 100% {
-    transform: translateX(-50%) scale(1);
-    opacity: 0.2;
-  }
-  50% {
-    transform: translateX(-50%) scale(0.8);
-    opacity: 0.1;
-  }
+  box-shadow: var(--shadow-sm) !important;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
+  .hero-title {
+    font-size: 2rem;
+  }
+  
   .quick-actions {
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-    padding: 16px;
-    margin-top: -30px;
-  }
-  
-  .action-card :deep(.va-card__content) {
-    padding: 16px 8px;
-  }
-  
-  .action-icon-wrapper {
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
-  }
-  
-  .action-title {
-    font-size: 12px;
-  }
-  
-  .action-subtitle {
-    display: none;
-  }
-  
-  .features-grid {
     grid-template-columns: 1fr;
   }
   
   .packages-grid {
-    gap: 16px;
-  }
-  
-  .hero-title {
-    font-size: 26px;
-  }
-  
-  .logo {
-    font-size: 64px;
-  }
-}
-
-@media (min-width: 769px) {
-  .packages-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
   }
   
   .features-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-  
-  .quick-actions {
-    max-width: 800px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-  
-  .packages-section,
-  .features-section {
-    max-width: 1200px;
-    margin-left: auto;
-    margin-right: auto;
+    grid-template-columns: 1fr;
   }
 }
 </style>
