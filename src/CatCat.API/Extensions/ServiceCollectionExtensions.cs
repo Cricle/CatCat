@@ -21,6 +21,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IOrderStatusHistoryRepository, OrderStatusHistoryRepository>();
         services.AddScoped<IPaymentRepository, PaymentRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+        services.AddScoped<IServiceProgressRepository, ServiceProgressRepository>();
 
         // Bloom Filter Service (Singleton for memory efficiency)
         services.AddSingleton<IBloomFilterService, BloomFilterService>();
@@ -37,6 +38,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IAdminService, AdminService>();
         services.AddScoped<IPaymentService, StripePaymentService>();
+        services.AddScoped<IServiceProgressService, ServiceProgressService>();
 
         // Background Services
         services.AddHostedService<OrderProcessingService>();

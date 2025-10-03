@@ -5,7 +5,9 @@
         <div class="page-header">
           <va-button preset="plain" icon="arrow_back" @click="$router.back()" />
           <h1 class="va-h1">Order Details</h1>
-          <div></div>
+          <va-button v-if="order && (order.status === 2 || order.status === 3)" preset="plain" icon="refresh" @click="refreshProgress">
+            Refresh
+          </va-button>
         </div>
       </va-card-title>
 
@@ -35,6 +37,60 @@
                   </div>
                 </div>
               </div>
+            </va-card-content>
+          </va-card>
+
+          <!-- Service Progress (Real-time Tracking) -->
+          <va-card v-if="(order.status === 2 || order.status === 3) && progressList.length > 0" class="progress-section mb-4">
+            <va-card-title>
+              <va-icon name="timeline" /> Service Progress
+            </va-card-title>
+            <va-card-content>
+              <!-- Latest Location Map (Placeholder) -->
+              <div v-if="latestProgress && latestProgress.latitude && latestProgress.longitude" class="map-container mb-4">
+                <div class="map-placeholder">
+                  <va-icon name="location_on" size="48px" color="danger" />
+                  <p class="va-text-secondary">Location: {{ latestProgress.address || 'Service in progress' }}</p>
+                  <p class="coordinates">
+                    {{ latestProgress.latitude.toFixed(6) }}, {{ latestProgress.longitude.toFixed(6) }}
+                  </p>
+                  <va-button size="small" @click="openMap(latestProgress.latitude!, latestProgress.longitude!)">
+                    <va-icon name="map" /> View on Map
+                  </va-button>
+                </div>
+              </div>
+
+              <!-- Progress Timeline -->
+              <va-timeline>
+                <va-timeline-item
+                  v-for="progress in progressList"
+                  :key="progress.id"
+                  :color="getProgressStatusColor(progress.status)"
+                  :active="progress.id === progressList[0].id"
+                >
+                  <template #before>
+                    <va-icon :name="getProgressStatusIcon(progress.status)" />
+                  </template>
+
+                  <div class="timeline-content">
+                    <div class="timeline-header">
+                      <strong>{{ getProgressStatusText(progress.status) }}</strong>
+                      <span class="timeline-time">{{ formatTime(progress.createdAt) }}</span>
+                    </div>
+                    <p v-if="progress.description" class="timeline-description">{{ progress.description }}</p>
+                    
+                    <!-- Service Photos -->
+                    <div v-if="progress.imageUrls" class="progress-images">
+                      <va-image
+                        v-for="(url, index) in JSON.parse(progress.imageUrls)"
+                        :key="index"
+                        :src="url"
+                        class="progress-image"
+                      />
+                    </div>
+                  </div>
+                </va-timeline-item>
+              </va-timeline>
             </va-card-content>
           </va-card>
 
@@ -160,10 +216,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { getOrderDetail, cancelOrder } from '@/api/orders'
+import { getOrderProgress, getProgressStatusText, getProgressStatusIcon, getProgressStatusColor } from '@/api/progress'
 import type { Order } from '@/api/orders'
+import type { ServiceProgress } from '@/api/progress'
 import { useToast, useModal } from 'vuestic-ui'
 
 const { init: notify } = useToast()
@@ -174,6 +232,10 @@ const route = useRoute()
 const loading = ref(false)
 const cancelling = ref(false)
 const order = ref<Order>()
+const progressList = ref<ServiceProgress[]>([])
+const latestProgress = computed(() => progressList.value[0])
+
+let refreshInterval: number | null = null
 
 const getStatusColor = (status: number) => {
   const colors: Record<number, string> = {
@@ -222,6 +284,14 @@ const formatDateTime = (dateTime: string) => {
   })
 }
 
+const formatTime = (dateTime: string) => {
+  if (!dateTime) return '-'
+  return new Date(dateTime).toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
 const fetchOrderDetail = async () => {
   const orderId = route.params.id as string
   if (!orderId) {
@@ -234,11 +304,38 @@ const fetchOrderDetail = async () => {
   try {
     const res = await getOrderDetail(Number(orderId))
     order.value = res.data
+    
+    // Fetch progress if order is in service
+    if (order.value.status === 2 || order.value.status === 3) {
+      await fetchProgress()
+    }
   } catch (error: any) {
     notify({ message: error.message || 'Failed to load order', color: 'danger' })
   } finally {
     loading.value = false
   }
+}
+
+const fetchProgress = async () => {
+  if (!order.value) return
+  
+  try {
+    const res = await getOrderProgress(order.value.id)
+    progressList.value = res.data
+  } catch (error: any) {
+    console.error('Failed to fetch progress:', error)
+  }
+}
+
+const refreshProgress = async () => {
+  await fetchProgress()
+  notify({ message: 'Progress updated', color: 'info', duration: 1000 })
+}
+
+const openMap = (lat: number, lng: number) => {
+  // Open in Google Maps (or other map services)
+  const url = `https://www.google.com/maps?q=${lat},${lng}`
+  window.open(url, '_blank')
 }
 
 const handleCancelOrder = async () => {
@@ -265,8 +362,30 @@ const handleCancelOrder = async () => {
   }
 }
 
+// Auto-refresh progress every 30 seconds for in-service orders
+const startAutoRefresh = () => {
+  if (order.value && (order.value.status === 2 || order.value.status === 3)) {
+    refreshInterval = window.setInterval(() => {
+      fetchProgress()
+    }, 30000) // 30 seconds
+  }
+}
+
+const stopAutoRefresh = () => {
+  if (refreshInterval) {
+    clearInterval(refreshInterval)
+    refreshInterval = null
+  }
+}
+
 onMounted(() => {
-  fetchOrderDetail()
+  fetchOrderDetail().then(() => {
+    startAutoRefresh()
+  })
+})
+
+onUnmounted(() => {
+  stopAutoRefresh()
 })
 </script>
 
@@ -280,6 +399,7 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   width: 100%;
+  gap: 16px;
 }
 
 .page-header h1 {
@@ -319,6 +439,72 @@ onMounted(() => {
   margin-top: 8px;
   font-size: 13px;
   opacity: 0.9;
+}
+
+.progress-section {
+  background: linear-gradient(135deg, var(--va-background-element) 0%, var(--va-background-border) 100%);
+}
+
+.map-container {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.map-placeholder {
+  background: var(--va-background-element);
+  padding: 40px 20px;
+  text-align: center;
+  border: 2px dashed var(--va-background-border);
+  border-radius: 8px;
+}
+
+.coordinates {
+  font-family: monospace;
+  font-size: 14px;
+  color: var(--va-text-secondary);
+  margin: 8px 0;
+}
+
+.timeline-content {
+  padding: 12px 0;
+}
+
+.timeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.timeline-time {
+  font-size: 12px;
+  color: var(--va-text-secondary);
+}
+
+.timeline-description {
+  margin: 8px 0 0 0;
+  color: var(--va-text-secondary);
+  font-size: 14px;
+}
+
+.progress-images {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.progress-image {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  object-fit: cover;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.progress-image:hover {
+  transform: scale(1.1);
 }
 
 .info-section {
@@ -383,6 +569,11 @@ onMounted(() => {
 
   .price {
     font-size: 20px;
+  }
+
+  .progress-image {
+    width: 60px;
+    height: 60px;
   }
 }
 </style>
