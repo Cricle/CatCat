@@ -34,13 +34,16 @@
 - **API Gateway**: YARP
 
 ### 前端
-- **框架**: Vue 3 + TypeScript
-- **UI库**: Vuestic UI (组件库)
-- **状态管理**: Pinia
+- **模板**: **Vuestic Admin** (10.9k+ Stars, MIT License)
+- **框架**: Vue 3.5.8 + TypeScript + Composition API
+- **UI库**: Vuestic UI (60+ 组件)
+- **状态管理**: Pinia 2.3.1
 - **路由**: Vue Router 4
-- **国际化**: Vue I18n (中/英)
+- **国际化**: Vue I18n (中/英/葡/波斯/西班牙)
+- **样式**: Tailwind CSS + SCSS
+- **图表**: Chart.js
 - **构建**: Vite
-- **设计**: 美团风格卡片式布局 + 渐变色彩 + 大图标 + 响应式
+- **设计**: 企业级管理后台 + 响应式 + 深色模式
 
 ### DevOps
 - **容器**: Docker + Docker Compose
@@ -376,6 +379,8 @@ public partial class UserRepository : IUserRepository
     // Sqlx Source Generator 自动生成实现
 }
 ```
+
+
 
 ### 2. FusionCache + Redis Sets (Zero Memory)
 **Redis-Only缓存 + Redis Sets防击穿：**
