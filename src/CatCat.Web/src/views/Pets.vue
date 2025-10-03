@@ -1,47 +1,78 @@
 <template>
   <div class="pets-page">
-    <van-nav-bar title="我的宠物" fixed placeholder />
+    <van-nav-bar title="My Pets" fixed placeholder />
 
-    <div class="pets-list">
-      <van-loading v-if="loading" class="loading" />
-      <van-empty v-else-if="pets.length === 0" description="还没有添加宠物">
-        <van-button type="primary" @click="addPet">添加宠物</van-button>
-      </van-empty>
+    <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
+      <div class="pets-content">
+        <!-- Skeleton Loading -->
+        <template v-if="loading && !refreshing">
+          <van-skeleton title avatar :row="2" class="skeleton-item" v-for="i in 3" :key="i" />
+        </template>
 
-      <van-cell-group v-for="pet in pets" :key="pet.id" inset class="pet-item">
-        <van-cell center>
-          <template #icon>
-            <van-image
-              round
-              width="60"
-              height="60"
-              :src="pet.avatar || 'https://via.placeholder.com/60/FFB6C1/FFFFFF?text=🐱'"
-              class="pet-avatar"
-            />
-          </template>
-          <template #title>
-            <div class="pet-name">
-              {{ pet.name }}
-              <van-tag plain type="primary">{{ getPetType(pet.type) }}</van-tag>
+        <!-- Empty State -->
+        <van-empty 
+          v-else-if="pets.length === 0" 
+          image="search"
+          description="No pets yet"
+        >
+          <van-button type="primary" round @click="addPet">
+            <van-icon name="plus" />
+            Add Pet
+          </van-button>
+        </van-empty>
+
+        <!-- Pet List -->
+        <div v-else class="pets-grid">
+          <div
+            v-for="pet in pets"
+            :key="pet.id"
+            class="pet-card"
+            @click="editPet(pet)"
+          >
+            <div class="pet-avatar-wrapper">
+              <van-image
+                round
+                width="80"
+                height="80"
+                :src="pet.avatar || getDefaultAvatar(pet.gender)"
+                fit="cover"
+              />
+              <van-tag 
+                v-if="pet.breed" 
+                class="pet-breed-tag"
+                type="primary"
+              >
+                {{ pet.breed }}
+              </van-tag>
             </div>
+
             <div class="pet-info">
-              {{ pet.breed || '未知品种' }} · {{ pet.age }}岁 · {{ getGender(pet.gender) }}
+              <h3 class="pet-name">{{ pet.name }}</h3>
+              <div class="pet-meta">
+                <van-tag plain>{{ pet.age }} years</van-tag>
+                <van-tag plain>{{ getGender(pet.gender) }}</van-tag>
+              </div>
+              <p v-if="pet.healthStatus" class="pet-health">
+                {{ pet.healthStatus }}
+              </p>
             </div>
-          </template>
-          <template #right-icon>
-            <van-button size="small" @click="editPet(pet)">编辑</van-button>
-          </template>
-        </van-cell>
-        <van-cell v-if="pet.character" title="性格" :value="pet.character" />
-        <van-cell v-if="pet.healthStatus" title="健康状况" :value="pet.healthStatus" />
-      </van-cell-group>
-    </div>
 
-    <div class="add-button">
-      <van-button type="primary" block icon="plus" @click="addPet">
-        添加新宠物
-      </van-button>
-    </div>
+            <van-icon name="arrow" class="arrow-icon" />
+          </div>
+        </div>
+      </div>
+    </van-pull-refresh>
+
+    <!-- Floating Add Button -->
+    <van-button
+      class="fab-button"
+      type="primary"
+      icon="plus"
+      round
+      @click="addPet"
+    >
+      Add Pet
+    </van-button>
   </div>
 </template>
 
@@ -54,14 +85,17 @@ import { showToast } from 'vant'
 
 const router = useRouter()
 const loading = ref(false)
+const refreshing = ref(false)
 const pets = ref<Pet[]>([])
 
-const getPetType = (type: number) => {
-  return type === 0 ? '猫咪' : '狗狗'
+const getGender = (gender: number) => {
+  return gender === 0 ? 'Male' : 'Female'
 }
 
-const getGender = (gender: number) => {
-  return gender === 0 ? '公' : '母'
+const getDefaultAvatar = (gender: number) => {
+  return gender === 0 
+    ? 'https://via.placeholder.com/80/87CEEB/FFFFFF?text=🐱'
+    : 'https://via.placeholder.com/80/FFB6C1/FFFFFF?text=🐱'
 }
 
 const fetchPets = async () => {
@@ -70,10 +104,19 @@ const fetchPets = async () => {
     const res = await getMyPets()
     pets.value = res.data
   } catch (error: any) {
-    showToast(error.message || 'Loading failed')
+    showToast({
+      message: error.message || 'Failed to load pets',
+      icon: 'fail'
+    })
   } finally {
     loading.value = false
+    refreshing.value = false
   }
+}
+
+const onRefresh = () => {
+  refreshing.value = true
+  fetchPets()
 }
 
 const addPet = () => {
@@ -92,47 +135,95 @@ onMounted(() => {
 <style scoped>
 .pets-page {
   min-height: 100vh;
-  background-color: #f7f8fa;
-  padding-bottom: 80px;
+  background: var(--gray-50);
+  padding-bottom: 90px;
 }
 
-.pets-list {
-  padding: 16px;
+.pets-content {
+  padding: 12px;
   min-height: 400px;
 }
 
-.loading {
-  padding: 60px 0;
-  text-align: center;
+.skeleton-item {
+  margin-bottom: 12px;
+  padding: 16px;
+  background: white;
+  border-radius: var(--radius);
 }
 
-.pet-item {
-  margin-bottom: 16px;
+.pets-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.pet-avatar {
-  margin-right: 12px;
-}
-
-.pet-name {
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 6px;
+.pet-card {
+  background: white;
+  border-radius: var(--radius);
+  padding: 16px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 16px;
+  cursor: pointer;
+  transition: all var(--transition);
+  border: 1px solid var(--gray-200);
+  position: relative;
+}
+
+.pet-card:active {
+  transform: scale(0.98);
+  border-color: var(--primary);
+}
+
+.pet-avatar-wrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.pet-breed-tag {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
 }
 
 .pet-info {
-  font-size: 12px;
-  color: #969799;
+  flex: 1;
+  min-width: 0;
 }
 
-.add-button {
+.pet-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--gray-900);
+  margin: 0 0 8px 0;
+}
+
+.pet-meta {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.pet-health {
+  font-size: 13px;
+  color: var(--gray-600);
+  margin: 6px 0 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.arrow-icon {
+  color: var(--gray-400);
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.fab-button {
   position: fixed;
-  bottom: 70px;
-  left: 16px;
-  right: 16px;
+  bottom: 80px;
+  right: 20px;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  z-index: 10;
 }
 </style>
-
