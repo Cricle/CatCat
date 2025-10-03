@@ -26,6 +26,13 @@ export default {
       },
     },
     {
+      name: 'packages',
+      displayName: 'menu.packages',
+      meta: {
+        icon: 'inventory_2',
+      },
+    },
+    {
       name: 'orders',
       displayName: 'menu.orders',
       meta: {

@@ -53,6 +53,16 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import('../pages/orders/OrderDetailPage.vue'),
       },
       {
+        name: 'packages',
+        path: 'packages',
+        component: () => import('../pages/packages/PackagesPage.vue'),
+      },
+      {
+        name: 'package-detail',
+        path: 'packages/:id',
+        component: () => import('../pages/packages/PackageDetailPage.vue'),
+      },
+      {
         name: 'provider-available',
         path: 'provider/available',
         component: () => import('../pages/provider/AvailableOrdersPage.vue'),
