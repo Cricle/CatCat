@@ -51,7 +51,7 @@ public class PetService(
     // Cache keys
     private const string PetCacheKeyPrefix = "pet:";
     private const string UserPetsCacheKeyPrefix = "user:pets:";
-    
+
     // Cache durations (pet info changes occasionally)
     private static readonly TimeSpan PetCacheDuration = TimeSpan.FromMinutes(30);
     private static readonly TimeSpan UserPetsCacheDuration = TimeSpan.FromMinutes(15);
@@ -112,7 +112,7 @@ public class PetService(
         {
             // Invalidate user pets cache
             await cache.RemoveAsync($"{UserPetsCacheKeyPrefix}{command.UserId}");
-            
+
             logger.LogInformation("Pet {PetId} created for user {UserId}", pet.Id, command.UserId);
             return Result.Success(pet.Id);
         }
@@ -147,7 +147,7 @@ public class PetService(
             // Invalidate caches
             await cache.RemoveAsync($"{PetCacheKeyPrefix}{command.Id}");
             await cache.RemoveAsync($"{UserPetsCacheKeyPrefix}{command.UserId}");
-            
+
             logger.LogInformation("Pet {PetId} updated", command.Id);
             return Result.Success();
         }
@@ -170,7 +170,7 @@ public class PetService(
             // Invalidate caches
             await cache.RemoveAsync($"{PetCacheKeyPrefix}{id}");
             await cache.RemoveAsync($"{UserPetsCacheKeyPrefix}{userId}");
-            
+
             logger.LogInformation("Pet {PetId} deleted", id);
             return Result.Success();
         }

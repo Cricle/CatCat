@@ -1,84 +1,144 @@
 <template>
   <div class="create-order-page">
     <van-nav-bar
-      title="创建订单"
+      title="Create Order"
       left-arrow
       @click-left="$router.back()"
       fixed
       placeholder
     />
 
+    <!-- Progress Indicator -->
+    <div class="progress-bar">
+      <div class="progress-step" :class="{ active: step >= 1, completed: step > 1 }">
+        <div class="step-circle">1</div>
+        <span>Pet & Service</span>
+      </div>
+      <div class="progress-line" :class="{ active: step > 1 }"></div>
+      <div class="progress-step" :class="{ active: step >= 2, completed: step > 2 }">
+        <div class="step-circle">2</div>
+        <span>Time & Location</span>
+      </div>
+      <div class="progress-line" :class="{ active: step > 2 }"></div>
+      <div class="progress-step" :class="{ active: step >= 3 }">
+        <div class="step-circle">3</div>
+        <span>Confirm</span>
+      </div>
+    </div>
+
     <van-form @submit="onSubmit">
-      <!-- 选择宠物 -->
-      <van-cell-group title="宠物信息" inset>
+      <!-- Pet Selection -->
+      <van-cell-group title="Pet Information" inset>
         <van-field
           v-model="petName"
-          label="选择宠物"
-          placeholder="请选择宠物"
+          label="Select Pet"
+          placeholder="Choose your pet"
           readonly
           is-link
-          @click="showPetPicker = true"
-          :rules="[{ required: true, message: '请选择宠物' }]"
-        />
+          @click="openPetPicker"
+          :rules="[{ required: true, message: 'Please select a pet' }]"
+          :error-message="errors.pet"
+        >
+          <template #left-icon>
+            <van-icon name="paw" />
+          </template>
+        </van-field>
+        <div v-if="!pets.length && !loadingData" class="inline-tip">
+          <van-icon name="info-o" />
+          <span>No pets found. <a @click="$router.push('/pets')">Add a pet</a> first</span>
+        </div>
       </van-cell-group>
 
-      <!-- 服务套餐 -->
-      <van-cell-group title="服务套餐" inset>
+      <!-- Service Package -->
+      <van-cell-group title="Service Package" inset>
         <van-field
           v-model="packageName"
-          label="服务套餐"
-          placeholder="请选择服务套餐"
+          label="Package"
+          placeholder="Choose service package"
           readonly
           is-link
-          @click="showPackagePicker = true"
-          :rules="[{ required: true, message: '请选择服务套餐' }]"
-        />
+          @click="openPackagePicker"
+          :rules="[{ required: true, message: 'Please select a package' }]"
+          :error-message="errors.package"
+        >
+          <template #left-icon>
+            <van-icon name="service-o" />
+          </template>
+        </van-field>
+        <div v-if="selectedPackage" class="package-preview">
+          <div class="preview-item">
+            <span>Duration:</span>
+            <strong>{{ selectedPackage.duration }} min</strong>
+          </div>
+          <div class="preview-item">
+            <span>Price:</span>
+            <strong class="price">¥{{ selectedPackage.price }}</strong>
+          </div>
+        </div>
       </van-cell-group>
 
-      <!-- 服务时间 -->
-      <van-cell-group title="服务时间" inset>
+      <!-- Service Time -->
+      <van-cell-group title="Service Time" inset>
         <van-field
           v-model="formData.serviceDate"
-          label="服务日期"
-          placeholder="请选择日期"
+          label="Date"
+          placeholder="Select date"
           readonly
           is-link
           @click="showDatePicker = true"
-          :rules="[{ required: true, message: '请选择服务日期' }]"
-        />
+          :rules="[{ required: true, message: 'Please select date' }]"
+          :error-message="errors.date"
+        >
+          <template #left-icon>
+            <van-icon name="calendar-o" />
+          </template>
+        </van-field>
         <van-field
           v-model="formData.serviceTime"
-          label="服务时间"
-          placeholder="请选择时间"
+          label="Time"
+          placeholder="Select time"
           readonly
           is-link
           @click="showTimePicker = true"
-          :rules="[{ required: true, message: '请选择服务时间' }]"
-        />
+          :rules="[{ required: true, message: 'Please select time' }]"
+          :error-message="errors.time"
+        >
+          <template #left-icon>
+            <van-icon name="clock-o" />
+          </template>
+        </van-field>
       </van-cell-group>
 
-      <!-- 服务地址 -->
-      <van-cell-group title="服务地址" inset>
+      <!-- Service Address -->
+      <van-cell-group title="Service Address" inset>
         <van-field
           v-model="formData.address"
-          label="详细地址"
-          placeholder="请输入详细地址"
-          :rules="[{ required: true, message: '请输入详细地址' }]"
-        />
+          label="Address"
+          placeholder="Enter detailed address"
+          :rules="[{ required: true, message: 'Please enter address' }]"
+          :error-message="errors.address"
+          @blur="validateField('address')"
+        >
+          <template #left-icon>
+            <van-icon name="location-o" />
+          </template>
+        </van-field>
         <van-field
           v-model="formData.addressDetail"
-          label="门牌号等"
-          placeholder="例如：3栋2单元501"
+          label="Unit/Room"
+          placeholder="e.g., Building 3, Unit 2, Room 501"
         />
       </van-cell-group>
 
-      <!-- 备注 -->
-      <van-cell-group title="备注" inset>
+      <!-- Remarks -->
+      <van-cell-group title="Remarks (Optional)" inset>
         <van-field
           v-model="formData.customerRemark"
           type="textarea"
           rows="3"
-          placeholder="请输入备注信息，例如：宠物喜好、注意事项等"
+          placeholder="Enter any special requests or pet preferences..."
+          maxlength="200"
+          show-word-limit
         />
       </van-cell-group>
 
@@ -159,6 +219,8 @@ const router = useRouter()
 const route = useRoute()
 
 const loading = ref(false)
+const loadingData = ref(false)
+const step = ref(1)
 const pets = ref<Pet[]>([])
 const packages = ref<ServicePackage[]>([])
 
@@ -171,6 +233,14 @@ const selectedPetId = ref<number>()
 const petName = ref('')
 const selectedPackageId = ref<number>()
 const packageName = ref('')
+
+const errors = reactive({
+  pet: '',
+  package: '',
+  date: '',
+  time: '',
+  address: ''
+})
 
 const minDate = new Date()
 const currentDate = ref(['2024', '01', '01'])
@@ -202,7 +272,38 @@ const selectedPackage = computed(() =>
   packages.value.find(p => p.id === selectedPackageId.value)
 )
 
+const openPetPicker = () => {
+  if (!pets.value.length) {
+    showToast({
+      message: 'Please add a pet first',
+      icon: 'fail'
+    })
+    setTimeout(() => router.push('/pets'), 1500)
+    return
+  }
+  showPetPicker.value = true
+}
+
+const openPackagePicker = () => {
+  if (!packages.value.length) {
+    showToast({
+      message: 'No service packages available',
+      icon: 'fail'
+    })
+    return
+  }
+  showPackagePicker.value = true
+}
+
+const validateField = (field: keyof typeof errors) => {
+  errors[field] = ''
+  if (field === 'address' && !formData.address) {
+    errors.address = 'Address is required'
+  }
+}
+
 const fetchData = async () => {
+  loadingData.value = true
   try {
     const [petsRes, packagesRes] = await Promise.all([
       getMyPets(),
@@ -217,10 +318,16 @@ const fetchData = async () => {
       const pkg = packages.value.find(p => p.id === selectedPackageId.value)
       if (pkg) {
         packageName.value = pkg.name
+        step.value = 2
       }
     }
   } catch (error: any) {
-    showToast(error.message || 'Loading failed')
+    showToast({
+      message: error.message || 'Loading failed',
+      icon: 'fail'
+    })
+  } finally {
+    loadingData.value = false
   }
 }
 
@@ -228,37 +335,71 @@ const onPetConfirm = ({ selectedOptions }: any) => {
   const option = selectedOptions[0]
   selectedPetId.value = option.value
   petName.value = option.text
+  errors.pet = ''
   showPetPicker.value = false
+  if (selectedPackageId.value) step.value = 2
 }
 
 const onPackageConfirm = ({ selectedOptions }: any) => {
   const option = selectedOptions[0]
   selectedPackageId.value = option.value
   packageName.value = option.text.split(' - ')[0]
+  errors.package = ''
   showPackagePicker.value = false
+  if (selectedPetId.value) step.value = 2
 }
 
 const onDateConfirm = ({ selectedValues }: any) => {
   formData.serviceDate = selectedValues.join('-')
+  errors.date = ''
   showDatePicker.value = false
+  if (formData.serviceTime) step.value = 3
 }
 
 const onTimeConfirm = ({ selectedValues }: any) => {
   formData.serviceTime = selectedValues.join(':')
+  errors.time = ''
   showTimePicker.value = false
+  if (formData.serviceDate) step.value = 3
 }
 
 const onSubmit = async () => {
-  if (!selectedPetId.value || !selectedPackageId.value) {
-    showToast('请完整填写订单信息')
+  // Validate all fields
+  let hasError = false
+  if (!selectedPetId.value) {
+    errors.pet = 'Please select a pet'
+    hasError = true
+  }
+  if (!selectedPackageId.value) {
+    errors.package = 'Please select a package'
+    hasError = true
+  }
+  if (!formData.serviceDate) {
+    errors.date = 'Please select a date'
+    hasError = true
+  }
+  if (!formData.serviceTime) {
+    errors.time = 'Please select a time'
+    hasError = true
+  }
+  if (!formData.address) {
+    errors.address = 'Please enter an address'
+    hasError = true
+  }
+
+  if (hasError) {
+    showToast({
+      message: 'Please complete all required fields',
+      icon: 'fail'
+    })
     return
   }
 
   loading.value = true
   try {
     const res = await createOrder({
-      petId: selectedPetId.value,
-      servicePackageId: selectedPackageId.value,
+      petId: selectedPetId.value!,
+      servicePackageId: selectedPackageId.value!,
       serviceDate: formData.serviceDate,
       serviceTime: formData.serviceTime,
       address: formData.address,
@@ -266,12 +407,19 @@ const onSubmit = async () => {
       customerRemark: formData.customerRemark || undefined
     })
 
-    showSuccessToast('订单已提交，正在处理中...')
+    showSuccessToast({
+      message: 'Order submitted successfully!',
+      duration: 1500
+    })
+    
     setTimeout(() => {
       router.replace(`/orders/${res.data.orderId}`)
     }, 1500)
   } catch (error: any) {
-    showToast(error.message || 'Order creation failed')
+    showToast({
+      message: error.message || 'Order creation failed',
+      icon: 'fail'
+    })
   } finally {
     loading.value = false
   }
@@ -289,8 +437,119 @@ onMounted(() => {
   padding-bottom: 80px;
 }
 
+/* Progress Bar */
+.progress-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  background: white;
+  margin-bottom: 12px;
+}
+
+.progress-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  opacity: 0.4;
+  transition: opacity 0.3s;
+}
+
+.progress-step.active {
+  opacity: 1;
+}
+
+.step-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+  color: #999;
+  transition: all 0.3s;
+}
+
+.progress-step.active .step-circle {
+  background: #1989fa;
+  color: white;
+}
+
+.progress-step.completed .step-circle {
+  background: #07c160;
+  color: white;
+}
+
+.progress-step span {
+  font-size: 12px;
+  color: #999;
+  white-space: nowrap;
+}
+
+.progress-step.active span {
+  color: #323233;
+  font-weight: 500;
+}
+
+.progress-line {
+  flex: 1;
+  height: 2px;
+  background: #f0f0f0;
+  margin: 0 8px;
+  transition: background 0.3s;
+}
+
+.progress-line.active {
+  background: #1989fa;
+}
+
 :deep(.van-cell-group) {
   margin-bottom: 16px;
+}
+
+.inline-tip {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #646566;
+  background: #f7f8fa;
+  border-radius: 4px;
+  margin: -8px 16px 8px;
+}
+
+.inline-tip a {
+  color: #1989fa;
+  text-decoration: underline;
+}
+
+.package-preview {
+  padding: 12px 16px;
+  background: #f7f8fa;
+  border-radius: 4px;
+  margin: -8px 16px 8px;
+}
+
+.preview-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  padding: 4px 0;
+}
+
+.preview-item span {
+  color: #646566;
+}
+
+.preview-item strong {
+  color: #323233;
 }
 
 .price {
@@ -307,6 +566,20 @@ onMounted(() => {
   right: 0;
   background: white;
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+  z-index: 100;
+}
+
+/* Mobile Responsive */
+@media (max-width: 640px) {
+  .progress-step span {
+    font-size: 10px;
+  }
+  
+  .step-circle {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
 }
 </style>
 

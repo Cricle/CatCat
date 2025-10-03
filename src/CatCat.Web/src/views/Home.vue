@@ -48,9 +48,33 @@
         </va-button>
       </div>
 
-      <div v-if="loading" class="loading-state">
-        <va-progress-circle indeterminate color="primary" />
-        <p>Loading services...</p>
+      <!-- Skeleton Loading -->
+      <div v-if="loading" class="packages-grid">
+        <va-card v-for="i in 3" :key="i" class="package-card package-skeleton">
+          <va-card-content>
+            <va-skeleton height="48px" width="48px" variant="squared" />
+            <va-skeleton height="24px" width="80%" style="margin-top: 16px" />
+            <va-skeleton height="40px" width="100%" style="margin-top: 8px" />
+            <va-skeleton height="20px" width="60%" style="margin-top: 12px" />
+          </va-card-content>
+        </va-card>
+      </div>
+
+      <!-- Error State -->
+      <div v-else-if="error" class="error-state">
+        <va-icon name="error_outline" size="large" color="danger" />
+        <h3>Failed to Load Services</h3>
+        <p>{{ error }}</p>
+        <va-button @click="fetchPackages">
+          <va-icon name="refresh" /> Retry
+        </va-button>
+      </div>
+
+      <!-- Empty State -->
+      <div v-else-if="packages.length === 0" class="empty-state">
+        <va-icon name="inbox" size="large" color="secondary" />
+        <h3>No Services Available</h3>
+        <p>Check back later for new service packages</p>
       </div>
 
       <div v-else class="packages-grid">
@@ -125,6 +149,7 @@ import type { ServicePackage } from '@/api/packages'
 
 const router = useRouter()
 const loading = ref(false)
+const error = ref('')
 const searchText = ref('')
 const packages = ref<ServicePackage[]>([])
 
@@ -197,11 +222,13 @@ const getServiceItems = (items: string) => items.split('、').slice(0, 3)
 
 const fetchPackages = async () => {
   loading.value = true
+  error.value = ''
   try {
     const res = await getActivePackages()
     packages.value = res.data
-  } catch (error: any) {
-    console.error('Failed to load packages:', error)
+  } catch (err: any) {
+    console.error('Failed to load packages:', err)
+    error.value = err.message || 'Unable to load services'
   } finally {
     loading.value = false
   }
@@ -286,6 +313,8 @@ onMounted(() => fetchPackages())
 
 .action-item:hover {
   border-color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .action-icon {
@@ -334,10 +363,28 @@ onMounted(() => fetchPackages())
   color: var(--gray-900);
 }
 
-.loading-state {
+.package-skeleton {
+  pointer-events: none;
+}
+
+.error-state,
+.empty-state {
   text-align: center;
   padding: 60px 20px;
+}
+
+.error-state h3,
+.empty-state h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--gray-900);
+  margin: 16px 0 8px;
+}
+
+.error-state p,
+.empty-state p {
   color: var(--gray-600);
+  margin-bottom: 24px;
 }
 
 .packages-grid {
@@ -348,11 +395,13 @@ onMounted(() => fetchPackages())
 
 .package-card {
   cursor: pointer;
-  transition: border-color var(--transition);
+  transition: all var(--transition);
 }
 
 .package-card:hover {
   border-color: var(--primary) !important;
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
 }
 
 .package-header {
