@@ -22,6 +22,7 @@
     "secondary": "次要文本样式"
   },
   "dashboard": {
+    "welcome": "欢迎回来，祝您今天愉快！",
     "cards": {
       "totalOrders": "总订单数",
       "pending": "待接单",
@@ -379,6 +380,7 @@
   },
   "providerDashboard": {
     "title": "服务人员工作台",
+    "subtitle": "今日工作概览",
     "totalTasks": "总任务数",
     "completed": "已完成",
     "inProgress": "进行中",

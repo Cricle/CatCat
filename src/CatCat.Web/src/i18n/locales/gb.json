@@ -22,6 +22,7 @@
     "secondary": "Secondary text styles"
   },
   "dashboard": {
+    "welcome": "Welcome back, have a great day!",
     "cards": {
       "totalOrders": "Total Orders",
       "pending": "Pending",
@@ -350,6 +351,7 @@
   },
   "providerDashboard": {
     "title": "Provider Dashboard",
+    "subtitle": "Today's Overview",
     "totalTasks": "Total Tasks",
     "completed": "Completed",
     "inProgress": "In Progress",

@@ -1,62 +1,40 @@
 <template>
-  <h1 class="page-title">{{ t('providerDashboard.title') }}</h1>
+  <div class="provider-dashboard">
+    <!-- Header -->
+    <div class="mb-6">
+      <h1 class="page-title">{{ t('providerDashboard.title') }}</h1>
+      <p class="text-secondary">{{ t('providerDashboard.subtitle') }}</p>
+    </div>
 
-  <!-- Statistics Cards -->
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-    <VaCard color="primary" gradient>
-      <VaCardContent>
-        <div class="flex items-center justify-between text-white">
-          <div>
-            <div class="text-3xl font-bold">{{ stats.totalTasks }}</div>
-            <div class="text-sm opacity-80 mt-1">{{ t('providerDashboard.totalTasks') }}</div>
-          </div>
-          <VaIcon name="task_alt" size="large" />
-        </div>
-      </VaCardContent>
-    </VaCard>
+    <!-- Quick Stats -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div class="stat-card stat-primary">
+        <VaIcon name="task_alt" size="2rem" class="stat-icon" />
+        <div class="stat-value">{{ stats.totalTasks }}</div>
+        <div class="stat-label">{{ t('providerDashboard.totalTasks') }}</div>
+      </div>
+      <div class="stat-card stat-success">
+        <VaIcon name="check_circle" size="2rem" class="stat-icon" />
+        <div class="stat-value">{{ stats.completed }}</div>
+        <div class="stat-label">{{ t('providerDashboard.completed') }}</div>
+      </div>
+      <div class="stat-card stat-warning">
+        <VaIcon name="pending" size="2rem" class="stat-icon" />
+        <div class="stat-value">{{ stats.inProgress }}</div>
+        <div class="stat-label">{{ t('providerDashboard.inProgress') }}</div>
+      </div>
+      <div class="stat-card stat-info">
+        <VaIcon name="payments" size="2rem" class="stat-icon" />
+        <div class="stat-value">¥{{ formatCurrency(stats.totalEarnings) }}</div>
+        <div class="stat-label">{{ t('providerDashboard.totalEarnings') }}</div>
+      </div>
+    </div>
 
-    <VaCard color="success" gradient>
-      <VaCardContent>
-        <div class="flex items-center justify-between text-white">
-          <div>
-            <div class="text-3xl font-bold">{{ stats.completed }}</div>
-            <div class="text-sm opacity-80 mt-1">{{ t('providerDashboard.completed') }}</div>
-          </div>
-          <VaIcon name="check_circle" size="large" />
-        </div>
-      </VaCardContent>
-    </VaCard>
-
-    <VaCard color="warning" gradient>
-      <VaCardContent>
-        <div class="flex items-center justify-between text-white">
-          <div>
-            <div class="text-3xl font-bold">{{ stats.inProgress }}</div>
-            <div class="text-sm opacity-80 mt-1">{{ t('providerDashboard.inProgress') }}</div>
-          </div>
-          <VaIcon name="pending" size="large" />
-        </div>
-      </VaCardContent>
-    </VaCard>
-
-    <VaCard color="info" gradient>
-      <VaCardContent>
-        <div class="flex items-center justify-between text-white">
-          <div>
-            <div class="text-3xl font-bold">¥{{ formatCurrency(stats.totalEarnings) }}</div>
-            <div class="text-sm opacity-80 mt-1">{{ t('providerDashboard.totalEarnings') }}</div>
-          </div>
-          <VaIcon name="payments" size="large" />
-        </div>
-      </VaCardContent>
-    </VaCard>
-  </div>
-
-  <!-- Quick Actions -->
-  <QuickActions class="mb-6" />
+    <!-- Quick Actions -->
+    <QuickActions class="mb-6" />
 
   <!-- My Tasks & Available Orders -->
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
     <!-- My Current Tasks -->
     <VaCard>
       <VaCardTitle>
@@ -157,21 +135,7 @@
     </VaCard>
   </div>
 
-  <!-- Earnings Chart -->
-  <VaCard>
-    <VaCardTitle>
-      <div class="flex items-center gap-2">
-        <VaIcon name="trending_up" />
-        <span>{{ t('providerDashboard.earningsTrend') }}</span>
-      </div>
-    </VaCardTitle>
-    <VaCardContent>
-      <div class="text-center py-12 text-secondary">
-        <VaIcon name="insert_chart" size="4rem" color="secondary" />
-        <p class="mt-2">{{ t('providerDashboard.chartPlaceholder') }}</p>
-      </div>
-    </VaCardContent>
-  </VaCard>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -278,10 +242,66 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.provider-dashboard {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
 .page-title {
-  font-size: 2rem;
-  font-weight: 600;
-  margin-bottom: 1.5rem;
+  font-size: 1.875rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: var(--va-text-primary);
+}
+
+.stat-card {
+  background: var(--va-background-element);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  text-align: center;
+  transition: all 0.3s ease;
+  border: 1px solid var(--va-background-border);
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.stat-icon {
+  margin: 0 auto 0.75rem;
+  opacity: 0.9;
+}
+
+.stat-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  opacity: 0.7;
+}
+
+.stat-primary .stat-icon,
+.stat-primary .stat-value {
+  color: var(--va-primary);
+}
+
+.stat-success .stat-icon,
+.stat-success .stat-value {
+  color: var(--va-success);
+}
+
+.stat-warning .stat-icon,
+.stat-warning .stat-value {
+  color: var(--va-warning);
+}
+
+.stat-info .stat-icon,
+.stat-info .stat-value {
+  color: var(--va-info);
 }
 </style>
 
