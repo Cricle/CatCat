@@ -36,4 +36,3 @@ public partial class RefreshTokenRepository : IRefreshTokenRepository
         connection = connectionFactory.CreateConnection();
     }
 }
-
