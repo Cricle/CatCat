@@ -1,6 +1,7 @@
 using CatCat.API.BackgroundServices;
 using CatCat.Infrastructure.Services;
 using CatCat.Infrastructure.Payment;
+using CatCat.Infrastructure.BloomFilter;
 using CatCat.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -20,6 +21,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IOrderStatusHistoryRepository, OrderStatusHistoryRepository>();
         services.AddScoped<IPaymentRepository, PaymentRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+
+        // Bloom Filter Service (Singleton for memory efficiency)
+        services.AddSingleton<IBloomFilterService, BloomFilterService>();
+
         return services;
     }
 

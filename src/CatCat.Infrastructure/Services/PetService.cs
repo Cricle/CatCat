@@ -1,3 +1,4 @@
+using CatCat.Infrastructure.BloomFilter;
 using CatCat.Infrastructure.Common;
 using CatCat.Infrastructure.Entities;
 using CatCat.Infrastructure.Repositories;
@@ -46,6 +47,7 @@ public record UpdatePetCommand(
 public class PetService(
     IPetRepository repository,
     IFusionCache cache,
+    IBloomFilterService bloomFilter,
     ILogger<PetService> logger) : IPetService
 {
     // Cache keys
@@ -58,6 +60,13 @@ public class PetService(
 
     public async Task<Result<Pet>> GetByIdAsync(long id, CancellationToken cancellationToken = default)
     {
+        // Bloom filter: quickly reject non-existent IDs (prevent cache penetration)
+        if (!bloomFilter.MightContainPet(id))
+        {
+            logger.LogDebug("Pet {PetId} blocked by Bloom Filter (not exist)", id);
+            return Result.Failure<Pet>("Pet not found");
+        }
+
         var pet = await cache.GetOrSetAsync<Pet?>(
             $"{PetCacheKeyPrefix}{id}",
             async (ctx, ct) =>
@@ -110,6 +119,9 @@ public class PetService(
         var affectedRows = await repository.CreateAsync(pet);
         if (affectedRows > 0)
         {
+            // Add to Bloom Filter
+            bloomFilter.AddPet(pet.Id);
+
             // Invalidate user pets cache
             await cache.RemoveAsync($"{UserPetsCacheKeyPrefix}{command.UserId}");
 

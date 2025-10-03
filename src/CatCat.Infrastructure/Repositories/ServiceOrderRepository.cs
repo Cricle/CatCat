@@ -45,6 +45,9 @@ public interface IServiceOrderRepository
 
     [Sqlx("SELECT {{count:all}} FROM {{table}} WHERE {{where:service_provider_id}} AND {{where:status}}")]
     Task<int> CountByServiceProviderIdAndStatusAsync(long serviceProviderId, string status);
+
+    [Sqlx("SELECT id FROM service_orders")]
+    Task<List<long>> GetAllIdsAsync();
 }
 
 [RepositoryFor(typeof(IServiceOrderRepository))]

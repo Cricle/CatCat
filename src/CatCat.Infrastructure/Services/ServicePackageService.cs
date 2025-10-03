@@ -1,3 +1,4 @@
+using CatCat.Infrastructure.BloomFilter;
 using CatCat.Infrastructure.Common;
 using CatCat.Infrastructure.Entities;
 using CatCat.Infrastructure.Repositories;
@@ -16,6 +17,7 @@ public interface IServicePackageService
 public class ServicePackageService(
     IServicePackageRepository repository,
     IFusionCache cache,
+    IBloomFilterService bloomFilter,
     ILogger<ServicePackageService> logger) : IServicePackageService
 {
     // Cache keys
@@ -28,6 +30,13 @@ public class ServicePackageService(
 
     public async Task<Result<ServicePackage>> GetByIdAsync(long id, CancellationToken cancellationToken = default)
     {
+        // Bloom filter: quickly reject non-existent IDs (prevent cache penetration)
+        if (!bloomFilter.MightContainPackage(id))
+        {
+            logger.LogDebug("Package {PackageId} blocked by Bloom Filter (not exist)", id);
+            return Result.Failure<ServicePackage>("Package not found");
+        }
+
         var package = await cache.GetOrSetAsync<ServicePackage?>(
             $"{PackageCacheKeyPrefix}{id}",
             async (ctx, ct) =>

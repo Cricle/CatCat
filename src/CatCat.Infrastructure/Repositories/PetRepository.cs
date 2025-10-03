@@ -21,6 +21,9 @@ public interface IPetRepository
 
     [Sqlx("{{delete}} WHERE {{where:id}}")]
     Task<int> DeleteAsync(long id);
+
+    [Sqlx("SELECT id FROM pets")]
+    Task<List<long>> GetAllIdsAsync();
 }
 
 [RepositoryFor(typeof(IPetRepository))]

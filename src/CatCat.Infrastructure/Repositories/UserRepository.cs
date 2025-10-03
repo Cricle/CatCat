@@ -24,6 +24,9 @@ public interface IUserRepository
 
     [Sqlx("SELECT {{count:all}} FROM {{table}}")]
     Task<int> GetCountAsync();
+
+    [Sqlx("SELECT id FROM users")]
+    Task<List<long>> GetAllIdsAsync();
 }
 
 [RepositoryFor(typeof(IUserRepository))]

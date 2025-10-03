@@ -12,6 +12,7 @@
     <PackageReference Include="NATS.Client.JetStream" />
     <PackageReference Include="Stripe.net" />
     <PackageReference Include="Yitter.IdGenerator" />
+    <PackageReference Include="BloomFilter.NetCore" />
   </ItemGroup>
 
 </Project>

@@ -18,6 +18,9 @@ public interface IServicePackageRepository
 
     [Sqlx("SELECT {{count:all}} FROM {{table}}")]
     Task<int> GetCountAsync();
+
+    [Sqlx("SELECT id FROM service_packages")]
+    Task<List<long>> GetAllIdsAsync();
 }
 
 [RepositoryFor(typeof(IServicePackageRepository))]

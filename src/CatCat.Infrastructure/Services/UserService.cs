@@ -1,3 +1,4 @@
+using CatCat.Infrastructure.BloomFilter;
 using CatCat.Infrastructure.Common;
 using CatCat.Infrastructure.Entities;
 using CatCat.Infrastructure.Repositories;
@@ -15,6 +16,7 @@ public interface IUserService
 public class UserService(
     IUserRepository repository,
     IFusionCache cache,
+    IBloomFilterService bloomFilter,
     ILogger<UserService> logger) : IUserService
 {
     // Cache keys
@@ -26,6 +28,13 @@ public class UserService(
 
     public async Task<Result<User>> GetByIdAsync(long id, CancellationToken cancellationToken = default)
     {
+        // Bloom filter: quickly reject non-existent IDs (prevent cache penetration)
+        if (!bloomFilter.MightContainUser(id))
+        {
+            logger.LogDebug("User {UserId} blocked by Bloom Filter (not exist)", id);
+            return Result.Failure<User>("User not found");
+        }
+
         var user = await cache.GetOrSetAsync<User?>(
             $"{UserCacheKeyPrefix}{id}",
             async (ctx, ct) =>

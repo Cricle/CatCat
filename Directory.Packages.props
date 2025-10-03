@@ -37,6 +37,8 @@
     <PackageVersion Include="OpenTelemetry.Instrumentation.StackExchangeRedis" Version="1.9.0-beta.1" />
     <!-- ID Generator -->
     <PackageVersion Include="Yitter.IdGenerator" Version="1.0.14" />
+    <!-- Bloom Filter (防止缓存穿透) -->
+    <PackageVersion Include="BloomFilter.NetCore" Version="2.5.3" />
     <!-- YARP Reverse Proxy (微软反向代理，支持 AOT) -->
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.2.0" />
     <!-- Distributed Cache for FusionCache L2 -->

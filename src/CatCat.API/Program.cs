@@ -152,6 +152,13 @@ app.MapReviewEndpoints();
 app.MapGet("/health", () => Results.Ok(new HealthResponse("healthy", DateTime.UtcNow)))
     .WithTags("Health");
 
+// Initialize Bloom Filters (load all existing IDs into memory)
+using (var scope = app.Services.CreateScope())
+{
+    var bloomFilter = scope.ServiceProvider.GetRequiredService<CatCat.Infrastructure.BloomFilter.IBloomFilterService>();
+    await bloomFilter.InitializeAsync();
+}
+
 // Initialize JetStream streams on startup
 var jetStreamConfig = app.Services.GetRequiredService<JetStreamConfiguration>();
 await jetStreamConfig.InitializeStreamsAsync();

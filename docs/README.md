@@ -50,6 +50,7 @@ For system design and decision making:
 2. [NATS Peak Clipping](NATS_PEAK_CLIPPING.md) - Message queue patterns
 3. [JWT Dual Token](JWT_DUAL_TOKEN.md) - Security architecture
 4. [Rate Limiting](RATE_LIMITING_GUIDE.md) - API protection strategies
+5. [Bloom Filter](BLOOM_FILTER_GUIDE.md) - Cache penetration protection
 
 ## 📋 Key Features Documentation
 
@@ -79,7 +80,7 @@ Choose your deployment strategy:
 ### Technology Stack
 - **Backend**: ASP.NET Core 9 (Minimal API), Sqlx (Source Generator), C# 12
 - **Database**: PostgreSQL 16, Redis 7
-- **Caching**: FusionCache (L1+L2 hybrid, ~85% hit rate)
+- **Caching**: FusionCache (L1+L2 hybrid, ~85% hit rate), Bloom Filter (cache penetration protection)
 - **Message Queue**: NATS JetStream 2.10
 - **Frontend**: Vue 3, TypeScript, Vuestic UI + Vant
 - **Observability**: OpenTelemetry, Jaeger
