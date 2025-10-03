@@ -118,6 +118,9 @@ builder.Services.AddSingleton<IMessageQueueService, JetStreamService>(sp =>
         CatCat.API.Json.AppJsonContext.Default,
         sp.GetRequiredService<ILogger<JetStreamService>>()));
 
+// MinIO Object Storage
+builder.Services.AddSingleton<CatCat.Infrastructure.Storage.IStorageService, CatCat.Infrastructure.Storage.MinioStorageService>();
+
 // Repositories & Services
 builder.Services.AddRepositories();
 builder.Services.AddApplicationServices();
@@ -154,6 +157,7 @@ app.MapOrderEndpoints();
 app.MapReviewEndpoints();
 app.MapAdminEndpoints();
 app.MapServiceProgressEndpoints();
+app.MapStorageEndpoints();
 
 app.MapGet("/health", () => Results.Ok(new HealthResponse("healthy", DateTime.UtcNow)))
     .WithTags("Health");
@@ -164,6 +168,13 @@ app.MapGet("/health", () => Results.Ok(new HealthResponse("healthy", DateTime.Ut
 // Initialize JetStream streams on startup
 var jetStreamConfig = app.Services.GetRequiredService<JetStreamConfiguration>();
 await jetStreamConfig.InitializeStreamsAsync();
+
+// Initialize MinIO bucket on startup
+var storageService = app.Services.GetRequiredService<CatCat.Infrastructure.Storage.IStorageService>();
+if (storageService is CatCat.Infrastructure.Storage.MinioStorageService minioService)
+{
+    await minioService.InitializeAsync();
+}
 
 app.Run();
 

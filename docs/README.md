@@ -82,6 +82,7 @@ Choose your deployment strategy:
 - **Database**: PostgreSQL 16, Redis 7
 - **Caching**: FusionCache (L1+L2 hybrid, ~85% hit rate), Bloom Filter (cache penetration protection)
 - **Message Queue**: NATS JetStream 2.10
+- **Object Storage**: MinIO (S3-compatible, media files)
 - **Frontend**: Vue 3, TypeScript, Vuestic UI + Vant
 - **Observability**: OpenTelemetry, Jaeger
 - **Deployment**: Docker, .NET Aspire, Kubernetes, YARP Gateway

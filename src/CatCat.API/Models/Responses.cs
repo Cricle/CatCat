@@ -30,3 +30,7 @@ public record UserListResponse(List<User> Items, int Total, int Page, int PageSi
 // Rate limit response
 public record RateLimitResponse(bool Success, string Message, int Code, double? RetryAfter = null);
 
+// Storage responses
+public record FileUploadResponse(string FileName, string Url, string ContentType, long Size);
+public record FileUrlResponse(string Url);
+

@@ -48,5 +48,7 @@
     <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="9.0.0" />
     <PackageVersion Include="Aspire.Hosting.Redis" Version="9.0.0" />
     <PackageVersion Include="Aspire.Hosting.Nats" Version="9.0.0" />
+    <!-- Object Storage -->
+    <PackageVersion Include="Minio" Version="6.0.3" />
   </ItemGroup>
 </Project>

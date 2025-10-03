@@ -62,6 +62,27 @@ services:
     networks:
       - catcat-network
 
+  # MinIO Object Storage
+  minio:
+    image: minio/minio:latest
+    container_name: catcat-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: catcat
+      MINIO_ROOT_PASSWORD: catcat_minio_password_change_in_production
+    ports:
+      - "9000:9000"  # API
+      - "9001:9001"  # Console
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - catcat-network
+
   # CatCat API
   api:
     build:
@@ -74,6 +95,11 @@ services:
       ConnectionStrings__Database: "Host=postgres;Port=5432;Database=catcat;Username=catcat;Password=catcat_password_change_in_production"
       ConnectionStrings__Redis: "redis:6379,password=catcat_redis_password_change_in_production"
       ConnectionStrings__Nats: "nats://nats:4222"
+      MinIO__Endpoint: "minio:9000"
+      MinIO__AccessKey: "catcat"
+      MinIO__SecretKey: "catcat_minio_password_change_in_production"
+      MinIO__BucketName: "catcat-media"
+      MinIO__UseSSL: "false"
       Jwt__SecretKey: "change-this-super-secret-key-in-production-must-be-at-least-32-characters-long"
       Jwt__Issuer: "CatCat.API"
       Jwt__Audience: "CatCat.Client"
@@ -91,6 +117,8 @@ services:
       redis:
         condition: service_healthy
       nats:
+        condition: service_healthy
+      minio:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
@@ -136,6 +164,8 @@ volumes:
   redis_data:
     driver: local
   nats_data:
+    driver: local
+  minio_data:
     driver: local
 
 networks:

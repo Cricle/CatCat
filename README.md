@@ -28,6 +28,7 @@
 - **数据库**: PostgreSQL 16
 - **缓存**: FusionCache (Redis) + Redis Sets (零内存，防击穿)
 - **消息队列**: NATS JetStream 2.10
+- **对象存储**: MinIO (S3兼容，图片/视频存储)
 - **支付**: Stripe
 - **ID生成**: Yitter Snowflake
 - **可观察性**: OpenTelemetry
@@ -455,6 +456,7 @@ public partial class UserRepository : IUserRepository
 - **[📈 OpenTelemetry](docs/OPENTELEMETRY_GUIDE.md)** - 可观测性配置
 - **[🛡️ 限流配置](docs/RATE_LIMITING_GUIDE.md)** - API 防护策略
 - **[⚡ AOT & 集群](docs/AOT_AND_CLUSTER.md)** - 性能优化
+- **[📦 MinIO 存储](docs/MINIO_STORAGE_GUIDE.md)** - 对象存储集成
 
 ### 其他
 - **[🤝 贡献指南](CONTRIBUTING.md)** - 如何参与贡献
