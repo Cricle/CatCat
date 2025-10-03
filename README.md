@@ -10,7 +10,7 @@
 - ✅ **极简代码**: Repository 层仅 200 行（使用 Sqlx Source Generator）
 - ✅ **完全类型安全**: 编译时检查，零运行时错误
 - ✅ **AOT 就绪**: 零反射，极快启动，极小体积
-- ✅ **高性能**: FusionCache (L1+L2) + Bloom Filter (防击穿) + NATS JetStream + Snowflake ID
+- ✅ **高性能**: FusionCache (Redis) + Redis Sets (防击穿) + NATS JetStream + Snowflake ID
 - ✅ **异步处理**: 订单队列化，削峰填谷，快速响应
 - ✅ **可观察**: OpenTelemetry 分布式追踪
 - ✅ **一键部署**: Docker Compose + .NET Aspire + GitHub Actions CI/CD
@@ -26,7 +26,7 @@
 - **框架**: ASP.NET Core 9 (Minimal API)
 - **ORM**: Sqlx (Source Generator)
 - **数据库**: PostgreSQL 16
-- **缓存**: FusionCache + Redis 7 + Bloom Filter (防击穿)
+- **缓存**: FusionCache (Redis) + Redis Sets (零内存，防击穿)
 - **消息队列**: NATS JetStream 2.10
 - **支付**: Stripe
 - **ID生成**: Yitter Snowflake
@@ -172,7 +172,7 @@ docker run -p 80:80 catcat-aot
 | 内存占用 | ~200MB | ~50MB |
 | 程序大小 | ~80MB | ~15MB |
 | 首次请求 | ~50ms | ~10ms |
-| 缓存命中率 | ~85% (FusionCache L1+L2) | ~85% |
+| 内存缓存 | ~170-320MB | ~0MB (Redis-only) |
 | 前端 Bundle | 552.83 kB (186.02 kB gzipped) | - |
 
 ---
@@ -337,19 +337,20 @@ public partial class UserRepository : IUserRepository
 }
 ```
 
-### 2. FusionCache + Bloom Filter
-**三层缓存 + 布隆过滤器防护：**
+### 2. FusionCache + Redis Sets (Zero Memory)
+**Redis-Only缓存 + Redis Sets防击穿：**
 
-**FusionCache (混合缓存):**
-- **L1**: 内存缓存（超快访问，微秒级）
-- **L2**: Redis 缓存（集群共享，毫秒级）
-- **Backplane**: 集群间缓存同步
+**FusionCache (Redis缓存):**
+- **L2 Only**: Redis 分布式缓存（集群共享）
+- **零内存占用**: 无 L1 内存缓存层
+- **集群安全**: 多实例共享同一Redis
+- **Fail-safe**: Redis故障时降级处理
 
-**Bloom Filter (防击穿):**
-- **XXHash3**: 30μs/查询（业界最快）
-- **4个过滤器**: User, Pet, Order, Package
-- **内存占用**: ~20MB (100万+ ID)
-- **拦截率**: 99% (1% 误判率)
+**Redis Sets (Bloom Filter替代):**
+- **O(1) 查询**: Redis Sets 原生支持
+- **4个Set**: bf:users, bf:pets, bf:orders, bf:packages
+- **零内存占用**: 数据存储在Redis中
+- **持久化**: 无需初始化，重启保留
 
 **缓存策略:**
 - **服务套餐**: 2小时缓存（~90% 命中率）
@@ -359,11 +360,12 @@ public partial class UserRepository : IUserRepository
 - **订单数据**: 不缓存（实时性要求高）
 
 **特性:**
+- ✅ Redis-Only架构（零内存消耗）
 - ✅ 自动失效机制（增删改时清除）
 - ✅ Fail-safe 模式（缓存故障时降级）
 - ✅ Anti-stampede 防雪崩
-- ✅ Factory timeout 超时保护
-- ✅ Bloom Filter 防止缓存击穿（99% 拦截无效查询）
+- ✅ Redis Sets 防止缓存击穿（O(1) 查询）
+- ✅ 集群安全（多实例共享Redis状态）
 
 ### 3. NATS 消息队列
 异步处理高并发：
@@ -394,7 +396,7 @@ public partial class UserRepository : IUserRepository
 ### 技术指南
 - **[🔐 JWT 双令牌](docs/JWT_DUAL_TOKEN.md)** - 认证机制详解
 - **[📊 NATS 削峰](docs/NATS_PEAK_CLIPPING.md)** - 异步订单处理
-- **[🔒 Bloom Filter](docs/BLOOM_FILTER_GUIDE.md)** - 缓存击穿防护（99% 拦截）
+- **[💾 缓存优化](docs/CACHE_OPTIMIZATION_SUMMARY.md)** - Redis-Only零内存策略
 - **[📈 OpenTelemetry](docs/OPENTELEMETRY_GUIDE.md)** - 可观测性配置
 - **[🛡️ 限流配置](docs/RATE_LIMITING_GUIDE.md)** - API 防护策略
 - **[⚡ AOT & 集群](docs/AOT_AND_CLUSTER.md)** - 性能优化
