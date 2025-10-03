@@ -71,7 +71,7 @@ public static class OrderEndpoints
         var result = await orderService.CreateOrderAsync(command, cancellationToken);
 
         return result.IsSuccess
-            ? Results.Ok(ApiResult.Ok(result.Value, "订单已提交，正在处理中..."))
+            ? Results.Ok(ApiResult.Ok(result.Value, "Order submitted, processing..."))
             : Results.BadRequest(ApiResult.Fail<long>(result.Error!));
     }
 
@@ -118,7 +118,7 @@ public static class OrderEndpoints
 
         var result = await orderService.CancelOrderAsync(id, userId, cancellationToken);
         return result.IsSuccess
-            ? Results.Ok(ApiResult.Ok("订单已取消"))
+            ? Results.Ok(ApiResult.Ok("Order cancelled"))
             : Results.BadRequest(ApiResult.Fail(result.Error!));
     }
 
@@ -133,7 +133,7 @@ public static class OrderEndpoints
 
         var result = await orderService.AcceptOrderAsync(id, providerId, cancellationToken);
         return result.IsSuccess
-            ? Results.Ok(ApiResult.Ok("接单成功"))
+            ? Results.Ok(ApiResult.Ok("Order accepted"))
             : Results.BadRequest(ApiResult.Fail(result.Error!));
     }
 
@@ -148,7 +148,7 @@ public static class OrderEndpoints
 
         var result = await orderService.StartServiceAsync(id, providerId, cancellationToken);
         return result.IsSuccess
-            ? Results.Ok(ApiResult.Ok("服务已开始"))
+            ? Results.Ok(ApiResult.Ok("Service started"))
             : Results.BadRequest(ApiResult.Fail(result.Error!));
     }
 
@@ -163,7 +163,7 @@ public static class OrderEndpoints
 
         var result = await orderService.CompleteServiceAsync(id, providerId, cancellationToken);
         return result.IsSuccess
-            ? Results.Ok(ApiResult.Ok("服务已完成"))
+            ? Results.Ok(ApiResult.Ok("Service completed"))
             : Results.BadRequest(ApiResult.Fail(result.Error!));
     }
 
@@ -176,7 +176,7 @@ public static class OrderEndpoints
         var result = await orderService.PayOrderAsync(id, request.PaymentIntentId, cancellationToken);
 
         return result.IsSuccess
-            ? Results.Ok(ApiResult.Ok("支付成功"))
+            ? Results.Ok(ApiResult.Ok("Payment successful"))
             : Results.BadRequest(ApiResult.Fail(result.Error!));
     }
 }

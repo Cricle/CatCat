@@ -1,8 +1,5 @@
 namespace CatCat.API.Models;
 
-/// <summary>
-/// 统一 API 返回结果
-/// </summary>
 public class ApiResult
 {
     public bool Success { get; set; }
@@ -38,21 +35,21 @@ public class ApiResult
         Code = code
     };
 
-    public static ApiResult NotFound(string message = "资源不存在") => new()
+    public static ApiResult NotFound(string message = "Resource not found") => new()
     {
         Success = false,
         Message = message,
         Code = 404
     };
 
-    public static ApiResult Unauthorized(string message = "未授权") => new()
+    public static ApiResult Unauthorized(string message = "Unauthorized") => new()
     {
         Success = false,
         Message = message,
         Code = 401
     };
 
-    public static ApiResult Forbidden(string message = "禁止访问") => new()
+    public static ApiResult Forbidden(string message = "Forbidden") => new()
     {
         Success = false,
         Message = message,
@@ -60,17 +57,11 @@ public class ApiResult
     };
 }
 
-/// <summary>
-/// 带数据的 API 返回结果
-/// </summary>
 public class ApiResult<T> : ApiResult
 {
     public T? Data { get; set; }
 }
 
-/// <summary>
-/// 分页结果
-/// </summary>
 public class PagedResult<T>
 {
     public IEnumerable<T> Items { get; set; } = Array.Empty<T>();
