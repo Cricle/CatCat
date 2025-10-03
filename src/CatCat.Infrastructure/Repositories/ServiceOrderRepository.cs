@@ -13,13 +13,13 @@ public interface IServiceOrderRepository
     [Sqlx("SELECT {{column:auto}} FROM service_orders WHERE order_no = @orderNo")]
     Task<ServiceOrder?> GetByOrderNoAsync(string orderNo);
 
-    [Sqlx("INSERT INTO service_orders {{column:auto}} VALUES {{value:auto}}")]
+    [Sqlx("INSERT INTO service_orders {{insert:auto}}")]
     Task<int> CreateAsync(ServiceOrder order);
 
-    [Sqlx("UPDATE service_orders SET {{set:auto}} WHERE id = @Id")]
+    [Sqlx("UPDATE service_orders {{update:auto}} WHERE id = @Id")]
     Task<int> UpdateAsync(ServiceOrder order);
 
-    [Sqlx("UPDATE service_orders SET {{set:auto}} WHERE id = @id")]
+    [Sqlx("UPDATE service_orders {{update:auto}} WHERE id = @id")]
     Task<int> UpdateStatusAsync(long id, string status, DateTime updatedAt);
 
     [Sqlx("SELECT {{column:auto}} FROM service_orders WHERE customer_id = @customerId ORDER BY created_at DESC LIMIT @pageSize OFFSET @offset")]

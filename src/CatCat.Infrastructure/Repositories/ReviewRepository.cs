@@ -19,10 +19,10 @@ public interface IReviewRepository
     [Sqlx("SELECT COUNT(*) FROM reviews WHERE service_provider_id = @serviceProviderId")]
     Task<int> CountByServiceProviderIdAsync(long serviceProviderId);
 
-    [Sqlx("INSERT INTO reviews {{column:auto}} VALUES {{value:auto}}")]
+    [Sqlx("INSERT INTO reviews {{insert:auto}}")]
     Task<int> CreateAsync(Review review);
 
-    [Sqlx("UPDATE reviews SET {{set:auto}} WHERE id = @id")]
+    [Sqlx("UPDATE reviews {{update:auto}} WHERE id = @id")]
     Task<int> UpdateReplyAsync(long id, string reply, DateTime repliedAt, DateTime updatedAt);
 
     [Sqlx("SELECT AVG(rating) FROM reviews WHERE service_provider_id = @serviceProviderId")]

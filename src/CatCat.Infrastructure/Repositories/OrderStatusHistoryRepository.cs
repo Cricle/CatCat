@@ -10,7 +10,7 @@ public interface IOrderStatusHistoryRepository
     [Sqlx("SELECT {{column:auto}} FROM order_status_history WHERE order_id = @orderId ORDER BY created_at")]
     Task<List<OrderStatusHistory>> GetByOrderIdAsync(long orderId);
 
-    [Sqlx("INSERT INTO order_status_history {{column:auto}} VALUES {{value:auto}}")]
+    [Sqlx("INSERT INTO order_status_history {{insert:auto}}")]
     Task<int> CreateAsync(OrderStatusHistory history);
 }
 

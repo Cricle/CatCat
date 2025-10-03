@@ -13,10 +13,10 @@ public interface IUserRepository
     [Sqlx("SELECT {{column:auto}} FROM users WHERE phone = @phone")]
     Task<User?> GetByPhoneAsync(string phone);
 
-    [Sqlx("INSERT INTO users {{column:auto}} VALUES {{value:auto}}")]
+    [Sqlx("INSERT INTO users {{insert:auto}}")]
     Task<int> CreateAsync(User user);
 
-    [Sqlx("UPDATE users SET {{set:auto}} WHERE id = @Id")]
+    [Sqlx("UPDATE users {{update:auto}} WHERE id = @Id")]
     Task<int> UpdateAsync(User user);
 
     [Sqlx("SELECT {{column:auto}} FROM users ORDER BY id LIMIT @pageSize OFFSET @offset")]

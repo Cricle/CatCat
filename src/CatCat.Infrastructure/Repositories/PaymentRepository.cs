@@ -17,13 +17,13 @@ public interface IPaymentRepository
     [Sqlx("SELECT {{column:auto}} FROM payments WHERE payment_intent_id = @paymentIntentId")]
     Task<PaymentEntity?> GetByPaymentIntentIdAsync(string paymentIntentId);
 
-    [Sqlx("INSERT INTO payments {{column:auto}} VALUES {{value:auto}}")]
+    [Sqlx("INSERT INTO payments {{insert:auto}}")]
     Task<int> CreateAsync(PaymentEntity payment);
 
-    [Sqlx("UPDATE payments SET {{set:auto}} WHERE id = @id")]
+    [Sqlx("UPDATE payments {{update:auto}} WHERE id = @id")]
     Task<int> UpdateStatusSuccessAsync(long id, string status, DateTime paidAt, DateTime updatedAt);
 
-    [Sqlx("UPDATE payments SET {{set:auto}} WHERE id = @id")]
+    [Sqlx("UPDATE payments {{update:auto}} WHERE id = @id")]
     Task<int> UpdateStatusFailedAsync(long id, string status, string errorMessage, DateTime updatedAt);
 }
 
