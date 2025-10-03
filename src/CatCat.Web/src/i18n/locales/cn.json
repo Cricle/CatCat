@@ -214,6 +214,7 @@
   },
   "common": {
     "back": "返回",
+    "next": "下一步",
     "save": "保存",
     "cancel": "取消",
     "delete": "删除",
@@ -244,6 +245,27 @@
     "noReviews": "暂无评价",
     "notFound": "套餐不存在",
     "backToList": "返回套餐列表"
+  },
+  "orders": {
+    "createOrder": "创建订单",
+    "selectPet": "选择宠物",
+    "selectPackage": "选择套餐",
+    "serviceDetails": "服务详情",
+    "confirmOrder": "确认订单",
+    "noPets": "暂无宠物",
+    "addPetFirst": "请先添加宠物",
+    "serviceDate": "服务日期",
+    "serviceAddress": "服务地址",
+    "serviceAddressPlaceholder": "请输入服务地址",
+    "notes": "备注",
+    "notesPlaceholder": "请输入备注信息",
+    "petInfo": "宠物信息",
+    "packageInfo": "套餐信息",
+    "serviceInfo": "服务信息",
+    "paymentSummary": "费用明细",
+    "subtotal": "小计",
+    "total": "总计",
+    "submitOrder": "提交订单"
   },
   "admin": {
     "users": {
