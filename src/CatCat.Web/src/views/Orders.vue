@@ -193,7 +193,7 @@ const handleCancelOrder = async (orderId: number) => {
 
   if (agreed) {
     try {
-      await cancelOrder(orderId)
+      await cancelOrder(orderId, 'Cancelled by user')
       notify({ message: 'Order cancelled successfully', color: 'success' })
       fetchOrders()
     } catch (error: any) {
