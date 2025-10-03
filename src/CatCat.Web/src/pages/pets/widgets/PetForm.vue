@@ -3,27 +3,27 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <!-- Basic Information -->
       <div class="md:col-span-2">
-        <h3 class="text-lg font-semibold mb-2">基础信息</h3>
+        <h3 class="text-lg font-semibold mb-2">{{ t('petForm.basicInfo') }}</h3>
       </div>
 
-      <VaInput v-model="modelValue.name" label="宠物名称" placeholder="请输入宠物名称" required />
+      <VaInput v-model="modelValue.name" :label="t('petForm.name')" :placeholder="t('petForm.namePlaceholder')" required />
 
       <VaSelect
         v-model="modelValue.type"
-        label="宠物类型"
+        :label="t('petForm.type')"
         :options="petTypeOptions"
         text-by="text"
         value-by="value"
         required
       />
 
-      <VaInput v-model="modelValue.breed" label="品种" placeholder="请输入品种" />
+      <VaInput v-model="modelValue.breed" :label="t('petForm.breed')" :placeholder="t('petForm.breedPlaceholder')" />
 
-      <VaInput v-model="modelValue.age" label="年龄（岁）" type="number" min="0" placeholder="请输入年龄" required />
+      <VaInput v-model="modelValue.age" :label="t('petForm.age')" type="number" min="0" :placeholder="t('petForm.agePlaceholder')" required />
 
       <VaSelect
         v-model="modelValue.gender"
-        label="性别"
+        :label="t('petForm.gender')"
         :options="genderOptions"
         text-by="text"
         value-by="value"
@@ -38,77 +38,105 @@
 
       <!-- Service Information -->
       <div class="md:col-span-2 mt-4">
-        <h3 class="text-lg font-semibold mb-2">服务信息</h3>
-        <p class="text-sm text-gray-500 mb-4">帮助服务人员快速找到所需物品</p>
+        <h3 class="text-lg font-semibold mb-2">{{ t('petForm.serviceInfo') }}</h3>
+        <p class="text-sm text-secondary mb-4">{{ t('petForm.serviceInfoHint') }}</p>
       </div>
 
-      <VaInput
-        v-model="modelValue.foodLocation"
-        label="猫粮位置"
-        placeholder="例如：厨房橱柜第二层"
-      />
+      <!-- Food Location -->
+      <div class="md:col-span-2">
+        <label class="va-input-label mb-2">{{ t('petForm.foodLocation') }}</label>
+        <div class="location-section">
+          <ImageUploader v-model="modelValue.foodLocationImage" class="location-image" />
+          <VaInput
+            v-model="modelValue.foodLocationDesc"
+            :placeholder="t('petForm.foodLocationPlaceholder')"
+            class="flex-1"
+          />
+        </div>
+      </div>
 
-      <VaInput
-        v-model="modelValue.waterLocation"
-        label="水盆位置"
-        placeholder="例如：客厅电视柜旁边"
-      />
+      <!-- Water Location -->
+      <div class="md:col-span-2">
+        <label class="va-input-label mb-2">{{ t('petForm.waterLocation') }}</label>
+        <div class="location-section">
+          <ImageUploader v-model="modelValue.waterLocationImage" class="location-image" />
+          <VaInput
+            v-model="modelValue.waterLocationDesc"
+            :placeholder="t('petForm.waterLocationPlaceholder')"
+            class="flex-1"
+          />
+        </div>
+      </div>
 
-      <VaInput
-        v-model="modelValue.litterBoxLocation"
-        label="猫砂盆位置"
-        placeholder="例如：卫生间角落"
-      />
+      <!-- Litter Box Location -->
+      <div class="md:col-span-2">
+        <label class="va-input-label mb-2">{{ t('petForm.litterBoxLocation') }}</label>
+        <div class="location-section">
+          <ImageUploader v-model="modelValue.litterBoxLocationImage" class="location-image" />
+          <VaInput
+            v-model="modelValue.litterBoxLocationDesc"
+            :placeholder="t('petForm.litterBoxLocationPlaceholder')"
+            class="flex-1"
+          />
+        </div>
+      </div>
 
-      <VaInput
-        v-model="modelValue.cleaningSuppliesLocation"
-        label="清洁用品位置"
-        placeholder="例如：阳台储物柜（扫把、猫屎袋等）"
-      />
+      <!-- Cleaning Supplies Location -->
+      <div class="md:col-span-2">
+        <label class="va-input-label mb-2">{{ t('petForm.cleaningSuppliesLocation') }}</label>
+        <div class="location-section">
+          <ImageUploader v-model="modelValue.cleaningSuppliesImage" class="location-image" />
+          <VaInput
+            v-model="modelValue.cleaningSuppliesDesc"
+            :placeholder="t('petForm.cleaningSuppliesLocationPlaceholder')"
+            class="flex-1"
+          />
+        </div>
+      </div>
 
       <div class="md:col-span-2">
-        <VaCheckbox v-model="modelValue.needsWaterRefill" label="需要备水" />
+        <VaCheckbox v-model="modelValue.needsWaterRefill" :label="t('petForm.needsWaterRefill')" />
       </div>
 
       <div class="md:col-span-2">
         <VaTextarea
           v-model="modelValue.specialInstructions"
-          label="特殊说明"
-          placeholder="例如：猫粮每次半碗、水要换新的"
+          :label="t('petForm.specialInstructions')"
+          :placeholder="t('petForm.specialInstructionsPlaceholder')"
           :max-rows="4"
         />
       </div>
 
       <!-- Health & Character -->
       <div class="md:col-span-2 mt-4">
-        <h3 class="text-lg font-semibold mb-2">健康与性格</h3>
+        <h3 class="text-lg font-semibold mb-2">{{ t('petForm.healthCharacter') }}</h3>
       </div>
 
       <VaTextarea
         v-model="modelValue.character"
-        label="性格"
-        placeholder="例如：活泼好动、胆小怕生"
+        :label="t('petForm.character')"
+        :placeholder="t('petForm.characterPlaceholder')"
         :max-rows="3"
       />
 
       <VaTextarea
         v-model="modelValue.dietaryHabits"
-        label="饮食习惯"
-        placeholder="例如：喜欢吃罐头、不喜欢鱼肉"
+        :label="t('petForm.dietaryHabits')"
+        :placeholder="t('petForm.dietaryHabitsPlaceholder')"
         :max-rows="3"
       />
 
       <div class="md:col-span-2">
         <VaTextarea
           v-model="modelValue.healthStatus"
-          label="健康状况"
-          placeholder="例如：已绝育、定期驱虫"
+          :label="t('petForm.healthStatus')"
+          :placeholder="t('petForm.healthStatusPlaceholder')"
           :max-rows="3"
         />
       </div>
 
       <div class="md:col-span-2">
-        <VaTextarea v-model="modelValue.remarks" label="备注" placeholder="其他需要说明的信息" :max-rows="3" />
+        <VaTextarea v-model="modelValue.remarks" :label="t('petForm.remarks')" :placeholder="t('petForm.remarksPlaceholder')" :max-rows="3" />
       </div>
     </div>
   </VaForm>
@@ -143,4 +171,27 @@ const genderOptions = [
   { value: 2, text: '母' },
 ]
 </script>
+
+<style scoped>
+.location-section {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.location-image {
+  width: 200px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .location-section {
+    flex-direction: column;
+  }
+  
+  .location-image {
+    width: 100%;
+  }
+}
+</style>
 

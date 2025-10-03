@@ -67,6 +67,16 @@ public static class PetEndpoints
             DietaryHabits = request.DietaryHabits,
             HealthStatus = request.HealthStatus,
             Remarks = request.Remarks,
+            FoodLocationImage = request.FoodLocationImage,
+            FoodLocationDesc = request.FoodLocationDesc,
+            WaterLocationImage = request.WaterLocationImage,
+            WaterLocationDesc = request.WaterLocationDesc,
+            LitterBoxLocationImage = request.LitterBoxLocationImage,
+            LitterBoxLocationDesc = request.LitterBoxLocationDesc,
+            CleaningSuppliesImage = request.CleaningSuppliesImage,
+            CleaningSuppliesDesc = request.CleaningSuppliesDesc,
+            NeedsWaterRefill = request.NeedsWaterRefill,
+            SpecialInstructions = request.SpecialInstructions,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -99,6 +109,16 @@ public static class PetEndpoints
         if (request.DietaryHabits != null) pet.DietaryHabits = request.DietaryHabits;
         if (request.HealthStatus != null) pet.HealthStatus = request.HealthStatus;
         if (request.Remarks != null) pet.Remarks = request.Remarks;
+        if (request.FoodLocationImage != null) pet.FoodLocationImage = request.FoodLocationImage;
+        if (request.FoodLocationDesc != null) pet.FoodLocationDesc = request.FoodLocationDesc;
+        if (request.WaterLocationImage != null) pet.WaterLocationImage = request.WaterLocationImage;
+        if (request.WaterLocationDesc != null) pet.WaterLocationDesc = request.WaterLocationDesc;
+        if (request.LitterBoxLocationImage != null) pet.LitterBoxLocationImage = request.LitterBoxLocationImage;
+        if (request.LitterBoxLocationDesc != null) pet.LitterBoxLocationDesc = request.LitterBoxLocationDesc;
+        if (request.CleaningSuppliesImage != null) pet.CleaningSuppliesImage = request.CleaningSuppliesImage;
+        if (request.CleaningSuppliesDesc != null) pet.CleaningSuppliesDesc = request.CleaningSuppliesDesc;
+        if (request.NeedsWaterRefill.HasValue) pet.NeedsWaterRefill = request.NeedsWaterRefill.Value;
+        if (request.SpecialInstructions != null) pet.SpecialInstructions = request.SpecialInstructions;
         pet.UpdatedAt = DateTime.UtcNow;
 
         await petRepository.UpdateAsync(pet);

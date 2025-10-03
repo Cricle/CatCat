@@ -3,7 +3,7 @@
     <VaProgressCircle indeterminate />
   </div>
 
-  <div v-else-if="!package" class="text-center py-12">
+  <div v-else-if="!servicePackage" class="text-center py-12">
     <VaIcon name="error_outline" size="4rem" color="danger" />
     <p class="text-xl mt-4">{{ t('packages.notFound') }}</p>
     <VaButton class="mt-4" @click="router.push('/packages')">
@@ -25,16 +25,16 @@
           <div class="flex-grow">
             <div class="flex items-start justify-between mb-4">
               <div>
-                <h1 class="text-3xl font-bold mb-2">{{ package.name }}</h1>
+                <h1 class="text-3xl font-bold mb-2">{{ servicePackage.name }}</h1>
                 <div class="flex gap-2 mb-3">
-                  <VaBadge :text="package.category" color="primary" />
-                  <VaBadge v-if="package.isPopular" text="🔥 热门套餐" color="warning" />
-                  <VaBadge v-if="package.isActive" text="可预订" color="success" />
+                  <VaBadge :text="servicePackage.category" color="primary" />
+                  <VaBadge v-if="servicePackage.isPopular" text="🔥 热门套餐" color="warning" />
+                  <VaBadge v-if="servicePackage.isActive" text="可预订" color="success" />
                 </div>
               </div>
             </div>
 
-            <p class="text-lg text-secondary mb-4">{{ package.description }}</p>
+            <p class="text-lg text-secondary mb-4">{{ servicePackage.description }}</p>
 
             <!-- Stats -->
             <div class="flex flex-wrap gap-6 mb-4">
@@ -42,7 +42,7 @@
                 <VaIcon name="schedule" color="primary" />
                 <div>
                   <div class="text-sm text-secondary">{{ t('packages.duration') }}</div>
-                  <div class="font-semibold">{{ package.duration }} 分钟</div>
+                  <div class="font-semibold">{{ servicePackage.duration }} 分钟</div>
                 </div>
               </div>
 
@@ -50,7 +50,7 @@
                 <VaIcon name="star" color="warning" />
                 <div>
                   <div class="text-sm text-secondary">{{ t('packages.rating') }}</div>
-                  <div class="font-semibold">{{ package.rating || '5.0' }} / 5.0</div>
+                  <div class="font-semibold">{{ servicePackage.rating || '5.0' }} / 5.0</div>
                 </div>
               </div>
 
@@ -58,7 +58,7 @@
                 <VaIcon name="shopping_cart" color="success" />
                 <div>
                   <div class="text-sm text-secondary">{{ t('packages.orders') }}</div>
-                  <div class="font-semibold">{{ package.orderCount || 0 }} 单</div>
+                  <div class="font-semibold">{{ servicePackage.orderCount || 0 }} 单</div>
                 </div>
               </div>
             </div>
@@ -70,8 +70,8 @@
               <VaCardContent>
                 <div class="text-center text-white">
                   <div class="text-sm opacity-80 mb-1">{{ t('packages.price') }}</div>
-                  <div class="text-4xl font-bold mb-1">¥{{ package.price }}</div>
-                  <div class="text-sm opacity-80 mb-4">/ {{ package.duration }}分钟</div>
+                  <div class="text-4xl font-bold mb-1">¥{{ servicePackage.price }}</div>
+                  <div class="text-sm opacity-80 mb-4">/ {{ servicePackage.duration }}分钟</div>
                   <VaButton block color="white" text-color="primary" @click="createOrder">
                     {{ t('packages.bookNow') }}
                   </VaButton>
@@ -93,7 +93,7 @@
       </VaCardTitle>
       <VaCardContent>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div v-for="service in package.services" :key="service" class="flex items-center gap-3">
+          <div v-for="service in servicePackage.services" :key="service" class="flex items-center gap-3">
             <VaIcon name="check_circle" color="success" />
             <span class="text-lg">{{ service }}</span>
           </div>
@@ -149,7 +149,7 @@ const router = useRouter()
 const { init: notify } = useToast()
 
 const loading = ref(false)
-const package = ref<ServicePackage | null>(null)
+const servicePackage = ref<ServicePackage | null>(null)
 
 // Load package
 const loadPackage = async () => {
@@ -157,7 +157,7 @@ const loadPackage = async () => {
   try {
     const id = Number(route.params.id)
     const response = await packageApi.getById(id)
-    package.value = response.data
+    servicePackage.value = response.data
   } catch (error: any) {
     notify({
       message: error.message || '加载套餐详情失败',
@@ -170,8 +170,8 @@ const loadPackage = async () => {
 
 // Create order
 const createOrder = () => {
-  if (package.value) {
-    router.push({ name: 'create-order', query: { packageId: package.value.id } })
+  if (servicePackage.value) {
+    router.push({ name: 'create-order', query: { packageId: servicePackage.value.id } })
   }
 }
 

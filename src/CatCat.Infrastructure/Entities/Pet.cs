@@ -16,12 +16,16 @@ public class Pet
     public string? Remarks { get; set; }
     
     // Service Information (解决上门服务痛点)
-    public string? FoodLocation { get; set; }           // 猫粮位置
-    public string? WaterLocation { get; set; }          // 水盆位置
-    public string? LitterBoxLocation { get; set; }      // 猫砂盆位置
-    public string? CleaningSuppliesLocation { get; set; } // 清洁用品位置（扫把、猫屎袋等）
-    public bool NeedsWaterRefill { get; set; }          // 是否需要备水
-    public string? SpecialInstructions { get; set; }    // 特殊说明
+    public string? FoodLocationImage { get; set; }       // 猫粮位置照片
+    public string? FoodLocationDesc { get; set; }        // 猫粮位置描述
+    public string? WaterLocationImage { get; set; }      // 水盆位置照片
+    public string? WaterLocationDesc { get; set; }       // 水盆位置描述
+    public string? LitterBoxLocationImage { get; set; }  // 猫砂盆位置照片
+    public string? LitterBoxLocationDesc { get; set; }   // 猫砂盆位置描述
+    public string? CleaningSuppliesImage { get; set; }   // 清洁用品位置照片
+    public string? CleaningSuppliesDesc { get; set; }    // 清洁用品位置描述
+    public bool NeedsWaterRefill { get; set; }           // 是否需要备水
+    public string? SpecialInstructions { get; set; }     // 特殊说明
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
 }

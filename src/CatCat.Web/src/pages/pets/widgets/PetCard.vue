@@ -112,18 +112,18 @@ const getPetTypeColor = (type: PetType) => {
 }
 
 .pet-avatar {
-  width: 120px !important;
-  height: 120px !important;
-  font-size: 3rem;
-  border: 3px solid var(--va-background-border);
+  width: 80px !important;
+  height: 80px !important;
+  font-size: 2rem;
+  border: 2px solid var(--va-background-border);
 }
 
 .status-badge {
   position: absolute;
   bottom: 1rem;
-  right: calc(50% - 60px - 0.5rem);
-  width: 2rem;
-  height: 2rem;
+  right: calc(50% - 40px - 0.5rem);
+  width: 1.75rem;
+  height: 1.75rem;
   border-radius: 50%;
   display: flex;
   align-items: center;

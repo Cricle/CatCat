@@ -53,10 +53,14 @@ export interface Pet {
   healthStatus?: string
   remarks?: string
   // Service Information (解决上门服务痛点)
-  foodLocation?: string
-  waterLocation?: string
-  litterBoxLocation?: string
-  cleaningSuppliesLocation?: string
+  foodLocationImage?: string
+  foodLocationDesc?: string
+  waterLocationImage?: string
+  waterLocationDesc?: string
+  litterBoxLocationImage?: string
+  litterBoxLocationDesc?: string
+  cleaningSuppliesImage?: string
+  cleaningSuppliesDesc?: string
   needsWaterRefill: boolean
   specialInstructions?: string
   createdAt: string

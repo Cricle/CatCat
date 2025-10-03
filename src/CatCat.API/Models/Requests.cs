@@ -22,7 +22,17 @@ public record CreatePetRequest(
     string? Character,
     string? DietaryHabits,
     string? HealthStatus,
-    string? Remarks);
+    string? Remarks,
+    string? FoodLocationImage,
+    string? FoodLocationDesc,
+    string? WaterLocationImage,
+    string? WaterLocationDesc,
+    string? LitterBoxLocationImage,
+    string? LitterBoxLocationDesc,
+    string? CleaningSuppliesImage,
+    string? CleaningSuppliesDesc,
+    bool NeedsWaterRefill,
+    string? SpecialInstructions);
 
 public record UpdatePetRequest(
     string? Name,
@@ -32,7 +42,17 @@ public record UpdatePetRequest(
     string? Character,
     string? DietaryHabits,
     string? HealthStatus,
-    string? Remarks);
+    string? Remarks,
+    string? FoodLocationImage,
+    string? FoodLocationDesc,
+    string? WaterLocationImage,
+    string? WaterLocationDesc,
+    string? LitterBoxLocationImage,
+    string? LitterBoxLocationDesc,
+    string? CleaningSuppliesImage,
+    string? CleaningSuppliesDesc,
+    bool? NeedsWaterRefill,
+    string? SpecialInstructions);
 
 // Order requests
 public record CreateOrderRequest(
