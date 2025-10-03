@@ -21,12 +21,12 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IOrderStatusHistoryRepository, OrderStatusHistoryRepository>();
         services.AddScoped<IPaymentRepository, PaymentRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
-        services.AddScoped<IServiceProgressRepository, ServiceProgressRepository>();
+            services.AddScoped<IServiceProgressRepository, ServiceProgressRepository>();
 
-        // Bloom Filter Service (Singleton for memory efficiency)
-        services.AddSingleton<IBloomFilterService, BloomFilterService>();
+            // Redis-based Bloom Filter (no memory cache, cluster-safe)
+            services.AddSingleton<IBloomFilterService, RedisBloomFilterService>();
 
-        return services;
+            return services;
     }
 
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)

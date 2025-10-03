@@ -82,7 +82,7 @@ builder.Services.AddSingleton(sp => new DatabaseMetrics(
     slowQueryThresholdMs: slowQueryThreshold
 ));
 
-// FusionCache: L1 (Memory) + L2 (Redis)
+// FusionCache: L2 (Redis Only) - No memory cache for clustering
 var redisConnectionString = builder.Configuration.GetConnectionString("Redis")!;
 var redisConnection = await ConnectionMultiplexer.ConnectAsync(redisConnectionString);
 builder.Services.AddSingleton<IConnectionMultiplexer>(redisConnection);
@@ -92,6 +92,10 @@ builder.Services.AddStackExchangeRedisCache(options =>
     options.Configuration = redisConnectionString;
     options.InstanceName = "CatCat:";
 });
+
+// FusionCache with Redis-based distributed cache
+// Note: We use Redis Sets for Bloom Filter (zero memory usage)
+// FusionCache uses L2 (Redis) primarily, with minimal L1 (memory) usage
 
 builder.Services.AddFusionCache()
     .WithSystemTextJsonSerializer(new System.Text.Json.JsonSerializerOptions
@@ -154,12 +158,8 @@ app.MapServiceProgressEndpoints();
 app.MapGet("/health", () => Results.Ok(new HealthResponse("healthy", DateTime.UtcNow)))
     .WithTags("Health");
 
-// Initialize Bloom Filters (load all existing IDs into memory)
-using (var scope = app.Services.CreateScope())
-{
-    var bloomFilter = scope.ServiceProvider.GetRequiredService<CatCat.Infrastructure.BloomFilter.IBloomFilterService>();
-    await bloomFilter.InitializeAsync();
-}
+// Redis-based Bloom Filter requires no initialization
+// All IDs are persisted in Redis Sets automatically
 
 // Initialize JetStream streams on startup
 var jetStreamConfig = app.Services.GetRequiredService<JetStreamConfiguration>();

@@ -28,8 +28,8 @@ public class UserService(
 
     public async Task<Result<User>> GetByIdAsync(long id, CancellationToken cancellationToken = default)
     {
-        // Bloom filter: quickly reject non-existent IDs (prevent cache penetration)
-        if (!bloomFilter.MightContainUser(id))
+        // Redis-based Bloom filter: quickly reject non-existent IDs (prevent cache penetration)
+        if (!await bloomFilter.MightContainUserAsync(id))
         {
             logger.LogDebug("User {UserId} blocked by Bloom Filter (not exist)", id);
             return Result.Failure<User>("User not found");

@@ -60,8 +60,8 @@ public class PetService(
 
     public async Task<Result<Pet>> GetByIdAsync(long id, CancellationToken cancellationToken = default)
     {
-        // Bloom filter: quickly reject non-existent IDs (prevent cache penetration)
-        if (!bloomFilter.MightContainPet(id))
+        // Redis-based Bloom filter: quickly reject non-existent IDs (prevent cache penetration)
+        if (!await bloomFilter.MightContainPetAsync(id))
         {
             logger.LogDebug("Pet {PetId} blocked by Bloom Filter (not exist)", id);
             return Result.Failure<Pet>("Pet not found");
@@ -119,8 +119,8 @@ public class PetService(
         var affectedRows = await repository.CreateAsync(pet);
         if (affectedRows > 0)
         {
-            // Add to Bloom Filter
-            bloomFilter.AddPet(pet.Id);
+            // Add to Redis Bloom Filter
+            await bloomFilter.AddPetAsync(pet.Id);
 
             // Invalidate user pets cache
             await cache.RemoveAsync($"{UserPetsCacheKeyPrefix}{command.UserId}");

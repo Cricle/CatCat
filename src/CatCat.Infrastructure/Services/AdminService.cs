@@ -224,8 +224,8 @@ public class AdminService(
         var affectedRows = await packageRepository.CreateAsync(package);
         if (affectedRows > 0)
         {
-            // Add to Bloom Filter
-            bloomFilter.AddPackage(package.Id);
+            // Add to Redis Bloom Filter
+            await bloomFilter.AddPackageAsync(package.Id);
             
             // Invalidate cache
             await cache.RemoveAsync(ActivePackagesCacheKey, token: cancellationToken);
