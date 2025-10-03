@@ -12,12 +12,11 @@ public interface IUserService
     Task<Result<User>> GetByPhoneAsync(string phone, CancellationToken cancellationToken = default);
 }
 
-public class UserService : IUserService
+public class UserService(
+    IUserRepository repository,
+    IFusionCache cache,
+    ILogger<UserService> logger) : IUserService
 {
-    private readonly IUserRepository _repository;
-    private readonly IFusionCache _cache;
-    private readonly ILogger<UserService> _logger;
-
     // Cache keys
     private const string UserCacheKeyPrefix = "user:";
     private const string UserPhoneCacheKeyPrefix = "user:phone:";
@@ -25,24 +24,14 @@ public class UserService : IUserService
     // Cache durations (user info changes occasionally)
     private static readonly TimeSpan UserCacheDuration = TimeSpan.FromMinutes(20);
 
-    public UserService(
-        IUserRepository repository,
-        IFusionCache cache,
-        ILogger<UserService> logger)
-    {
-        _repository = repository;
-        _cache = cache;
-        _logger = logger;
-    }
-
     public async Task<Result<User>> GetByIdAsync(long id, CancellationToken cancellationToken = default)
     {
-        var user = await _cache.GetOrSetAsync<User?>(
+        var user = await cache.GetOrSetAsync<User?>(
             $"{UserCacheKeyPrefix}{id}",
             async (ctx, ct) =>
             {
-                _logger.LogDebug("Cache miss for user {UserId}, fetching from DB", id);
-                return await _repository.GetByIdAsync(id);
+                logger.LogDebug("Cache miss for user {UserId}, fetching from DB", id);
+                return await repository.GetByIdAsync(id);
             },
             options => options.SetDuration(UserCacheDuration),
             cancellationToken);
@@ -54,12 +43,12 @@ public class UserService : IUserService
 
     public async Task<Result<User>> GetByPhoneAsync(string phone, CancellationToken cancellationToken = default)
     {
-        var user = await _cache.GetOrSetAsync<User?>(
+        var user = await cache.GetOrSetAsync<User?>(
             $"{UserPhoneCacheKeyPrefix}{phone}",
             async (ctx, ct) =>
             {
-                _logger.LogDebug("Cache miss for phone {Phone}, fetching from DB", phone);
-                return await _repository.GetByPhoneAsync(phone);
+                logger.LogDebug("Cache miss for phone {Phone}, fetching from DB", phone);
+                return await repository.GetByPhoneAsync(phone);
             },
             options => options.SetDuration(UserCacheDuration),
             cancellationToken);

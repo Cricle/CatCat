@@ -15,33 +15,18 @@ public interface IReviewService
         long serviceProviderId, int page, int pageSize, CancellationToken cancellationToken = default);
 }
 
-public class ReviewService : IReviewService
+public class ReviewService(
+    IReviewRepository reviewRepository,
+    IServiceOrderRepository orderRepository,
+    IMessageQueueService messageQueue,
+    IFusionCache cache,
+    ILogger<ReviewService> logger) : IReviewService
 {
-    private readonly IReviewRepository _reviewRepository;
-    private readonly IServiceOrderRepository _orderRepository;
-    private readonly IMessageQueueService _messageQueue;
-    private readonly IFusionCache _cache;
-    private readonly ILogger<ReviewService> _logger;
-
     // Cache keys
     private const string AvgRatingCacheKeyPrefix = "provider:rating:";
     
     // Cache duration (ratings update slowly)
     private static readonly TimeSpan AvgRatingCacheDuration = TimeSpan.FromMinutes(10);
-
-    public ReviewService(
-        IReviewRepository reviewRepository,
-        IServiceOrderRepository orderRepository,
-        IMessageQueueService messageQueue,
-        IFusionCache cache,
-        ILogger<ReviewService> logger)
-    {
-        _reviewRepository = reviewRepository;
-        _orderRepository = orderRepository;
-        _messageQueue = messageQueue;
-        _cache = cache;
-        _logger = logger;
-    }
 
     /// <summary>
     /// Create review - Use NATS for async processing
@@ -49,32 +34,32 @@ public class ReviewService : IReviewService
     public async Task<Result<long>> CreateReviewAsync(CreateReviewCommand command, CancellationToken cancellationToken = default)
     {
         // 1. Validate order status
-        var order = await _orderRepository.GetByIdAsync(command.OrderId);
+        var order = await orderRepository.GetByIdAsync(command.OrderId);
         if (order == null)
         {
-            _logger.LogWarning("Create review failed: Order not found. OrderId={OrderId}", command.OrderId);
+            logger.LogWarning("Create review failed: Order not found. OrderId={OrderId}", command.OrderId);
             return Result.Failure<long>("Order not found");
         }
 
         if (order.Status != OrderStatus.Completed)
         {
-            _logger.LogWarning("Create review failed: Order not completed. OrderId={OrderId}, Status={Status}",
+            logger.LogWarning("Create review failed: Order not completed. OrderId={OrderId}, Status={Status}",
                 command.OrderId, order.Status);
             return Result.Failure<long>("Only completed orders can be reviewed");
         }
 
         if (order.CustomerId != command.CustomerId)
         {
-            _logger.LogWarning("Create review failed: Not order owner. OrderId={OrderId}, CustomerId={CustomerId}, RequestUserId={RequestUserId}",
+            logger.LogWarning("Create review failed: Not order owner. OrderId={OrderId}, CustomerId={CustomerId}, RequestUserId={RequestUserId}",
                 command.OrderId, order.CustomerId, command.CustomerId);
             return Result.Failure<long>("You can only review your own orders");
         }
 
         // 2. Check if already reviewed
-        var existingReview = await _reviewRepository.GetByOrderIdAsync(command.OrderId);
+        var existingReview = await reviewRepository.GetByOrderIdAsync(command.OrderId);
         if (existingReview != null)
         {
-            _logger.LogWarning("Create review failed: Order already reviewed. OrderId={OrderId}", command.OrderId);
+            logger.LogWarning("Create review failed: Order already reviewed. OrderId={OrderId}", command.OrderId);
             return Result.Failure<long>("This order has already been reviewed");
         }
 
@@ -90,13 +75,13 @@ public class ReviewService : IReviewService
             CreatedAt = DateTime.UtcNow
         };
 
-        var reviewId = await _reviewRepository.CreateAsync(review);
+        var reviewId = await reviewRepository.CreateAsync(review);
 
         // Invalidate average rating cache
-        await _cache.RemoveAsync($"{AvgRatingCacheKeyPrefix}{order.ServiceProviderId.Value}");
+        await cache.RemoveAsync($"{AvgRatingCacheKeyPrefix}{order.ServiceProviderId.Value}");
 
         // 4. Publish review created event to NATS (async update statistics)
-        await _messageQueue.PublishAsync("review.created", new ReviewCreatedEvent
+        await messageQueue.PublishAsync("review.created", new ReviewCreatedEvent
         {
             ReviewId = reviewId,
             OrderId = command.OrderId,
@@ -105,7 +90,7 @@ public class ReviewService : IReviewService
             CreatedAt = review.CreatedAt
         }, cancellationToken);
 
-        _logger.LogInformation("Review created successfully: ReviewId={ReviewId}, OrderId={OrderId}", reviewId, command.OrderId);
+        logger.LogInformation("Review created successfully: ReviewId={ReviewId}, OrderId={OrderId}", reviewId, command.OrderId);
 
         return Result.Success((long)reviewId);
     }
@@ -115,27 +100,27 @@ public class ReviewService : IReviewService
     /// </summary>
     public async Task<Result<bool>> ReplyReviewAsync(long reviewId, string reply, CancellationToken cancellationToken = default)
     {
-        var review = await _reviewRepository.GetByIdAsync(reviewId);
+        var review = await reviewRepository.GetByIdAsync(reviewId);
         if (review == null)
         {
-            _logger.LogWarning("Reply review failed: Review not found. ReviewId={ReviewId}", reviewId);
+            logger.LogWarning("Reply review failed: Review not found. ReviewId={ReviewId}", reviewId);
             return Result.Failure<bool>("Review not found");
         }
 
         if (!string.IsNullOrEmpty(review.Reply))
         {
-            _logger.LogWarning("Reply review failed: Already replied. ReviewId={ReviewId}", reviewId);
+            logger.LogWarning("Reply review failed: Already replied. ReviewId={ReviewId}", reviewId);
             return Result.Failure<bool>("This review has already been replied to");
         }
 
-        var affectedRows = await _reviewRepository.UpdateReplyAsync(reviewId, reply, DateTime.UtcNow, DateTime.UtcNow);
+        var affectedRows = await reviewRepository.UpdateReplyAsync(reviewId, reply, DateTime.UtcNow, DateTime.UtcNow);
 
         if (affectedRows > 0)
         {
             // Invalidate average rating cache
-            await _cache.RemoveAsync($"{AvgRatingCacheKeyPrefix}{review.ServiceProviderId}");
+            await cache.RemoveAsync($"{AvgRatingCacheKeyPrefix}{review.ServiceProviderId}");
 
-            await _messageQueue.PublishAsync("review.replied", new ReviewRepliedEvent
+            await messageQueue.PublishAsync("review.replied", new ReviewRepliedEvent
             {
                 ReviewId = reviewId,
                 ServiceProviderId = review.ServiceProviderId,
@@ -143,11 +128,11 @@ public class ReviewService : IReviewService
                 RepliedAt = DateTime.UtcNow
             }, cancellationToken);
 
-            _logger.LogInformation("Review replied successfully: ReviewId={ReviewId}", reviewId);
+            logger.LogInformation("Review replied successfully: ReviewId={ReviewId}", reviewId);
             return Result.Success(true);
         }
 
-        _logger.LogWarning("Reply review failed: Update failed. ReviewId={ReviewId}", reviewId);
+        logger.LogWarning("Reply review failed: Update failed. ReviewId={ReviewId}", reviewId);
         return Result.Failure<bool>("Failed to update review reply");
     }
 
@@ -158,21 +143,21 @@ public class ReviewService : IReviewService
         long serviceProviderId, int page, int pageSize, CancellationToken cancellationToken = default)
     {
         // Cache average rating (can tolerate slight delay)
-        var avgRating = await _cache.GetOrSetAsync<double>(
+        var avgRating = await cache.GetOrSetAsync<double>(
             $"{AvgRatingCacheKeyPrefix}{serviceProviderId}",
             async (ctx, ct) =>
             {
-                _logger.LogDebug("Cache miss for provider {ProviderId} rating, fetching from DB", serviceProviderId);
-                return await _reviewRepository.GetAverageRatingAsync(serviceProviderId);
+                logger.LogDebug("Cache miss for provider {ProviderId} rating, fetching from DB", serviceProviderId);
+                return await reviewRepository.GetAverageRatingAsync(serviceProviderId);
             },
             options => options.SetDuration(AvgRatingCacheDuration),
             cancellationToken);
 
         var offset = (page - 1) * pageSize;
-        var items = await _reviewRepository.GetByServiceProviderIdPagedAsync(serviceProviderId, offset, pageSize);
-        var total = await _reviewRepository.CountByServiceProviderIdAsync(serviceProviderId);
+        var items = await reviewRepository.GetByServiceProviderIdPagedAsync(serviceProviderId, offset, pageSize);
+        var total = await reviewRepository.CountByServiceProviderIdAsync(serviceProviderId);
 
-        _logger.LogInformation("Get reviews: ServiceProviderId={ServiceProviderId}, Total={Total}, AvgRating={AvgRating}",
+        logger.LogInformation("Get reviews: ServiceProviderId={ServiceProviderId}, Total={Total}, AvgRating={AvgRating}",
             serviceProviderId, total, avgRating);
 
         return Result.Success(new ReviewPagedResult(items, total, (decimal)avgRating));

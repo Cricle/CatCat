@@ -43,12 +43,11 @@ public record UpdatePetCommand(
     string? HealthStatus,
     string? Remarks);
 
-public class PetService : IPetService
+public class PetService(
+    IPetRepository repository,
+    IFusionCache cache,
+    ILogger<PetService> logger) : IPetService
 {
-    private readonly IPetRepository _repository;
-    private readonly IFusionCache _cache;
-    private readonly ILogger<PetService> _logger;
-
     // Cache keys
     private const string PetCacheKeyPrefix = "pet:";
     private const string UserPetsCacheKeyPrefix = "user:pets:";
@@ -57,24 +56,14 @@ public class PetService : IPetService
     private static readonly TimeSpan PetCacheDuration = TimeSpan.FromMinutes(30);
     private static readonly TimeSpan UserPetsCacheDuration = TimeSpan.FromMinutes(15);
 
-    public PetService(
-        IPetRepository repository,
-        IFusionCache cache,
-        ILogger<PetService> logger)
-    {
-        _repository = repository;
-        _cache = cache;
-        _logger = logger;
-    }
-
     public async Task<Result<Pet>> GetByIdAsync(long id, CancellationToken cancellationToken = default)
     {
-        var pet = await _cache.GetOrSetAsync<Pet?>(
+        var pet = await cache.GetOrSetAsync<Pet?>(
             $"{PetCacheKeyPrefix}{id}",
             async (ctx, ct) =>
             {
-                _logger.LogDebug("Cache miss for pet {PetId}, fetching from DB", id);
-                return await _repository.GetByIdAsync(id);
+                logger.LogDebug("Cache miss for pet {PetId}, fetching from DB", id);
+                return await repository.GetByIdAsync(id);
             },
             options => options.SetDuration(PetCacheDuration),
             cancellationToken);
@@ -86,12 +75,12 @@ public class PetService : IPetService
 
     public async Task<Result<List<Pet>>> GetByUserIdAsync(long userId, CancellationToken cancellationToken = default)
     {
-        var pets = await _cache.GetOrSetAsync<List<Pet>>(
+        var pets = await cache.GetOrSetAsync<List<Pet>>(
             $"{UserPetsCacheKeyPrefix}{userId}",
             async (ctx, ct) =>
             {
-                _logger.LogDebug("Cache miss for user {UserId} pets, fetching from DB", userId);
-                return await _repository.GetByUserIdAsync(userId);
+                logger.LogDebug("Cache miss for user {UserId} pets, fetching from DB", userId);
+                return await repository.GetByUserIdAsync(userId);
             },
             options => options.SetDuration(UserPetsCacheDuration),
             cancellationToken);
@@ -118,13 +107,13 @@ public class PetService : IPetService
             CreatedAt = DateTime.UtcNow
         };
 
-        var affectedRows = await _repository.CreateAsync(pet);
+        var affectedRows = await repository.CreateAsync(pet);
         if (affectedRows > 0)
         {
             // Invalidate user pets cache
-            await _cache.RemoveAsync($"{UserPetsCacheKeyPrefix}{command.UserId}");
+            await cache.RemoveAsync($"{UserPetsCacheKeyPrefix}{command.UserId}");
             
-            _logger.LogInformation("Pet {PetId} created for user {UserId}", pet.Id, command.UserId);
+            logger.LogInformation("Pet {PetId} created for user {UserId}", pet.Id, command.UserId);
             return Result.Success(pet.Id);
         }
 
@@ -133,7 +122,7 @@ public class PetService : IPetService
 
     public async Task<Result> UpdateAsync(UpdatePetCommand command, CancellationToken cancellationToken = default)
     {
-        var pet = await _repository.GetByIdAsync(command.Id);
+        var pet = await repository.GetByIdAsync(command.Id);
         if (pet == null)
             return Result.Failure("Pet not found");
 
@@ -152,14 +141,14 @@ public class PetService : IPetService
         pet.Remarks = command.Remarks;
         pet.UpdatedAt = DateTime.UtcNow;
 
-        var affectedRows = await _repository.UpdateAsync(pet);
+        var affectedRows = await repository.UpdateAsync(pet);
         if (affectedRows > 0)
         {
             // Invalidate caches
-            await _cache.RemoveAsync($"{PetCacheKeyPrefix}{command.Id}");
-            await _cache.RemoveAsync($"{UserPetsCacheKeyPrefix}{command.UserId}");
+            await cache.RemoveAsync($"{PetCacheKeyPrefix}{command.Id}");
+            await cache.RemoveAsync($"{UserPetsCacheKeyPrefix}{command.UserId}");
             
-            _logger.LogInformation("Pet {PetId} updated", command.Id);
+            logger.LogInformation("Pet {PetId} updated", command.Id);
             return Result.Success();
         }
 
@@ -168,21 +157,21 @@ public class PetService : IPetService
 
     public async Task<Result> DeleteAsync(long id, long userId, CancellationToken cancellationToken = default)
     {
-        var pet = await _repository.GetByIdAsync(id);
+        var pet = await repository.GetByIdAsync(id);
         if (pet == null)
             return Result.Failure("Pet not found");
 
         if (pet.UserId != userId)
             return Result.Failure("Unauthorized");
 
-        var affectedRows = await _repository.DeleteAsync(id);
+        var affectedRows = await repository.DeleteAsync(id);
         if (affectedRows > 0)
         {
             // Invalidate caches
-            await _cache.RemoveAsync($"{PetCacheKeyPrefix}{id}");
-            await _cache.RemoveAsync($"{UserPetsCacheKeyPrefix}{userId}");
+            await cache.RemoveAsync($"{PetCacheKeyPrefix}{id}");
+            await cache.RemoveAsync($"{UserPetsCacheKeyPrefix}{userId}");
             
-            _logger.LogInformation("Pet {PetId} deleted", id);
+            logger.LogInformation("Pet {PetId} deleted", id);
             return Result.Success();
         }
 

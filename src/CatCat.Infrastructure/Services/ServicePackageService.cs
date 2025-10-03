@@ -13,12 +13,11 @@ public interface IServicePackageService
     Task<Result<PagedResult<ServicePackage>>> GetPagedAsync(int page, int pageSize, CancellationToken cancellationToken = default);
 }
 
-public class ServicePackageService : IServicePackageService
+public class ServicePackageService(
+    IServicePackageRepository repository,
+    IFusionCache cache,
+    ILogger<ServicePackageService> logger) : IServicePackageService
 {
-    private readonly IServicePackageRepository _repository;
-    private readonly IFusionCache _cache;
-    private readonly ILogger<ServicePackageService> _logger;
-
     // Cache keys
     private const string PackageCacheKeyPrefix = "package:";
     private const string ActivePackagesCacheKey = "packages:active";
@@ -27,24 +26,14 @@ public class ServicePackageService : IServicePackageService
     private static readonly TimeSpan PackageCacheDuration = TimeSpan.FromHours(2);
     private static readonly TimeSpan ActivePackagesCacheDuration = TimeSpan.FromHours(1);
 
-    public ServicePackageService(
-        IServicePackageRepository repository,
-        IFusionCache cache,
-        ILogger<ServicePackageService> logger)
-    {
-        _repository = repository;
-        _cache = cache;
-        _logger = logger;
-    }
-
     public async Task<Result<ServicePackage>> GetByIdAsync(long id, CancellationToken cancellationToken = default)
     {
-        var package = await _cache.GetOrSetAsync<ServicePackage?>(
+        var package = await cache.GetOrSetAsync<ServicePackage?>(
             $"{PackageCacheKeyPrefix}{id}",
             async (ctx, ct) =>
             {
-                _logger.LogDebug("Cache miss for package {PackageId}, fetching from DB", id);
-                return await _repository.GetByIdAsync(id);
+                logger.LogDebug("Cache miss for package {PackageId}, fetching from DB", id);
+                return await repository.GetByIdAsync(id);
             },
             options => options.SetDuration(PackageCacheDuration),
             cancellationToken);
@@ -56,12 +45,12 @@ public class ServicePackageService : IServicePackageService
 
     public async Task<Result<List<ServicePackage>>> GetActivePackagesAsync(CancellationToken cancellationToken = default)
     {
-        var packages = await _cache.GetOrSetAsync<List<ServicePackage>>(
+        var packages = await cache.GetOrSetAsync<List<ServicePackage>>(
             ActivePackagesCacheKey,
             async (ctx, ct) =>
             {
-                _logger.LogDebug("Cache miss for active packages, fetching from DB");
-                return await _repository.GetActivePackagesAsync(true);
+                logger.LogDebug("Cache miss for active packages, fetching from DB");
+                return await repository.GetActivePackagesAsync(true);
             },
             options => options.SetDuration(ActivePackagesCacheDuration),
             cancellationToken);
@@ -74,10 +63,10 @@ public class ServicePackageService : IServicePackageService
     {
         var offset = (page - 1) * pageSize;
         
-        var items = await _repository.GetPagedAsync(offset, pageSize);
-        var total = await _cache.GetOrSetAsync<int>(
+        var items = await repository.GetPagedAsync(offset, pageSize);
+        var total = await cache.GetOrSetAsync<int>(
             "packages:count",
-            async (ctx, ct) => await _repository.GetCountAsync(),
+            async (ctx, ct) => await repository.GetCountAsync(),
             options => options.SetDuration(TimeSpan.FromHours(1)),
             cancellationToken);
 

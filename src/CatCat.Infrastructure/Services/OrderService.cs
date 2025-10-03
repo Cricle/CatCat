@@ -31,45 +31,25 @@ public record CreateOrderCommand(
     string ServiceAddress,
     string? Remark);
 
-public class OrderService : IOrderService
+public class OrderService(
+    IServiceOrderRepository orderRepository,
+    IOrderStatusHistoryRepository historyRepository,
+    IPaymentRepository paymentRepository,
+    IServicePackageRepository packageRepository,
+    IMessageQueueService messageQueue,
+    PaymentService.IPaymentService paymentService,
+    IFusionCache cache,
+    ILogger<OrderService> logger) : IOrderService
 {
-    private readonly IServiceOrderRepository _orderRepository;
-    private readonly IOrderStatusHistoryRepository _historyRepository;
-    private readonly IPaymentRepository _paymentRepository;
-    private readonly IServicePackageRepository _packageRepository;
-    private readonly IMessageQueueService _messageQueue;
-    private readonly PaymentService.IPaymentService _paymentService;
-    private readonly IFusionCache _cache;
-    private readonly ILogger<OrderService> _logger;
-
-    public OrderService(
-        IServiceOrderRepository orderRepository,
-        IOrderStatusHistoryRepository historyRepository,
-        IPaymentRepository paymentRepository,
-        IServicePackageRepository packageRepository,
-        IMessageQueueService messageQueue,
-        PaymentService.IPaymentService paymentService,
-        IFusionCache cache,
-        ILogger<OrderService> logger)
-    {
-        _orderRepository = orderRepository;
-        _historyRepository = historyRepository;
-        _paymentRepository = paymentRepository;
-        _packageRepository = packageRepository;
-        _messageQueue = messageQueue;
-        _paymentService = paymentService;
-        _cache = cache;
-        _logger = logger;
-    }
 
     public async Task<Result<long>> CreateOrderAsync(CreateOrderCommand command, CancellationToken cancellationToken = default)
     {
         try
         {
             // Pre-validate package exists (cached)
-            var package = await _cache.GetOrSetAsync(
+            var package = await cache.GetOrSetAsync(
                 $"package:{command.ServicePackageId}",
-                _ => _packageRepository.GetByIdAsync(command.ServicePackageId),
+                _ => packageRepository.GetByIdAsync(command.ServicePackageId),
                 new FusionCacheEntryOptions { Duration = TimeSpan.FromHours(1) });
 
             if (package == null)
@@ -91,22 +71,22 @@ public class OrderService : IOrderService
                 command.Remark,
                 DateTime.UtcNow);
 
-            await _messageQueue.PublishAsync("order.queue", queueMessage, cancellationToken);
+            await messageQueue.PublishAsync("order.queue", queueMessage, cancellationToken);
 
-            _logger.LogInformation("Order {OrderId} queued for processing", orderId);
+            logger.LogInformation("Order {OrderId} queued for processing", orderId);
 
             return Result.Success(orderId);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Order creation failed");
+            logger.LogError(ex, "Order creation failed");
             return Result.Failure<long>("Order creation failed: " + ex.Message);
         }
     }
 
     public async Task<Result<ServiceOrder>> GetOrderDetailAsync(long orderId, CancellationToken cancellationToken = default)
     {
-        var order = await _orderRepository.GetByIdAsync(orderId);
+        var order = await orderRepository.GetByIdAsync(orderId);
 
         return order != null
             ? Result.Success(order)
@@ -119,11 +99,11 @@ public class OrderService : IOrderService
         // TODO: Optimize with window function (COUNT(*) OVER() in single query)
         var offset = (page - 1) * pageSize;
         var items = status.HasValue
-            ? await _orderRepository.GetByCustomerIdAndStatusPagedAsync(customerId, status.Value.ToString(), offset, pageSize)
-            : await _orderRepository.GetByCustomerIdPagedAsync(customerId, offset, pageSize);
+            ? await orderRepository.GetByCustomerIdAndStatusPagedAsync(customerId, status.Value.ToString(), offset, pageSize)
+            : await orderRepository.GetByCustomerIdPagedAsync(customerId, offset, pageSize);
         var total = status.HasValue
-            ? await _orderRepository.CountByCustomerIdAndStatusAsync(customerId, status.Value.ToString())
-            : await _orderRepository.CountByCustomerIdAsync(customerId);
+            ? await orderRepository.CountByCustomerIdAndStatusAsync(customerId, status.Value.ToString())
+            : await orderRepository.CountByCustomerIdAsync(customerId);
         return Result.Success(new PagedResult<ServiceOrder>(items, total));
     }
 
@@ -133,29 +113,29 @@ public class OrderService : IOrderService
         // TODO: Optimize with window function (COUNT(*) OVER() in single query)
         var offset = (page - 1) * pageSize;
         var items = status.HasValue
-            ? await _orderRepository.GetByServiceProviderIdAndStatusPagedAsync(providerId, status.Value.ToString(), offset, pageSize)
-            : await _orderRepository.GetByServiceProviderIdPagedAsync(providerId, offset, pageSize);
+            ? await orderRepository.GetByServiceProviderIdAndStatusPagedAsync(providerId, status.Value.ToString(), offset, pageSize)
+            : await orderRepository.GetByServiceProviderIdPagedAsync(providerId, offset, pageSize);
         var total = status.HasValue
-            ? await _orderRepository.CountByServiceProviderIdAndStatusAsync(providerId, status.Value.ToString())
-            : await _orderRepository.CountByServiceProviderIdAsync(providerId);
+            ? await orderRepository.CountByServiceProviderIdAndStatusAsync(providerId, status.Value.ToString())
+            : await orderRepository.CountByServiceProviderIdAsync(providerId);
         return Result.Success(new PagedResult<ServiceOrder>(items, total));
     }
 
     public async Task<Result> CancelOrderAsync(long orderId, long userId, CancellationToken cancellationToken = default)
     {
-        var order = await _orderRepository.GetByIdAsync(orderId);
+        var order = await orderRepository.GetByIdAsync(orderId);
 
         // If order not found in DB, it might still be in queue
         if (order == null)
         {
             // Mark order as cancelled in cache so processing service can skip it
-            await _cache.SetAsync(
+            await cache.SetAsync(
                 $"order:cancelled:{orderId}",
                 true,
                 new FusionCacheEntryOptions { Duration = TimeSpan.FromHours(24) },
                 cancellationToken);
 
-            _logger.LogInformation("Order {OrderId} marked for cancellation (in queue)", orderId);
+            logger.LogInformation("Order {OrderId} marked for cancellation (in queue)", orderId);
             return Result.Success();
         }
 
@@ -165,11 +145,11 @@ public class OrderService : IOrderService
         if (order.Status != OrderStatus.Pending && order.Status != OrderStatus.Queued)
             return Result.Failure($"Cannot cancel order (Status: {order.Status})");
 
-        var affectedRows = await _orderRepository.UpdateStatusAsync(orderId, OrderStatus.Cancelled.ToString(), DateTime.UtcNow);
+        var affectedRows = await orderRepository.UpdateStatusAsync(orderId, OrderStatus.Cancelled.ToString(), DateTime.UtcNow);
         if (affectedRows <= 0)
             return Result.Failure("Cancel order failed");
 
-        await _messageQueue.PublishAsync(
+        await messageQueue.PublishAsync(
             "order.status_changed",
             new { OrderId = orderId, Status = OrderStatus.Cancelled.ToString(), Notes = "User cancelled order" },
             cancellationToken);
@@ -179,7 +159,7 @@ public class OrderService : IOrderService
 
     public async Task<Result> AcceptOrderAsync(long orderId, long providerId, CancellationToken cancellationToken = default)
     {
-        var order = await _orderRepository.GetByIdAsync(orderId);
+        var order = await orderRepository.GetByIdAsync(orderId);
         if (order == null)
             return Result.Failure("Order not found");
 
@@ -188,11 +168,11 @@ public class OrderService : IOrderService
 
         order.ServiceProviderId = providerId;
         order.Status = OrderStatus.Accepted;
-        var affectedRows = await _orderRepository.UpdateAsync(order);
+        var affectedRows = await orderRepository.UpdateAsync(order);
 
         if (affectedRows > 0)
         {
-            await _messageQueue.PublishAsync(
+            await messageQueue.PublishAsync(
                 "order.status_changed",
                 new { OrderId = orderId, Status = OrderStatus.Accepted.ToString(), Notes = "Provider accepted order" },
                 cancellationToken);
@@ -226,17 +206,17 @@ public class OrderService : IOrderService
 
     public async Task<Result> PayOrderAsync(long orderId, string paymentIntentId, CancellationToken cancellationToken = default)
     {
-        var payment = await _paymentRepository.GetByPaymentIntentIdAsync(paymentIntentId);
+        var payment = await paymentRepository.GetByPaymentIntentIdAsync(paymentIntentId);
         if (payment == null)
             return Result.Failure("Payment record not found");
 
         if (payment.OrderId != orderId)
             return Result.Failure("Payment order mismatch");
 
-        var confirmed = await _paymentService.ConfirmPaymentAsync(paymentIntentId);
+        var confirmed = await paymentService.ConfirmPaymentAsync(paymentIntentId);
         if (confirmed)
         {
-            await _paymentRepository.UpdateStatusSuccessAsync(payment.Id, PaymentStatus.Succeeded.ToString(), DateTime.UtcNow, DateTime.UtcNow);
+            await paymentRepository.UpdateStatusSuccessAsync(payment.Id, PaymentStatus.Succeeded.ToString(), DateTime.UtcNow, DateTime.UtcNow);
             return Result.Success();
         }
 
@@ -251,7 +231,7 @@ public class OrderService : IOrderService
         Func<ServiceOrder, string?> additionalValidation,
         CancellationToken cancellationToken = default)
     {
-        var order = await _orderRepository.GetByIdAsync(orderId);
+        var order = await orderRepository.GetByIdAsync(orderId);
         if (order == null)
             return Result.Failure("Order not found");
 
@@ -262,10 +242,10 @@ public class OrderService : IOrderService
         if (order.Status != expectedCurrentStatus)
             return Result.Failure($"Invalid order status (Current: {order.Status})");
 
-        var affectedRows = await _orderRepository.UpdateStatusAsync(orderId, newStatus.ToString(), DateTime.UtcNow);
+        var affectedRows = await orderRepository.UpdateStatusAsync(orderId, newStatus.ToString(), DateTime.UtcNow);
         if (affectedRows > 0)
         {
-            await _messageQueue.PublishAsync(
+            await messageQueue.PublishAsync(
                 "order.status_changed",
                 new { OrderId = orderId, Status = newStatus.ToString(), Notes = notes },
                 cancellationToken);
