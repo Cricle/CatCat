@@ -1,180 +1,197 @@
 <template>
-  <VaDropdown :offset="[13, 0]" class="notification-dropdown" stick-to-edges :close-on-content-click="false">
+  <VaDropdown v-model="isShown" class="notification-dropdown" placement="bottom-end" :offset="[0, 12]" stick-to-edges>
     <template #anchor>
-      <VaButton preset="secondary" color="textPrimary">
-        <VaBadge overlap>
-          <template #text> 2+</template>
-          <VaIconNotification class="notification-dropdown__icon" />
-        </VaBadge>
+      <VaButton preset="secondary" :rounded="false" class="notification-button" @click="toggleDropdown">
+        <VaIcon name="notifications" />
+        <VaBadge v-if="unreadCount > 0" :text="unreadCount" color="danger" overlap placement="top-end" />
       </VaButton>
     </template>
-    <VaDropdownContent class="h-full sm:max-w-[420px] sm:h-auto">
-      <section class="sm:max-h-[320px] p-4 overflow-auto">
-        <VaList class="space-y-1 mb-2">
-          <template v-for="(item, index) in notificationsWithRelativeTime" :key="item.id">
-            <VaListItem class="text-base">
-              <VaListItemSection icon class="mx-0 p-0">
-                <VaIcon :name="item.icon" color="secondary" />
-              </VaListItemSection>
-              <VaListItemSection>
-                {{ item.message }}
-              </VaListItemSection>
-              <VaListItemSection icon class="mx-1">
-                {{ item.updateTimestamp }}
-              </VaListItemSection>
-            </VaListItem>
-            <VaListSeparator v-if="item.separator && index !== notificationsWithRelativeTime.length - 1" class="mx-3" />
-          </template>
-        </VaList>
 
-        <VaButton preset="primary" class="w-full" @click="displayAllNotifications = !displayAllNotifications"
-          >{{ displayAllNotifications ? t('notifications.less') : t('notifications.all') }}
+    <VaDropdownContent class="notification-content">
+      <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+        <div class="flex items-center justify-between">
+          <h3 class="font-semibold text-lg">{{ t('notifications.title') }}</h3>
+          <VaButton v-if="notifications.length > 0" preset="plain" size="small" @click="goToNotifications">
+            {{ t('dashboard.cards.viewAll') }}
+          </VaButton>
+        </div>
+      </div>
+
+      <div v-if="loading" class="flex justify-center py-8">
+        <VaProgressCircle indeterminate size="small" />
+      </div>
+
+      <div v-else-if="notifications.length === 0" class="text-center py-8 px-4 text-secondary">
+        <VaIcon name="notifications_off" size="2rem" color="secondary" />
+        <p class="mt-2">{{ t('notifications.noNotifications') }}</p>
+      </div>
+
+      <div v-else class="max-h-96 overflow-y-auto">
+        <div
+          v-for="notification in notifications.slice(0, 5)"
+          :key="notification.id"
+          :class="{ 'bg-blue-50 dark:bg-blue-900/10': !notification.isRead }"
+          class="notification-item px-4 py-3 border-b border-gray-100 dark:border-gray-800 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+          @click="handleNotificationClick(notification)"
+        >
+          <div class="flex gap-3">
+            <VaIcon :name="getNotificationIcon(notification.type)" :color="getNotificationColor(notification.type)" />
+            <div class="flex-grow min-w-0">
+              <div class="flex items-start justify-between gap-2 mb-1">
+                <h4 class="font-semibold text-sm truncate">{{ notification.title }}</h4>
+                <VaBadge v-if="!notification.isRead" text="" color="primary" class="w-2 h-2 rounded-full" />
+              </div>
+              <p class="text-sm text-secondary line-clamp-2 mb-1">{{ notification.content }}</p>
+              <span class="text-xs text-secondary">{{ formatTime(notification.createdAt) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="notifications.length > 0" class="px-4 py-3 border-t border-gray-200 dark:border-gray-700">
+        <VaButton preset="plain" class="w-full" @click="goToNotifications">
+          {{ t('dashboard.cards.viewAll') }}
         </VaButton>
-      </section>
+      </div>
     </VaDropdownContent>
   </VaDropdown>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import VaIconNotification from '../../../icons/VaIconNotification.vue'
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
+const router = useRouter()
 
-const baseNumberOfVisibleNotifications = 4
-const rtf = new Intl.RelativeTimeFormat(locale.value, { style: 'short' })
-const displayAllNotifications = ref(false)
+const isShown = ref(false)
+const loading = ref(false)
+const notifications = ref<any[]>([])
 
-interface INotification {
-  message: string
-  icon: string
-  id: number
-  separator?: boolean
-  updateTimestamp: Date
+const unreadCount = computed(() => notifications.value.filter((n) => !n.isRead).length)
+
+const toggleDropdown = () => {
+  isShown.value = !isShown.value
+  if (isShown.value && notifications.value.length === 0) {
+    loadNotifications()
+  }
 }
 
-const makeDateFromNow = (timeFromNow: number) => {
-  const date = new Date()
-  date.setTime(date.getTime() + timeFromNow)
-  return date
+const loadNotifications = async () => {
+  loading.value = true
+  try {
+    await new Promise((resolve) => setTimeout(resolve, 300))
+    notifications.value = [
+      {
+        id: 1,
+        type: 'order',
+        title: '订单已接单',
+        content: '您的订单 #12345 已被服务人员接单',
+        isRead: false,
+        createdAt: new Date().toISOString(),
+        link: '/orders/12345',
+      },
+      {
+        id: 2,
+        type: 'progress',
+        title: '服务进度更新',
+        content: '服务人员已到达服务地点',
+        isRead: false,
+        createdAt: new Date(Date.now() - 3600000).toISOString(),
+        link: '/orders/12345',
+      },
+      {
+        id: 3,
+        type: 'order',
+        title: '服务已完成',
+        content: '订单 #12344 的服务已完成',
+        isRead: true,
+        createdAt: new Date(Date.now() - 86400000).toISOString(),
+        link: '/orders/12344',
+      },
+    ]
+  } catch (error) {
+    console.error('Failed to load notifications:', error)
+  } finally {
+    loading.value = false
+  }
 }
 
-const notifications: INotification[] = [
-  {
-    message: '4 pending requests',
-    icon: 'favorite_outline',
-    id: 1,
-    separator: true,
-    updateTimestamp: makeDateFromNow(-3 * 60 * 1000),
-  },
-  {
-    message: '3 new reports',
-    icon: 'calendar_today',
-    id: 2,
-    separator: true,
-    updateTimestamp: makeDateFromNow(-12 * 60 * 60 * 1000),
-  },
-  {
-    message: 'Whoops! Your trial period has expired.',
-    icon: 'error_outline',
-    id: 3,
-    separator: true,
-    updateTimestamp: makeDateFromNow(-2 * 24 * 60 * 60 * 1000),
-  },
-  {
-    message: 'It looks like your timezone is set incorrectly, please change it to avoid issues with Memory.',
-    icon: 'schedule',
-    id: 4,
-    updateTimestamp: makeDateFromNow(-2 * 7 * 24 * 60 * 60 * 1000),
-  },
-  {
-    message: '2 new team members added',
-    icon: 'group_add',
-    id: 5,
-    separator: false,
-    updateTimestamp: makeDateFromNow(-3 * 60 * 1000),
-  },
-  {
-    message: 'Monthly budget exceeded by 10%',
-    icon: 'trending_up',
-    id: 6,
-    separator: true,
-    updateTimestamp: makeDateFromNow(-3 * 24 * 60 * 60 * 1000),
-  },
-  {
-    message: '7 tasks are approaching their deadlines',
-    icon: 'alarm',
-    id: 7,
-    separator: false,
-    updateTimestamp: makeDateFromNow(-5 * 60 * 60 * 1000),
-  },
-  {
-    message: 'New software update available',
-    icon: 'system_update',
-    id: 8,
-    separator: true,
-    updateTimestamp: makeDateFromNow(-1 * 24 * 60 * 60 * 1000),
-  },
-].sort((a, b) => new Date(b.updateTimestamp).getTime() - new Date(a.updateTimestamp).getTime())
-
-const TIME_NAMES = {
-  second: 1000,
-  minute: 1000 * 60,
-  hour: 1000 * 60 * 60,
-  day: 1000 * 60 * 60 * 24,
-  week: 1000 * 60 * 60 * 24 * 7,
-  month: 1000 * 60 * 60 * 24 * 30,
-  year: 1000 * 60 * 60 * 24 * 365,
+const getNotificationIcon = (type: string) => {
+  const map: Record<string, string> = {
+    order: 'shopping_cart',
+    progress: 'update',
+    system: 'campaign',
+  }
+  return map[type] || 'notifications'
 }
 
-const getTimeName = (differenceTime: number) => {
-  return Object.keys(TIME_NAMES).reduce(
-    (acc, key) => (TIME_NAMES[key as keyof typeof TIME_NAMES] < differenceTime ? key : acc),
-    'month',
-  ) as keyof typeof TIME_NAMES
+const getNotificationColor = (type: string) => {
+  const map: Record<string, string> = {
+    order: 'primary',
+    progress: 'success',
+    system: 'warning',
+  }
+  return map[type] || 'info'
 }
 
-const notificationsWithRelativeTime = computed(() => {
-  const list = displayAllNotifications.value ? notifications : notifications.slice(0, baseNumberOfVisibleNotifications)
+const formatTime = (dateStr: string) => {
+  const date = new Date(dateStr)
+  const now = new Date()
+  const diff = now.getTime() - date.getTime()
 
-  return list.map((item, index) => {
-    const timeDifference = Math.round(new Date().getTime() - new Date(item.updateTimestamp).getTime())
-    const timeName = getTimeName(timeDifference)
+  if (diff < 3600000) {
+    return `${Math.floor(diff / 60000)} 分钟前`
+  } else if (diff < 86400000) {
+    return `${Math.floor(diff / 3600000)} 小时前`
+  } else if (diff < 604800000) {
+    return `${Math.floor(diff / 86400000)} 天前`
+  } else {
+    return date.toLocaleDateString('zh-CN')
+  }
+}
 
-    let separator = false
+const handleNotificationClick = (notification: any) => {
+  notification.isRead = true
+  isShown.value = false
+  if (notification.link) {
+    router.push(notification.link)
+  }
+}
 
-    const nextItem = list[index + 1]
-    if (nextItem) {
-      const nextItemDifference = Math.round(new Date().getTime() - new Date(nextItem.updateTimestamp).getTime())
-      const nextItemTimeName = getTimeName(nextItemDifference)
+const goToNotifications = () => {
+  isShown.value = false
+  router.push('/notifications')
+}
 
-      if (timeName !== nextItemTimeName) {
-        separator = true
-      }
-    }
-
-    return {
-      ...item,
-      updateTimestamp: rtf.format(-1 * Math.round(timeDifference / TIME_NAMES[timeName]), timeName),
-      separator,
-    }
-  })
+onMounted(() => {
+  loadNotifications()
 })
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
 .notification-dropdown {
-  cursor: pointer;
+  position: relative;
+}
 
-  .notification-dropdown__icon {
-    position: relative;
-    display: flex;
-    align-items: center;
-  }
+.notification-button {
+  position: relative;
+}
 
-  .va-dropdown__anchor {
-    display: inline-block;
-  }
+.notification-content {
+  min-width: 360px;
+  max-width: 420px;
+}
+
+.notification-item {
+  transition: all 0.2s ease;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 </style>
