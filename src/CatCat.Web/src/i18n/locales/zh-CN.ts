@@ -20,14 +20,14 @@ export default {
     previous: '上一步',
     finish: '完成'
   },
-  
+
   nav: {
     home: '首页',
     pets: '宠物',
     orders: '订单',
     profile: '我的'
   },
-  
+
   auth: {
     login: '登录',
     register: '注册',
@@ -53,7 +53,7 @@ export default {
     logoutSuccess: '退出成功',
     logoutConfirm: '确定要退出登录吗？'
   },
-  
+
   home: {
     title: 'CatCat Pet Care',
     subtitle: '专业可靠的上门宠物照护服务',
@@ -84,7 +84,7 @@ export default {
     noServices: '暂无可用服务',
     checkBackLater: '稍后再来看看新的服务套餐'
   },
-  
+
   pet: {
     title: '我的宠物',
     addPet: '添加宠物',
@@ -118,7 +118,7 @@ export default {
     deleteConfirm: '确定要删除这只宠物吗？此操作不可恢复。',
     failedToLoad: '加载宠物列表失败'
   },
-  
+
   order: {
     title: '我的订单',
     createOrder: '创建订单',
@@ -135,7 +135,7 @@ export default {
     cancelOrder: '取消订单',
     acceptOrder: '接单',
     reportProgress: '上报进度',
-    
+
     // Order statuses
     queued: '排队中',
     pending: '待接单',
@@ -143,7 +143,7 @@ export default {
     inProgress: '服务中',
     completed: '已完成',
     cancelled: '已取消',
-    
+
     // Service progress
     onTheWay: '前往中',
     arrived: '已到达',
@@ -153,15 +153,20 @@ export default {
     playing: '玩耍中',
     grooming: '美容中',
     takingPhotos: '拍照记录',
-    
+
     // Messages
     noOrders: '暂无订单',
     createFirstOrder: '创建您的第一个订单',
     orderSubmitted: '订单已提交，正在处理中...',
+    minutes: '分钟',
+    verifiedSittersDesc: '所有服务员均经过背景调查和认证',
+    serviceGuaranteeDesc: '服务质量保证，任何问题全额退款',
+    realtimeUpdatesDesc: '服务期间接收照片/视频更新',
+    expertTeamDesc: '经验丰富且经过认证的宠物护理专业人员',
     cancelSuccess: '订单取消成功',
     cancelConfirm: '确定要取消这个订单吗？',
     failedToLoad: '加载订单失败',
-    
+
     // Create order
     selectPet: '选择宠物',
     selectPackage: '选择套餐',
@@ -174,7 +179,7 @@ export default {
     dateRequired: '请选择服务日期',
     timeRequired: '请选择服务时间',
     addressRequired: '请输入服务地址',
-    
+
     // Service progress
     progressTimeline: '服务进度',
     location: '位置',
@@ -183,7 +188,7 @@ export default {
     autoRefresh: '自动刷新',
     lastUpdate: '最后更新'
   },
-  
+
   profile: {
     title: '个人资料',
     myProfile: '我的资料',
@@ -201,7 +206,7 @@ export default {
     updateSuccess: '资料更新成功',
     updateFailed: '更新失败'
   },
-  
+
   admin: {
     title: '管理后台',
     dashboard: '仪表板',
@@ -230,7 +235,7 @@ export default {
     deleteSuccess: '删除成功',
     deleteConfirm: '确定要删除吗？'
   },
-  
+
   review: {
     title: '评价',
     writeReview: '写评价',
@@ -242,7 +247,7 @@ export default {
     reviewSuccess: '评价提交成功',
     replySuccess: '回复成功'
   },
-  
+
   error: {
     networkError: '网络错误，请检查您的网络连接',
     serverError: '服务器错误，请稍后再试',

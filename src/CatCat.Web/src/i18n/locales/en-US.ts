@@ -20,14 +20,14 @@ export default {
     previous: 'Previous',
     finish: 'Finish'
   },
-  
+
   nav: {
     home: 'Home',
     pets: 'Pets',
     orders: 'Orders',
     profile: 'Profile'
   },
-  
+
   auth: {
     login: 'Login',
     register: 'Register',
@@ -53,7 +53,7 @@ export default {
     logoutSuccess: 'Logged out successfully',
     logoutConfirm: 'Are you sure you want to logout?'
   },
-  
+
   home: {
     title: 'CatCat Pet Care',
     subtitle: 'Professional & Reliable Pet Sitting Services',
@@ -84,7 +84,7 @@ export default {
     noServices: 'No Services Available',
     checkBackLater: 'Check back later for new service packages'
   },
-  
+
   pet: {
     title: 'My Pets',
     addPet: 'Add Pet',
@@ -118,7 +118,7 @@ export default {
     deleteConfirm: 'Are you sure you want to delete this pet? This action cannot be undone.',
     failedToLoad: 'Failed to load pets'
   },
-  
+
   order: {
     title: 'My Orders',
     createOrder: 'Create Order',
@@ -135,7 +135,7 @@ export default {
     cancelOrder: 'Cancel Order',
     acceptOrder: 'Accept Order',
     reportProgress: 'Report Progress',
-    
+
     // Order statuses
     queued: 'Queued',
     pending: 'Pending',
@@ -143,7 +143,7 @@ export default {
     inProgress: 'In Progress',
     completed: 'Completed',
     cancelled: 'Cancelled',
-    
+
     // Service progress
     onTheWay: 'On The Way',
     arrived: 'Arrived',
@@ -153,15 +153,20 @@ export default {
     playing: 'Playing',
     grooming: 'Grooming',
     takingPhotos: 'Taking Photos',
-    
+
     // Messages
     noOrders: 'No Orders Yet',
     createFirstOrder: 'Create your first order',
     orderSubmitted: 'Order submitted, processing...',
+    minutes: 'min',
+    verifiedSittersDesc: 'All sitters are background-checked and certified',
+    serviceGuaranteeDesc: 'Quality service guaranteed, full refund for any issues',
+    realtimeUpdatesDesc: 'Receive photo/video updates during service',
+    expertTeamDesc: 'Experienced and certified pet care professionals',
     cancelSuccess: 'Order cancelled successfully',
     cancelConfirm: 'Are you sure you want to cancel this order?',
     failedToLoad: 'Failed to load orders',
-    
+
     // Create order
     selectPet: 'Select Pet',
     selectPackage: 'Select Package',
@@ -174,7 +179,7 @@ export default {
     dateRequired: 'Please select a service date',
     timeRequired: 'Please select a service time',
     addressRequired: 'Please enter a service address',
-    
+
     // Service progress
     progressTimeline: 'Service Progress',
     location: 'Location',
@@ -183,7 +188,7 @@ export default {
     autoRefresh: 'Auto Refresh',
     lastUpdate: 'Last Update'
   },
-  
+
   profile: {
     title: 'Profile',
     myProfile: 'My Profile',
@@ -201,7 +206,7 @@ export default {
     updateSuccess: 'Profile updated successfully',
     updateFailed: 'Update failed'
   },
-  
+
   admin: {
     title: 'Admin Panel',
     dashboard: 'Dashboard',
@@ -230,7 +235,7 @@ export default {
     deleteSuccess: 'Deleted successfully',
     deleteConfirm: 'Are you sure you want to delete?'
   },
-  
+
   review: {
     title: 'Reviews',
     writeReview: 'Write Review',
@@ -242,7 +247,7 @@ export default {
     reviewSuccess: 'Review submitted successfully',
     replySuccess: 'Reply submitted successfully'
   },
-  
+
   error: {
     networkError: 'Network error, please check your connection',
     serverError: 'Server error, please try again later',
