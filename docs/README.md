@@ -18,6 +18,7 @@ Welcome to CatCat project documentation! This directory contains comprehensive g
 ### 🔧 Development
 - **[Central Package Management](CENTRAL_PACKAGE_MANAGEMENT.md)** - NuGet package versioning
 - **[Environment Configuration](ENVIRONMENT.md)** - Environment variables and settings
+- **[MinIO Storage Guide](MINIO_STORAGE_GUIDE.md)** - Object storage for media files
 
 ### 📊 Observability & Performance
 - **[OpenTelemetry Guide](OPENTELEMETRY_GUIDE.md)** - Distributed tracing and metrics
