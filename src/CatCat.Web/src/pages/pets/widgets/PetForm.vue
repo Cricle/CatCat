@@ -30,7 +30,11 @@
         required
       />
 
-      <VaInput v-model="modelValue.avatar" label="头像URL" placeholder="请输入头像URL" />
+      <!-- Avatar Upload -->
+      <div class="md:col-span-2">
+        <label class="va-input-label">{{ t('petForm.avatar') }}</label>
+        <ImageUploader v-model="modelValue.avatar" />
+      </div>
 
       <!-- Service Information -->
       <div class="md:col-span-2 mt-4">
@@ -111,7 +115,11 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import type { Pet } from '../../../types/catcat-types'
+import ImageUploader from '../../../components/ImageUploader.vue'
+
+const { t } = useI18n()
 
 interface Props {
   modelValue: Partial<Pet>

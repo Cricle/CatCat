@@ -373,7 +373,23 @@
     "subtitle": "管理您的宠物信息",
     "searchPlaceholder": "搜索宠物名称...",
     "addPet": "添加宠物",
-    "editPet": "编辑宠物"
+    "editPet": "编辑宠物",
+    "cardView": "卡片",
+    "tableView": "列表"
+  },
+  "petCard": {
+    "needsWater": "需要备水",
+    "hasHealth": "健康档案"
+  },
+  "petForm": {
+    "avatar": "宠物照片"
+  },
+  "imageUploader": {
+    "clickToUpload": "点击上传照片",
+    "supportedFormats": "支持 JPG、PNG 格式，最大 5MB",
+    "preview": "预览",
+    "invalidFormat": "仅支持图片格式",
+    "fileTooLarge": "文件大小不能超过 5MB"
   },
   "quickActions": {
     "title": "快速操作",

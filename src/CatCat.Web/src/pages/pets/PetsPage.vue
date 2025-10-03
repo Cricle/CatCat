@@ -7,28 +7,60 @@
 
     <VaCard>
       <VaCardContent>
-        <div class="flex flex-col md:flex-row gap-3 mb-4">
-          <VaInput v-model="filter" :placeholder="t('pets.searchPlaceholder')" class="flex-grow">
+        <div class="flex flex-col md:flex-row gap-3 mb-4 justify-between">
+          <VaInput v-model="filter" :placeholder="t('pets.searchPlaceholder')" class="flex-grow md:max-w-md">
             <template #prependInner>
               <VaIcon name="search" color="secondary" />
             </template>
           </VaInput>
-          <VaButton icon="add" @click="showAddModal = true">
-            {{ t('pets.addPet') }}
-          </VaButton>
+          <div class="flex gap-2">
+            <VaButtonToggle
+              v-model="viewMode"
+              :options="viewModeOptions"
+              size="small"
+              color="primary"
+              border-color="primary"
+            />
+            <VaButton icon="add" @click="showAddModal = true">
+              {{ t('pets.addPet') }}
+            </VaButton>
+          </div>
         </div>
 
-      <PetsTable
-        v-model:sort-by="sortBy"
-        v-model:sorting-order="sortingOrder"
-        :pets="filteredPets"
-        :loading="loading"
-        :pagination="pagination"
-        @edit-pet="editPet"
-        @delete-pet="deletePet"
-      />
-    </VaCardContent>
-  </VaCard>
+        <!-- Card View -->
+        <div v-if="viewMode === 'card'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <PetCard
+            v-for="pet in paginatedPets"
+            :key="pet.id"
+            :pet="pet"
+            @edit-pet="editPet"
+            @delete-pet="deletePet"
+          />
+        </div>
+
+        <!-- Table View -->
+        <PetsTable
+          v-else
+          v-model:sort-by="sortBy"
+          v-model:sorting-order="sortingOrder"
+          :pets="filteredPets"
+          :loading="loading"
+          :pagination="pagination"
+          @edit-pet="editPet"
+          @delete-pet="deletePet"
+        />
+
+        <!-- Pagination for Card View -->
+        <div v-if="viewMode === 'card' && filteredPets.length > pagination.perPage" class="flex justify-center mt-6">
+          <VaPagination
+            v-model="pagination.page"
+            :pages="Math.ceil(filteredPets.length / pagination.perPage)"
+            :visible-pages="5"
+            buttons-preset="secondary"
+          />
+        </div>
+      </VaCardContent>
+    </VaCard>
 
     <!-- Add/Edit Pet Modal -->
     <VaModal
@@ -60,6 +92,7 @@ import { useI18n } from 'vue-i18n'
 import { petApi } from '../../services/catcat-api'
 import type { Pet } from '../../types/catcat-types'
 import PetsTable from './widgets/PetsTable.vue'
+import PetCard from './widgets/PetCard.vue'
 import PetForm from './widgets/PetForm.vue'
 
 const { init: notify } = useToast()
@@ -70,6 +103,12 @@ const loading = ref(false)
 const filter = ref('')
 const sortBy = ref('name')
 const sortingOrder = ref<'asc' | 'desc'>('asc')
+const viewMode = ref<'card' | 'table'>('card')
+
+const viewModeOptions = [
+  { label: t('pets.cardView'), value: 'card', icon: 'grid_view' },
+  { label: t('pets.tableView'), value: 'table', icon: 'view_list' },
+]
 
 const showAddModal = ref(false)
 const showEditModal = ref(false)
@@ -104,6 +143,14 @@ const filteredPets = computed(() => {
 
   pagination.value.total = result.length
   return result
+})
+
+const paginatedPets = computed(() => {
+  if (viewMode.value === 'table') return filteredPets.value
+  
+  const start = (pagination.value.page - 1) * pagination.value.perPage
+  const end = start + pagination.value.perPage
+  return filteredPets.value.slice(start, end)
 })
 
 // Load pets

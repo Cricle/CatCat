@@ -344,7 +344,23 @@
     "subtitle": "Manage your pet information",
     "searchPlaceholder": "Search pet name...",
     "addPet": "Add Pet",
-    "editPet": "Edit Pet"
+    "editPet": "Edit Pet",
+    "cardView": "Card",
+    "tableView": "List"
+  },
+  "petCard": {
+    "needsWater": "Needs Water",
+    "hasHealth": "Health Records"
+  },
+  "petForm": {
+    "avatar": "Pet Photo"
+  },
+  "imageUploader": {
+    "clickToUpload": "Click to upload photo",
+    "supportedFormats": "Supports JPG, PNG format, max 5MB",
+    "preview": "Preview",
+    "invalidFormat": "Only image formats are supported",
+    "fileTooLarge": "File size cannot exceed 5MB"
   },
   "quickActions": {
     "title": "Quick Actions",
