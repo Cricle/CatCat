@@ -377,6 +377,20 @@
     "availableOrders": "可接订单",
     "manageUsers": "用户管理"
   },
+  "providerDashboard": {
+    "title": "服务人员工作台",
+    "totalTasks": "总任务数",
+    "completed": "已完成",
+    "inProgress": "进行中",
+    "totalEarnings": "总收入",
+    "myCurrentTasks": "我的当前任务",
+    "noTasks": "暂无任务",
+    "availableOrders": "可接订单",
+    "noAvailable": "暂无可接订单",
+    "accept": "接单",
+    "earningsTrend": "收入趋势",
+    "chartPlaceholder": "收入图表"
+  },
   "vuestic": {
     "search": "搜索",
     "noOptions": "未找到项目",

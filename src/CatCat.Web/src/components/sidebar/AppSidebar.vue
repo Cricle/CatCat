@@ -55,6 +55,8 @@ import { useRoute } from 'vue-router'
 
 import { useI18n } from 'vue-i18n'
 import { useColors } from 'vuestic-ui'
+import { storeToRefs } from 'pinia'
+import { useUserStore } from '../../stores/user-store'
 
 import navigationRoutes, { type INavigationRoute } from './NavigationRoutes'
 
@@ -70,8 +72,21 @@ export default defineComponent({
     const { getColor, colorToRgba } = useColors()
     const route = useRoute()
     const { t } = useI18n()
+    const userStore = useUserStore()
+    const { user } = storeToRefs(userStore)
 
     const value = ref<boolean[]>([])
+    
+    // 根据用户角色过滤导航路由
+    const filteredRoutes = computed(() => {
+      const userRole = user.value?.role || 1
+      return navigationRoutes.routes.filter((route) => {
+        if (!route.roles || route.roles.length === 0) {
+          return true // 没有角色限制，所有人可见
+        }
+        return route.roles.includes(userRole)
+      })
+    })
 
     const writableVisible = computed({
       get: () => props.visible,
@@ -89,7 +104,7 @@ export default defineComponent({
     }
 
     const setActiveExpand = () =>
-      (value.value = navigationRoutes.routes.map((route: INavigationRoute) => routeHasActiveChild(route)))
+      (value.value = filteredRoutes.value.map((route: INavigationRoute) => routeHasActiveChild(route)))
 
     const sidebarWidth = computed(() => (props.mobile ? '100vw' : '280px'))
     const color = computed(() => getColor('background-secondary'))
@@ -107,7 +122,7 @@ export default defineComponent({
       value,
       color,
       activeColor,
-      navigationRoutes,
+      navigationRoutes: computed(() => ({ ...navigationRoutes, routes: filteredRoutes.value })),
       routeHasActiveChild,
       isActiveChildRoute,
       t,

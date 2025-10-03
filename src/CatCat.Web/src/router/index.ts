@@ -5,6 +5,7 @@ import AppLayout from '../layouts/AppLayout.vue'
 
 import RouteViewComponent from '../layouts/RouterBypass.vue'
 import { authGuard, guestGuard, roleGuard } from './guards'
+import { useUserStore } from '../stores/user-store'
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -21,6 +22,21 @@ const routes: Array<RouteRecordRaw> = [
         name: 'dashboard',
         path: 'dashboard',
         component: () => import('../pages/admin/dashboard/Dashboard.vue'),
+        beforeEnter: (to, from, next) => {
+          const userStore = useUserStore()
+          // 服务人员看到不同的Dashboard
+          if (userStore.user?.role === 2) {
+            next({ name: 'provider-dashboard' })
+          } else {
+            next()
+          }
+        },
+      },
+      {
+        name: 'provider-dashboard',
+        path: 'provider-dashboard',
+        component: () => import('../pages/admin/dashboard/ProviderDashboard.vue'),
+        meta: { requiresRole: 2 },
       },
       {
         name: 'settings',

@@ -347,5 +347,19 @@
     "myOrders": "My Orders",
     "availableOrders": "Available Orders",
     "manageUsers": "Manage Users"
+  },
+  "providerDashboard": {
+    "title": "Provider Dashboard",
+    "totalTasks": "Total Tasks",
+    "completed": "Completed",
+    "inProgress": "In Progress",
+    "totalEarnings": "Total Earnings",
+    "myCurrentTasks": "My Current Tasks",
+    "noTasks": "No tasks yet",
+    "availableOrders": "Available Orders",
+    "noAvailable": "No available orders",
+    "accept": "Accept",
+    "earningsTrend": "Earnings Trend",
+    "chartPlaceholder": "Earnings Chart"
   }
 }

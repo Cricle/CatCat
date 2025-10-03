@@ -3,6 +3,7 @@ export interface INavigationRoute {
   displayName: string
   meta: { icon: string }
   children?: INavigationRoute[]
+  roles?: number[] // 允许访问的角色列表，不设置则所有角色都可见
 }
 
 export default {
@@ -24,6 +25,7 @@ export default {
       meta: {
         icon: 'pets',
       },
+      roles: [1, 99], // 客户和管理员
     },
     {
       name: 'packages',
@@ -31,6 +33,7 @@ export default {
       meta: {
         icon: 'inventory_2',
       },
+      roles: [1, 99], // 客户和管理员
     },
     {
       name: 'orders',
@@ -38,6 +41,7 @@ export default {
       meta: {
         icon: 'receipt_long',
       },
+      roles: [1, 99], // 客户和管理员
     },
     {
       name: 'providers',
@@ -45,6 +49,7 @@ export default {
       meta: {
         icon: 'people',
       },
+      roles: [1, 99], // 客户和管理员
     },
     {
       name: 'provider',
@@ -52,6 +57,7 @@ export default {
       meta: {
         icon: 'work',
       },
+      roles: [2], // 仅服务人员
       children: [
         {
           name: 'provider-available',
@@ -73,6 +79,7 @@ export default {
       meta: {
         icon: 'admin_panel_settings',
       },
+      roles: [99], // 仅管理员
       children: [
         {
           name: 'admin-users',
