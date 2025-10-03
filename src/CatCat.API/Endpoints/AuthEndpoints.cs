@@ -8,6 +8,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using Yitter.IdGenerator;
 using ZiggyCreatures.Caching.Fusion;
 
 namespace CatCat.API.Endpoints;
@@ -33,6 +34,15 @@ public static class AuthEndpoints
         group.MapPost("/login", Login)
             .WithName("Login")
             .WithSummary("User login");
+
+        group.MapPost("/refresh", RefreshToken)
+            .WithName("RefreshToken")
+            .WithSummary("Refresh access token");
+
+        group.MapPost("/logout", Logout)
+            .WithName("Logout")
+            .WithSummary("Logout and revoke refresh tokens")
+            .RequireAuthorization();
     }
 
     private static async Task<IResult> SendCode(
@@ -52,8 +62,10 @@ public static class AuthEndpoints
     private static async Task<IResult> Register(
         [FromBody] RegisterRequest request,
         IUserRepository userRepository,
+        IRefreshTokenRepository refreshTokenRepository,
         IFusionCache cache,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        HttpContext httpContext)
     {
         var cachedCode = await cache.TryGetAsync<string>($"sms:code:{request.Phone}");
         if (!cachedCode.HasValue || cachedCode.Value != request.Code)
@@ -82,10 +94,11 @@ public static class AuthEndpoints
 
         await cache.RemoveAsync($"sms:code:{request.Phone}");
 
-        var token = GenerateJwtToken(user, configuration);
+        var (accessToken, refreshToken) = await GenerateTokenPair(user, refreshTokenRepository, configuration, httpContext);
 
         return Results.Ok(new AuthResponse(
-            token,
+            accessToken,
+            refreshToken,
             new UserInfo(user.Id, user.Phone, user.NickName, user.Avatar, user.Role)
         ));
     }
@@ -93,7 +106,9 @@ public static class AuthEndpoints
     private static async Task<IResult> Login(
         [FromBody] LoginRequest request,
         IUserRepository userRepository,
-        IConfiguration configuration)
+        IRefreshTokenRepository refreshTokenRepository,
+        IConfiguration configuration,
+        HttpContext httpContext)
     {
         var user = await userRepository.GetByPhoneAsync(request.Phone);
         if (user == null || !VerifyPassword(request.Password, user.PasswordHash, configuration))
@@ -106,20 +121,134 @@ public static class AuthEndpoints
             return Results.BadRequest(new MessageResponse("Account has been disabled"));
         }
 
-        var token = GenerateJwtToken(user, configuration);
+        var (accessToken, refreshToken) = await GenerateTokenPair(user, refreshTokenRepository, configuration, httpContext);
 
         return Results.Ok(new AuthResponse(
-            token,
+            accessToken,
+            refreshToken,
             new UserInfo(user.Id, user.Phone, user.NickName, user.Avatar, user.Role)
         ));
+    }
+
+    private static async Task<IResult> RefreshToken(
+        [FromBody] RefreshTokenRequest request,
+        IRefreshTokenRepository refreshTokenRepository,
+        IUserRepository userRepository,
+        IConfiguration configuration,
+        HttpContext httpContext)
+    {
+        var refreshToken = await refreshTokenRepository.GetByTokenAsync(request.RefreshToken);
+        if (refreshToken == null || !refreshToken.IsActive)
+        {
+            return Results.Unauthorized();
+        }
+
+        var user = await userRepository.GetByIdAsync(refreshToken.UserId);
+        if (user == null || user.Status != UserStatus.Active)
+        {
+            return Results.Unauthorized();
+        }
+
+        // Generate new token pair
+        var (newAccessToken, newRefreshToken) = await GenerateTokenPair(user, refreshTokenRepository, configuration, httpContext);
+
+        // Revoke old refresh token (token rotation)
+        var clientIp = httpContext.Connection.RemoteIpAddress?.ToString();
+        await refreshTokenRepository.RevokeAndReplaceAsync(
+            request.RefreshToken,
+            DateTime.UtcNow,
+            clientIp,
+            "Replaced by new token",
+            newRefreshToken
+        );
+
+        return Results.Ok(new AuthResponse(
+            newAccessToken,
+            newRefreshToken,
+            new UserInfo(user.Id, user.Phone, user.NickName, user.Avatar, user.Role)
+        ));
+    }
+
+    private static async Task<IResult> Logout(
+        ClaimsPrincipal userPrincipal,
+        IRefreshTokenRepository refreshTokenRepository)
+    {
+        var userIdClaim = userPrincipal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdClaim) || !long.TryParse(userIdClaim, out var userId))
+        {
+            return Results.Unauthorized();
+        }
+
+        // Revoke all active refresh tokens for the user
+        await refreshTokenRepository.RevokeAllByUserIdAsync(userId, DateTime.UtcNow);
+
+        return Results.Ok(new MessageResponse("Logged out successfully"));
+    }
+
+    private static async Task<(string AccessToken, string RefreshToken)> GenerateTokenPair(
+        User user,
+        IRefreshTokenRepository refreshTokenRepository,
+        IConfiguration configuration,
+        HttpContext httpContext)
+    {
+        // Generate access token (short-lived: 15 minutes)
+        var accessToken = GenerateJwtToken(user, configuration, TimeSpan.FromMinutes(15));
+
+        // Generate refresh token (long-lived: 7 days)
+        var refreshTokenValue = GenerateRefreshTokenValue();
+        var refreshTokenEntity = new RefreshToken
+        {
+            Id = YitIdHelper.NextId(),
+            UserId = user.Id,
+            Token = refreshTokenValue,
+            ExpiresAt = DateTime.UtcNow.AddDays(7),
+            CreatedAt = DateTime.UtcNow,
+            CreatedByIp = httpContext.Connection.RemoteIpAddress?.ToString()
+        };
+
+        await refreshTokenRepository.CreateAsync(refreshTokenEntity);
+
+        return (accessToken, refreshTokenValue);
+    }
+
+    private static string GenerateJwtToken(User user, IConfiguration configuration, TimeSpan? expiration = null)
+    {
+        var securityKey = GetOrCreateSecurityKey(configuration["Jwt:SecretKey"] ?? throw new InvalidOperationException("Jwt:SecretKey is not configured"));
+
+        var claims = new[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.Name, user.Phone),
+            new Claim(ClaimTypes.Role, user.Role.ToString()),
+            new Claim("NickName", user.NickName ?? string.Empty)
+        };
+
+        var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+        var token = new JwtSecurityToken(
+            issuer: configuration["Jwt:Issuer"] ?? "CatCat.API",
+            audience: configuration["Jwt:Audience"] ?? "CatCat.Web",
+            claims: claims,
+            expires: DateTime.UtcNow.Add(expiration ?? TimeSpan.FromHours(24)),
+            signingCredentials: credentials
+        );
+
+        return _jwtTokenHandler.WriteToken(token);
+    }
+
+    private static string GenerateRefreshTokenValue()
+    {
+        var randomBytes = new byte[64];
+        using var rng = RandomNumberGenerator.Create();
+        rng.GetBytes(randomBytes);
+        return Convert.ToBase64String(randomBytes);
     }
 
     private static string HashPassword(string password, IConfiguration configuration)
     {
         using var sha256 = SHA256.Create();
         var bytes = Encoding.UTF8.GetBytes(password + configuration["Security:PasswordSalt"]);
-        var hash = sha256.ComputeHash(bytes);
-        return Convert.ToBase64String(hash);
+        return Convert.ToBase64String(sha256.ComputeHash(bytes));
     }
 
     private static bool VerifyPassword(string password, string hash, IConfiguration configuration)
@@ -127,25 +256,9 @@ public static class AuthEndpoints
         return HashPassword(password, configuration) == hash;
     }
 
-    private static string GenerateJwtToken(User user, IConfiguration configuration)
+    [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Security key is always a string")]
+    private static SymmetricSecurityKey GetOrCreateSecurityKey(string key)
     {
-        var jwtSettings = configuration.GetSection("JwtSettings");
-        var claims = new[]
-        {
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.MobilePhone, user.Phone),
-            new Claim(ClaimTypes.Role, user.Role.ToString())
-        };
-
-        var key = _keyCache.GetOrAdd(jwtSettings["SecretKey"]!, k => new SymmetricSecurityKey(Encoding.UTF8.GetBytes(k)));
-        var token = new JwtSecurityToken(
-            issuer: jwtSettings["Issuer"],
-            audience: jwtSettings["Audience"],
-            claims: claims,
-            expires: DateTime.UtcNow.AddDays(7),
-            signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256));
-
-        return _jwtTokenHandler.WriteToken(token);
+        return _keyCache.GetOrAdd(key, k => new SymmetricSecurityKey(Encoding.UTF8.GetBytes(k)));
     }
 }
-

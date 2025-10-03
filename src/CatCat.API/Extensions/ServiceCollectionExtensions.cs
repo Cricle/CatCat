@@ -19,6 +19,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IReviewRepository, ReviewRepository>();
         services.AddScoped<IOrderStatusHistoryRepository, OrderStatusHistoryRepository>();
         services.AddScoped<IPaymentRepository, PaymentRepository>();
+        services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         return services;
     }
 

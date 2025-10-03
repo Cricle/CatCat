@@ -40,6 +40,7 @@ namespace CatCat.API.Json;
 [JsonSerializable(typeof(SendCodeRequest))]
 [JsonSerializable(typeof(RegisterRequest))]
 [JsonSerializable(typeof(LoginRequest))]
+[JsonSerializable(typeof(RefreshTokenRequest))]
 [JsonSerializable(typeof(UpdateUserRequest))]
 [JsonSerializable(typeof(CreatePetRequest))]
 [JsonSerializable(typeof(UpdatePetRequest))]

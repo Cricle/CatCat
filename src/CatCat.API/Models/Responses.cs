@@ -9,7 +9,7 @@ public record MessageResponse(string Message);
 public record HealthResponse(string Status, DateTime Timestamp);
 
 // Auth responses
-public record AuthResponse(string Token, UserInfo User);
+public record AuthResponse(string AccessToken, string RefreshToken, UserInfo User);
 public record UserInfo(long Id, string Phone, string? NickName, string? Avatar, UserRole Role);
 
 // Pet list response

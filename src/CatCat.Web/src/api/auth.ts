@@ -16,6 +16,10 @@ export interface LoginRequest {
   password: string
 }
 
+export interface RefreshTokenRequest {
+  refreshToken: string
+}
+
 export function sendCode(data: SendCodeRequest) {
   return request.post('/auth/send-code', data)
 }
@@ -26,5 +30,13 @@ export function register(data: RegisterRequest) {
 
 export function login(data: LoginRequest) {
   return request.post('/auth/login', data)
+}
+
+export function refreshToken(data: RefreshTokenRequest) {
+  return request.post('/auth/refresh', data)
+}
+
+export function logout() {
+  return request.post('/auth/logout')
 }
 
