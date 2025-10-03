@@ -75,19 +75,34 @@ public class AdminService(
     {
         var offset = (page - 1) * pageSize;
         
-        // For simplicity, get all users and filter in memory (consider adding filtered queries to repository)
-        var allUsers = await userRepository.GetPagedAsync(offset, pageSize * 10);
+        // Cache key for filtered results
+        var cacheKey = $"admin:users:{page}:{pageSize}:{role}:{status}";
         
-        var filtered = allUsers.AsEnumerable();
-        if (role.HasValue)
-            filtered = filtered.Where(u => u.Role == role.Value);
-        if (status.HasValue)
-            filtered = filtered.Where(u => u.Status == status.Value);
+        var result = await cache.GetOrSetAsync<PagedResult<User>>(
+            cacheKey,
+            async (ctx, ct) =>
+            {
+                logger.LogDebug("Cache miss for admin users, fetching from DB");
+                
+                // Get paginated users (repository should handle filtering if needed)
+                var users = await userRepository.GetPagedAsync(offset, pageSize);
+                
+                // Apply filters in memory (TODO: move to repository for better performance)
+                var filtered = users.AsEnumerable();
+                if (role.HasValue)
+                    filtered = filtered.Where(u => u.Role == role.Value);
+                if (status.HasValue)
+                    filtered = filtered.Where(u => u.Status == status.Value);
+                
+                var items = filtered.ToList();
+                var total = await userRepository.GetCountAsync();
+                
+                return new PagedResult<User>(items, total);
+            },
+            options => options.SetDuration(TimeSpan.FromMinutes(2)),
+            cancellationToken);
         
-        var users = filtered.Skip(offset).Take(pageSize).ToList();
-        var total = await userRepository.GetCountAsync();
-        
-        return Result.Success(new PagedResult<User>(users, total));
+        return Result.Success(result);
     }
 
     public async Task<Result> UpdateUserStatusAsync(long userId, UserStatus status, CancellationToken cancellationToken = default)
@@ -105,8 +120,10 @@ public class AdminService(
         var affectedRows = await userRepository.UpdateAsync(user);
         if (affectedRows > 0)
         {
-            // Invalidate cache
+            // Invalidate related caches
             await cache.RemoveAsync($"user:{userId}", token: cancellationToken);
+            await cache.RemoveAsync(StatsCacheKey, token: cancellationToken);
+            // Note: Admin user list cache will expire naturally (2 min TTL)
             
             logger.LogInformation("User {UserId} status updated to {Status}", userId, status);
             return Result.Success();
@@ -130,8 +147,10 @@ public class AdminService(
         var affectedRows = await userRepository.UpdateAsync(user);
         if (affectedRows > 0)
         {
-            // Invalidate cache
+            // Invalidate related caches
             await cache.RemoveAsync($"user:{userId}", token: cancellationToken);
+            await cache.RemoveAsync(StatsCacheKey, token: cancellationToken);
+            // Note: Admin user list cache will expire naturally (2 min TTL)
             
             logger.LogInformation("User {UserId} role updated to {Role}", userId, role);
             return Result.Success();

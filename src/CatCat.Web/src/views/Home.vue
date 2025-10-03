@@ -1,47 +1,58 @@
 <template>
   <div class="home-page">
-    <!-- Flat Hero Section -->
-    <div class="hero-section">
-      <div class="hero-content">
-        <div class="hero-icon">🐱</div>
-        <h1 class="hero-title">CatCat Pet Care</h1>
-        <p class="hero-subtitle">Professional & Reliable Pet Sitting Services</p>
-        <div class="search-bar">
+    <!-- Hero Section using Vuestic -->
+    <va-card class="hero-card" gradient>
+      <va-card-content>
+        <div class="hero-content">
+          <va-icon name="pets" size="64px" color="primary" />
+          <h1 class="va-h1">CatCat Pet Care</h1>
+          <p class="va-text-secondary">Professional & Reliable Pet Sitting Services</p>
           <va-input 
             v-model="searchText" 
             placeholder="Search services, locations..." 
             size="large"
+            class="search-input"
           >
             <template #prepend>
               <va-icon name="search" />
             </template>
           </va-input>
         </div>
-      </div>
+      </va-card-content>
+    </va-card>
+
+    <!-- Quick Actions using Vuestic Grid -->
+    <div class="section-wrapper">
+      <va-card>
+        <va-card-title>Quick Actions</va-card-title>
+        <va-card-content>
+          <div class="va-row">
+            <div 
+              v-for="action in quickActions" 
+              :key="action.title" 
+              class="flex xs12 sm6 md3"
+            >
+              <va-button 
+                preset="plain" 
+                class="action-btn" 
+                @click="action.onClick"
+              >
+                <va-icon :name="action.icon" :color="action.color" size="large" />
+                <div class="action-text">
+                  <div class="va-text-bold">{{ action.title }}</div>
+                  <div class="va-text-secondary">{{ action.subtitle }}</div>
+                </div>
+              </va-button>
+            </div>
+          </div>
+        </va-card-content>
+      </va-card>
     </div>
 
-    <!-- Quick Actions -->
-    <div class="quick-actions">
-      <div 
-        v-for="action in quickActions" 
-        :key="action.title" 
-        class="action-item"
-        @click="action.onClick"
-      >
-        <div class="action-icon" :style="{ color: action.color }">
-          <va-icon :name="action.icon" size="medium" />
-        </div>
-        <div class="action-text">
-          <div class="action-title">{{ action.title }}</div>
-          <div class="action-subtitle">{{ action.subtitle }}</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Service Packages -->
-    <div class="packages-section">
+    <!-- Service Packages using Vuestic Grid -->
+    <div class="section-wrapper">
       <div class="section-header">
-        <h2 class="section-title">Our Services</h2>
+        <h2 class="va-h2">Our Services</h2>
         <va-button preset="plain" size="small" @click="viewAllPackages">
           View All
           <va-icon name="arrow_forward" size="small" />
@@ -49,93 +60,113 @@
       </div>
 
       <!-- Skeleton Loading -->
-      <div v-if="loading" class="packages-grid">
-        <va-card v-for="i in 3" :key="i" class="package-card package-skeleton">
-          <va-card-content>
-            <va-skeleton height="48px" width="48px" variant="squared" />
-            <va-skeleton height="24px" width="80%" style="margin-top: 16px" />
-            <va-skeleton height="40px" width="100%" style="margin-top: 8px" />
-            <va-skeleton height="20px" width="60%" style="margin-top: 12px" />
-          </va-card-content>
-        </va-card>
+      <div v-if="loading" class="va-row">
+        <div v-for="i in 3" :key="i" class="flex xs12 md4">
+          <va-card class="package-card">
+            <va-card-content>
+              <va-skeleton height="48px" width="48px" variant="squared" />
+              <va-skeleton height="24px" width="80%" style="margin-top: 16px" />
+              <va-skeleton height="40px" width="100%" style="margin-top: 8px" />
+              <va-skeleton height="20px" width="60%" style="margin-top: 12px" />
+            </va-card-content>
+          </va-card>
+        </div>
       </div>
 
       <!-- Error State -->
-      <div v-else-if="error" class="error-state">
-        <va-icon name="error_outline" size="large" color="danger" />
-        <h3>Failed to Load Services</h3>
-        <p>{{ error }}</p>
-        <va-button @click="fetchPackages">
-          <va-icon name="refresh" /> Retry
-        </va-button>
-      </div>
+      <va-card v-else-if="error" class="error-state">
+        <va-card-content>
+          <div class="text-center">
+            <va-icon name="error_outline" size="64px" color="danger" />
+            <h3 class="va-h3">Failed to Load Services</h3>
+            <p class="va-text-secondary">{{ error }}</p>
+            <va-button @click="fetchPackages" color="primary">
+              <va-icon name="refresh" /> Retry
+            </va-button>
+          </div>
+        </va-card-content>
+      </va-card>
 
       <!-- Empty State -->
-      <div v-else-if="packages.length === 0" class="empty-state">
-        <va-icon name="inbox" size="large" color="secondary" />
-        <h3>No Services Available</h3>
-        <p>Check back later for new service packages</p>
-      </div>
+      <va-card v-else-if="packages.length === 0" class="empty-state">
+        <va-card-content>
+          <div class="text-center">
+            <va-icon name="inbox" size="64px" color="secondary" />
+            <h3 class="va-h3">No Services Available</h3>
+            <p class="va-text-secondary">Check back later for new service packages</p>
+          </div>
+        </va-card-content>
+      </va-card>
 
-      <div v-else class="packages-grid">
-        <va-card 
+      <!-- Packages Grid -->
+      <div v-else class="va-row">
+        <div 
           v-for="(pkg, index) in packages" 
           :key="pkg.id" 
-          class="package-card"
-          @click="selectPackage(pkg)"
+          class="flex xs12 md4"
         >
-          <va-card-content>
-            <div class="package-header">
-              <div class="package-icon" :style="{ background: getPackageColor(index) }">
-                <va-icon :name="getPackageIcon(pkg.name)" color="white" />
+          <va-card 
+            class="package-card" 
+            hover
+            @click="selectPackage(pkg)"
+          >
+            <va-card-content>
+              <div class="package-header">
+                <va-avatar :color="getPackageColor(index)" size="48px">
+                  <va-icon :name="getPackageIcon(pkg.name)" color="white" />
+                </va-avatar>
+                <va-badge v-if="isRecommended(index)" text="Recommended" color="warning" />
               </div>
-              <va-badge v-if="isRecommended(index)" text="Recommended" color="warning" />
-            </div>
-            <h3 class="package-name">{{ pkg.name }}</h3>
-            <p class="package-desc">{{ pkg.description }}</p>
-            <div class="package-tags">
-              <va-chip 
-                v-for="(item, idx) in getServiceItems(pkg.serviceItems)" 
-                :key="idx" 
-                size="small" 
-                outline
-              >
-                {{ item }}
-              </va-chip>
-            </div>
-            <div class="package-footer">
-              <div class="package-info">
-                <span class="package-duration">{{ pkg.duration }} min</span>
+              <h3 class="va-h3 package-name">{{ pkg.name }}</h3>
+              <p class="va-text-secondary package-desc">{{ pkg.description }}</p>
+              <div class="package-tags">
+                <va-chip 
+                  v-for="(item, idx) in getServiceItems(pkg.serviceItems)" 
+                  :key="idx" 
+                  size="small" 
+                  outline
+                >
+                  {{ item }}
+                </va-chip>
               </div>
-              <div class="package-price">
-                <span class="price">¥{{ pkg.price }}</span>
+              <va-divider />
+              <div class="package-footer">
+                <va-chip size="small" color="info">
+                  <va-icon name="schedule" size="small" /> {{ pkg.duration }} min
+                </va-chip>
+                <div class="va-h3 va-text-primary">¥{{ pkg.price }}</div>
               </div>
-            </div>
-          </va-card-content>
-        </va-card>
-      </div>
-    </div>
-
-    <!-- Features -->
-    <div class="features-section">
-      <h2 class="section-title">Why Choose Us</h2>
-      <div class="features-grid">
-        <div v-for="feature in features" :key="feature.title" class="feature-item">
-          <div class="feature-icon" :style="{ color: feature.color }">
-            <va-icon :name="feature.icon" size="large" />
-          </div>
-          <h3 class="feature-title">{{ feature.title }}</h3>
-          <p class="feature-desc">{{ feature.description }}</p>
+            </va-card-content>
+          </va-card>
         </div>
       </div>
     </div>
 
-    <!-- FAB -->
+    <!-- Features using Vuestic Grid -->
+    <div class="section-wrapper">
+      <h2 class="va-h2 text-center">Why Choose Us</h2>
+      <div class="va-row">
+        <div v-for="feature in features" :key="feature.title" class="flex xs12 sm6 md3">
+          <va-card hover class="feature-card">
+            <va-card-content>
+              <div class="text-center">
+                <va-icon :name="feature.icon" :color="feature.color" size="48px" />
+                <h3 class="va-h3">{{ feature.title }}</h3>
+                <p class="va-text-secondary">{{ feature.description }}</p>
+              </div>
+            </va-card-content>
+          </va-card>
+        </div>
+      </div>
+    </div>
+
+    <!-- FAB using Vuestic -->
     <va-button 
       class="fab-button" 
       fab 
       color="primary" 
       icon="add" 
+      size="large"
       @click="quickOrder"
     />
   </div>
@@ -158,28 +189,28 @@ const quickActions = [
     title: 'My Pets', 
     subtitle: 'Manage profiles', 
     icon: 'pets', 
-    color: 'var(--primary)', 
+    color: 'primary', 
     onClick: () => router.push('/pets') 
   },
   { 
     title: 'Orders', 
     subtitle: 'Track status', 
     icon: 'receipt_long', 
-    color: 'var(--success)', 
+    color: 'success', 
     onClick: () => router.push('/orders') 
   },
   { 
     title: 'Support', 
     subtitle: '24/7 help', 
     icon: 'support_agent', 
-    color: 'var(--info)', 
+    color: 'info', 
     onClick: () => {} 
   },
   { 
     title: 'Profile', 
     subtitle: 'Account info', 
     icon: 'person', 
-    color: 'var(--warning)', 
+    color: 'warning', 
     onClick: () => router.push('/profile') 
   }
 ]
@@ -188,25 +219,25 @@ const features = [
   { 
     title: 'Verified Sitters', 
     icon: 'verified_user', 
-    color: 'var(--primary)', 
+    color: 'primary', 
     description: 'All sitters are background-checked and certified' 
   },
   { 
     title: 'Service Guarantee', 
     icon: 'shield', 
-    color: 'var(--success)', 
+    color: 'success', 
     description: 'Quality service guaranteed, full refund for any issues' 
   },
   { 
     title: 'Real-time Updates', 
     icon: 'photo_camera', 
-    color: 'var(--info)', 
+    color: 'info', 
     description: 'Receive photo/video updates during service' 
   },
   { 
     title: 'Expert Team', 
     icon: 'groups', 
-    color: 'var(--warning)', 
+    color: 'warning', 
     description: 'Experienced and certified pet care professionals' 
   }
 ]
@@ -218,6 +249,13 @@ const getPackageIcon = (name: string) => {
   return 'pets'
 }
 
+const getPackageColor = (index: number) => {
+  const colors = ['primary', 'success', 'warning', 'info', 'danger']
+  return colors[index % colors.length]
+}
+
+const isRecommended = (index: number) => index === 1
+
 const getServiceItems = (items: string) => items.split('、').slice(0, 3)
 
 const fetchPackages = async () => {
@@ -227,181 +265,91 @@ const fetchPackages = async () => {
     const res = await getActivePackages()
     packages.value = res.data
   } catch (err: any) {
-    console.error('Failed to load packages:', err)
-    error.value = err.message || 'Unable to load services'
+    error.value = err.message || 'Failed to load service packages'
   } finally {
     loading.value = false
   }
 }
 
-const getPackageColor = (index: number) => {
-  return ['var(--primary)', 'var(--success)', 'var(--info)'][index % 3]
+const selectPackage = (pkg: ServicePackage) => {
+  router.push({ name: 'order-create', query: { packageId: pkg.id } })
 }
 
-const isRecommended = (index: number) => index === 0
+const viewAllPackages = () => {
+  // TODO: Navigate to packages list page
+}
 
-const selectPackage = (pkg: ServicePackage) => router.push({ path: '/order/create', query: { packageId: pkg.id } })
-const viewAllPackages = () => console.log('View all packages')
-const quickOrder = () => router.push('/order/create')
+const quickOrder = () => {
+  router.push('/order/create')
+}
 
-onMounted(() => fetchPackages())
+onMounted(() => {
+  fetchPackages()
+})
 </script>
 
 <style scoped>
 .home-page {
   min-height: 100vh;
+  background-color: var(--va-background-element);
   padding-bottom: 80px;
 }
 
-/* Flat Hero */
-.hero-section {
-  background: white;
-  border-bottom: 1px solid var(--gray-200);
-  padding: 48px 20px;
-}
-
-.hero-content {
-  max-width: 800px;
-  margin: 0 auto;
+.hero-card {
+  margin-bottom: var(--va-content-padding);
   text-align: center;
 }
 
-.hero-icon {
-  font-size: 64px;
-  margin-bottom: 16px;
+.hero-content {
+  padding: var(--va-content-padding);
 }
 
-.hero-title {
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: var(--gray-900);
-  margin-bottom: 8px;
+.hero-content .va-h1 {
+  margin: var(--va-content-padding) 0 8px;
 }
 
-.hero-subtitle {
-  font-size: 1.125rem;
-  color: var(--gray-600);
-  margin-bottom: 32px;
+.search-input {
+  max-width: 600px;
+  margin: 24px auto 0;
 }
 
-.search-bar {
-  max-width: 500px;
-  margin: 0 auto;
-}
-
-/* Quick Actions */
-.quick-actions {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 16px;
-  padding: 24px 20px;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.action-item {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 20px;
-  background: white;
-  border: 1px solid var(--gray-200);
-  border-radius: var(--radius);
-  cursor: pointer;
-  transition: border-color var(--transition);
-}
-
-.action-item:hover {
-  border-color: var(--primary);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.action-icon {
-  width: 48px;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--gray-100);
-  border-radius: var(--radius);
-}
-
-.action-text {
-  flex: 1;
-}
-
-.action-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--gray-900);
-  margin-bottom: 2px;
-}
-
-.action-subtitle {
-  font-size: 0.875rem;
-  color: var(--gray-600);
-}
-
-/* Packages Section */
-.packages-section {
-  padding: 40px 20px;
-  max-width: 1200px;
-  margin: 0 auto;
+.section-wrapper {
+  padding: var(--va-content-padding);
 }
 
 .section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: var(--va-content-padding);
 }
 
-.section-title {
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: var(--gray-900);
+.action-btn {
+  width: 100%;
+  height: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
 }
 
-.package-skeleton {
-  pointer-events: none;
-}
-
-.error-state,
-.empty-state {
+.action-text {
   text-align: center;
-  padding: 60px 20px;
 }
 
-.error-state h3,
-.empty-state h3 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--gray-900);
-  margin: 16px 0 8px;
-}
-
-.error-state p,
-.empty-state p {
-  color: var(--gray-600);
-  margin-bottom: 24px;
-}
-
-.packages-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
-}
-
-.package-card {
+.package-card,
+.feature-card {
+  width: 100%;
+  height: 100%;
+  margin-bottom: var(--va-content-padding);
   cursor: pointer;
-  transition: all var(--transition);
+  transition: transform 0.2s;
 }
 
-.package-card:hover {
-  border-color: var(--primary) !important;
+.package-card:hover,
+.feature-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
 }
 
 .package-header {
@@ -411,27 +359,13 @@ onMounted(() => fetchPackages())
   margin-bottom: 16px;
 }
 
-.package-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 .package-name {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--gray-900);
-  margin-bottom: 8px;
+  margin: 16px 0 8px;
 }
 
 .package-desc {
-  font-size: 0.875rem;
-  color: var(--gray-600);
+  min-height: 40px;
   margin-bottom: 16px;
-  line-height: 1.5;
 }
 
 .package-tags {
@@ -446,90 +380,42 @@ onMounted(() => fetchPackages())
   justify-content: space-between;
   align-items: center;
   padding-top: 16px;
-  border-top: 1px solid var(--gray-200);
 }
 
-.package-duration {
-  font-size: 0.875rem;
-  color: var(--gray-600);
+.error-state,
+.empty-state {
+  margin-top: var(--va-content-padding);
 }
 
-.package-price .price {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--primary);
-}
-
-/* Features */
-.features-section {
-  padding: 40px 20px;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.features-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 24px;
-  margin-top: 24px;
-}
-
-.feature-item {
+.text-center {
   text-align: center;
-  padding: 32px 20px;
-  background: white;
-  border: 1px solid var(--gray-200);
-  border-radius: var(--radius);
+  padding: var(--va-content-padding);
 }
 
-.feature-icon {
-  width: 64px;
-  height: 64px;
-  margin: 0 auto 16px;
-  background: var(--gray-100);
-  border-radius: var(--radius);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.feature-title {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--gray-900);
-  margin-bottom: 8px;
-}
-
-.feature-desc {
-  font-size: 0.875rem;
-  color: var(--gray-600);
-  line-height: 1.5;
-}
-
-/* FAB */
 .fab-button {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
-  box-shadow: var(--shadow-sm) !important;
+  bottom: 80px;
+  right: 20px;
+  z-index: 100;
 }
 
-/* Responsive */
+/* Responsive adjustments */
 @media (max-width: 768px) {
-  .hero-title {
-    font-size: 2rem;
+  .section-wrapper {
+    padding: 12px;
   }
   
-  .quick-actions {
-    grid-template-columns: 1fr;
+  .hero-content {
+    padding: 24px 16px;
   }
   
-  .packages-grid {
-    grid-template-columns: 1fr;
+  .package-desc {
+    min-height: auto;
   }
   
-  .features-grid {
-    grid-template-columns: 1fr;
+  .fab-button {
+    bottom: 70px;
+    right: 16px;
   }
 }
 </style>
