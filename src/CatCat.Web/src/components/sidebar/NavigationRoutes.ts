@@ -40,6 +40,13 @@ export default {
       },
     },
     {
+      name: 'providers',
+      displayName: 'menu.providers',
+      meta: {
+        icon: 'people',
+      },
+    },
+    {
       name: 'provider',
       displayName: 'menu.provider',
       meta: {

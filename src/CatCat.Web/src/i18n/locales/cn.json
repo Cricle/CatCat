@@ -117,7 +117,8 @@
     "pets": "我的宠物",
     "packages": "服务套餐",
     "orders": "我的订单",
-    "provider": "服务人员",
+    "providers": "服务人员",
+    "provider": "服务人员端",
     "availableOrders": "可接订单",
     "myTasks": "我的任务",
     "myEarnings": "我的收入",
@@ -314,6 +315,36 @@
       "createdAt": "创建时间",
       "actions": "操作"
     }
+  },
+  "providers": {
+    "title": "服务人员",
+    "searchPlaceholder": "搜索服务人员名称...",
+    "sortBy": "排序方式",
+    "noProviders": "暂无服务人员",
+    "totalOrders": "服务单数",
+    "rating": "评分",
+    "years": "年经验",
+    "specialties": "擅长",
+    "viewProfile": "查看详情",
+    "notFound": "服务人员不存在",
+    "backToList": "返回列表",
+    "ordersCompleted": "单已完成",
+    "yearsOfService": "年经验",
+    "responseRate": "响应率",
+    "specialtiesTitle": "擅长服务",
+    "serviceHistory": "服务历史",
+    "noHistory": "暂无服务历史",
+    "reviews": "用户评价",
+    "noReviews": "暂无评价"
+  },
+  "notifications": {
+    "title": "通知中心",
+    "all": "全部",
+    "unread": "未读",
+    "order": "订单",
+    "system": "系统",
+    "markAllRead": "全部已读",
+    "noNotifications": "暂无通知"
   },
   "vuestic": {
     "search": "搜索",

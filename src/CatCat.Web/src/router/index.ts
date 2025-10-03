@@ -63,6 +63,21 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import('../pages/packages/PackageDetailPage.vue'),
       },
       {
+        name: 'providers',
+        path: 'providers',
+        component: () => import('../pages/providers/ProvidersPage.vue'),
+      },
+      {
+        name: 'provider-detail',
+        path: 'providers/:id',
+        component: () => import('../pages/providers/ProviderDetailPage.vue'),
+      },
+      {
+        name: 'notifications',
+        path: 'notifications',
+        component: () => import('../pages/notifications/NotificationsPage.vue'),
+      },
+      {
         name: 'provider-available',
         path: 'provider/available',
         component: () => import('../pages/provider/AvailableOrdersPage.vue'),
