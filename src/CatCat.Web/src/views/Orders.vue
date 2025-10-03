@@ -167,7 +167,7 @@ const filteredOrders = computed(() => {
   if (activeFilter.value === 'all') {
     return orders.value
   }
-  return orders.value.filter(order => 
+  return orders.value.filter(order =>
     getStatusKey(order.status).toLowerCase() === activeFilter.value.toLowerCase()
   )
 })
@@ -229,7 +229,7 @@ const formatDate = (dateString: string) => {
   const now = new Date()
   const diff = date.getTime() - now.getTime()
   const days = Math.ceil(diff / (1000 * 60 * 60 * 24))
-  
+
   if (days === 0) {
     return t('common.today')
   } else if (days === 1) {
@@ -237,7 +237,7 @@ const formatDate = (dateString: string) => {
   } else if (days < 7) {
     return `${days} ${t('common.daysLater')}`
   }
-  
+
   return date.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })
 }
 
