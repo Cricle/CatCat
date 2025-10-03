@@ -50,5 +50,10 @@
     <PackageVersion Include="Aspire.Hosting.Nats" Version="9.0.0" />
     <!-- Object Storage -->
     <PackageVersion Include="Minio" Version="6.0.3" />
+    <!-- Resilience & Circuit Breaker -->
+    <PackageVersion Include="Polly" Version="8.5.0" />
+    <PackageVersion Include="Polly.Extensions" Version="8.5.0" />
+    <!-- Prometheus Metrics -->
+    <PackageVersion Include="prometheus-net.AspNetCore" Version="8.2.1" />
   </ItemGroup>
 </Project>

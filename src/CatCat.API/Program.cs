@@ -34,6 +34,9 @@ builder.Services.AddSingleton<CustomMetrics>();
 
 builder.Services.AddEndpointsApiExplorer();
 
+// Prometheus Metrics
+builder.Services.AddSingleton(Prometheus.Metrics.DefaultRegistry);
+
 // OpenAPI (AOT-compatible)
 builder.Services.AddOpenApi("v1", options =>
 {
@@ -121,6 +124,9 @@ builder.Services.AddSingleton<IMessageQueueService, JetStreamService>(sp =>
 // MinIO Object Storage
 builder.Services.AddSingleton<CatCat.Infrastructure.Storage.IStorageService, CatCat.Infrastructure.Storage.MinioStorageService>();
 
+// Business Metrics
+builder.Services.AddSingleton<CatCat.API.Observability.BusinessMetrics>();
+
 // Repositories & Services
 builder.Services.AddRepositories();
 builder.Services.AddApplicationServices();
@@ -144,6 +150,13 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors();
+
+// Prometheus Metrics middleware (before exception handling for accurate metrics)
+app.UseHttpMetrics(options =>
+{
+    options.AddCustomLabel("service", _ => "catcat-api");
+});
+
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseRateLimiter();
 app.UseAuthentication();
@@ -161,6 +174,9 @@ app.MapStorageEndpoints();
 
 app.MapGet("/health", () => Results.Ok(new HealthResponse("healthy", DateTime.UtcNow)))
     .WithTags("Health");
+
+// Prometheus Metrics endpoint
+app.MapMetrics("/metrics");
 
 // Redis-based Bloom Filter requires no initialization
 // All IDs are persisted in Redis Sets automatically

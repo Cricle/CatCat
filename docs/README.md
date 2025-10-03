@@ -23,6 +23,7 @@ Welcome to CatCat project documentation! This directory contains comprehensive g
 ### 📊 Observability & Performance
 - **[OpenTelemetry Guide](OPENTELEMETRY_GUIDE.md)** - Distributed tracing and metrics
 - **[Rate Limiting Guide](RATE_LIMITING_GUIDE.md)** - API protection and throttling
+- **[Monitoring Guide](MONITORING_GUIDE.md)** - Prometheus + Grafana monitoring and alerting
 
 ### 🚢 Deployment
 - **[Docker & Aspire Guide](DOCKER_ASPIRE_GUIDE.md)** - Local development and Docker deployment

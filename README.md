@@ -457,6 +457,7 @@ public partial class UserRepository : IUserRepository
 - **[🛡️ 限流配置](docs/RATE_LIMITING_GUIDE.md)** - API 防护策略
 - **[⚡ AOT & 集群](docs/AOT_AND_CLUSTER.md)** - 性能优化
 - **[📦 MinIO 存储](docs/MINIO_STORAGE_GUIDE.md)** - 对象存储集成
+- **[📊 监控指南](docs/MONITORING_GUIDE.md)** - Prometheus + Grafana 监控
 
 ### 其他
 - **[🤝 贡献指南](CONTRIBUTING.md)** - 如何参与贡献
