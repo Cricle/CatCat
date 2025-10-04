@@ -244,8 +244,11 @@ services.AddNatsCatGaTransport("nats://localhost:4222");
 ## 📚 文档
 
 ### 核心文档
+- **[5 分钟快速开始](docs/QUICK_START_5_MINUTES.md)** ⭐⭐⭐ 从零到运行
+- **[为什么选择 CatGa？](docs/WHY_CATGA.md)** ⭐⭐ 对比 MassTransit/CAP
 - **[CatGa 文档](docs/CATGA.md)** ⭐ 两个核心概念
 - **[四大核心支柱](docs/FOUR_PILLARS.md)** ⭐ 安全·性能·可靠·分布式
+- [模块化架构](docs/CATGA_MODULAR_ARCHITECTURE.md) - 单一职责拆分
 - [架构回顾](docs/ARCHITECTURE_REVIEW.md) - 深度分析与优化
 - [项目结构](docs/PROJECT_STRUCTURE.md)
 - [Redis 持久化](docs/REDIS_PERSISTENCE.md)
