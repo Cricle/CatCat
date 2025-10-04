@@ -9,14 +9,13 @@ public static class CacheConfiguration
 {
     /// <summary>
     /// 用户缓存配置
-    /// - 过期时间: 10分钟 + 随机抖动（防雪崩）
+    /// - 过期时间: 10分钟
     /// - 软超时: 8分钟（背景刷新）
     /// - 防击穿: Fail-Safe 模式
     /// </summary>
     public static FusionCacheEntryOptions UserCacheOptions => new FusionCacheEntryOptions
     {
         Duration = TimeSpan.FromMinutes(10),
-        JitMaxDuration = TimeSpan.FromSeconds(30), // 随机抖动 0-30秒（防雪崩）
         
         // 防击穿：Fail-Safe 模式
         IsFailSafeEnabled = true,
@@ -37,14 +36,13 @@ public static class CacheConfiguration
 
     /// <summary>
     /// 服务套餐缓存配置
-    /// - 过期时间: 1小时 + 随机抖动
+    /// - 过期时间: 1小时
     /// - 软超时: 50分钟
     /// - 长期缓存（数据变化少）
     /// </summary>
     public static FusionCacheEntryOptions ServicePackageCacheOptions => new FusionCacheEntryOptions
     {
         Duration = TimeSpan.FromHours(1),
-        JitMaxDuration = TimeSpan.FromMinutes(5), // 随机抖动 0-5分钟
         
         IsFailSafeEnabled = true,
         FailSafeMaxDuration = TimeSpan.FromHours(6),
@@ -61,13 +59,12 @@ public static class CacheConfiguration
 
     /// <summary>
     /// 订单缓存配置
-    /// - 过期时间: 5分钟 + 随机抖动
+    /// - 过期时间: 5分钟
     /// - 短期缓存（数据变化频繁）
     /// </summary>
     public static FusionCacheEntryOptions OrderCacheOptions => new FusionCacheEntryOptions
     {
         Duration = TimeSpan.FromMinutes(5),
-        JitMaxDuration = TimeSpan.FromSeconds(15), // 随机抖动 0-15秒
         
         IsFailSafeEnabled = true,
         FailSafeMaxDuration = TimeSpan.FromMinutes(30),
@@ -84,13 +81,12 @@ public static class CacheConfiguration
 
     /// <summary>
     /// 宠物信息缓存配置
-    /// - 过期时间: 30分钟 + 随机抖动
+    /// - 过期时间: 30分钟
     /// - 中期缓存
     /// </summary>
     public static FusionCacheEntryOptions PetCacheOptions => new FusionCacheEntryOptions
     {
         Duration = TimeSpan.FromMinutes(30),
-        JitMaxDuration = TimeSpan.FromMinutes(1), // 随机抖动 0-1分钟
         
         IsFailSafeEnabled = true,
         FailSafeMaxDuration = TimeSpan.FromHours(2),
@@ -107,12 +103,11 @@ public static class CacheConfiguration
 
     /// <summary>
     /// 评价缓存配置
-    /// - 过期时间: 15分钟 + 随机抖动
+    /// - 过期时间: 15分钟
     /// </summary>
     public static FusionCacheEntryOptions ReviewCacheOptions => new FusionCacheEntryOptions
     {
         Duration = TimeSpan.FromMinutes(15),
-        JitMaxDuration = TimeSpan.FromSeconds(30),
         
         IsFailSafeEnabled = true,
         FailSafeMaxDuration = TimeSpan.FromHours(1),
@@ -143,4 +138,3 @@ public static class CacheConfiguration
     public const string ReviewPrefix = "review";
     public const string BloomFilterPrefix = "bloom";
 }
-

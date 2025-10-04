@@ -116,7 +116,9 @@ public class TracingService
         if (currentActivity != null)
         {
             currentActivity.SetStatus(ActivityStatusCode.Error, exception.Message);
-            currentActivity.RecordException(exception);
+            currentActivity.AddTag("exception.type", exception.GetType().FullName);
+            currentActivity.AddTag("exception.message", exception.Message);
+            currentActivity.AddTag("exception.stacktrace", exception.StackTrace);
         }
     }
 
