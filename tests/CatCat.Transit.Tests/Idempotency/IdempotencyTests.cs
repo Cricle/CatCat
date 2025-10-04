@@ -132,17 +132,12 @@ public class IdempotencyTests
         var resultBefore = await store.GetCachedResultAsync<string>(messageId);
         resultBefore.Should().NotBeNull();
 
-        // Wait for expiration + cleanup trigger
+        // Wait for expiration
         await Task.Delay(150);
 
-        // Trigger cleanup by adding a new entry
-        await store.MarkAsProcessedAsync(Guid.NewGuid().ToString(), "new");
-        await Task.Delay(50); // Give cleanup time to run
-
-        // Assert
+        // Assert - GetCachedResultAsync checks expiry and removes expired entries
         var resultAfter = await store.GetCachedResultAsync<string>(messageId);
-        // Note: Due to async cleanup, this might still be there, so we just verify the store is functional
-        resultAfter.Should().NotBeNull(); // The store should still work
+        resultAfter.Should().BeNull(); // Should be cleaned up on access
     }
 
     [Fact]
