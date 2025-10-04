@@ -47,27 +47,11 @@ public static class NatsTransitServiceCollectionExtensions
         // Dead letter queue
         if (options.EnableDeadLetterQueue)
         {
-            services.TryAddSingleton<IDeadLetterQueue, InMemoryDeadLetterQueue>(sp =>
+            services.TryAddSingleton<IDeadLetterQueue>(sp =>
                 new InMemoryDeadLetterQueue(
                     sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<InMemoryDeadLetterQueue>>(),
                     options.DeadLetterQueueMaxSize));
         }
-
-        // Register pipeline behaviors (for subscriber side)
-        if (options.EnableLogging)
-            services.TryAddTransient(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
-
-        if (options.EnableTracing)
-            services.TryAddTransient(typeof(IPipelineBehavior<,>), typeof(TracingBehavior<,>));
-
-        if (options.EnableIdempotency)
-            services.TryAddTransient(typeof(IPipelineBehavior<,>), typeof(IdempotencyBehavior<,>));
-
-        if (options.EnableValidation)
-            services.TryAddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
-
-        if (options.EnableRetry)
-            services.TryAddTransient(typeof(IPipelineBehavior<,>), typeof(RetryBehavior<,>));
 
         return services;
     }

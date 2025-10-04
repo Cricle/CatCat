@@ -1,6 +1,5 @@
 using CatCat.Transit.Idempotency;
 using CatCat.Transit.Redis;
-using CatCat.Transit.Saga;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
@@ -13,7 +12,7 @@ namespace Microsoft.Extensions.DependencyInjection;
 public static class RedisTransitServiceCollectionExtensions
 {
     /// <summary>
-    /// 添加 Redis 持久化支持
+    /// 添加 Redis 持久化支持（包含 CatGa Store）
     /// </summary>
     public static IServiceCollection AddRedisTransit(
         this IServiceCollection services,
@@ -32,7 +31,7 @@ public static class RedisTransitServiceCollectionExtensions
             config.KeepAlive = options.KeepAlive;
             config.ConnectRetry = options.ConnectRetry;
             config.Ssl = options.UseSsl;
-            
+
             if (!string.IsNullOrEmpty(options.SslHost))
             {
                 config.SslHost = options.SslHost;
@@ -47,12 +46,11 @@ public static class RedisTransitServiceCollectionExtensions
         // 注册选项
         services.TryAddSingleton(options);
 
-        // 注册 Redis Saga 仓储
-        services.TryAddSingleton<ISagaRepository>(sp =>
+        // 注册 Redis CatGa Store
+        services.TryAddSingleton<RedisCatGaStore>(sp =>
         {
             var redis = sp.GetRequiredService<IConnectionMultiplexer>();
-            var logger = sp.GetRequiredService<ILogger<RedisSagaRepository>>();
-            return new RedisSagaRepository(redis, logger, options);
+            return new RedisCatGaStore(redis, options);
         });
 
         // 注册 Redis 幂等性存储
@@ -67,9 +65,9 @@ public static class RedisTransitServiceCollectionExtensions
     }
 
     /// <summary>
-    /// 添加 Redis Saga 仓储（单独使用）
+    /// 添加 Redis CatGa Store（单独使用）
     /// </summary>
-    public static IServiceCollection AddRedisSagaRepository(
+    public static IServiceCollection AddRedisCatGaStore(
         this IServiceCollection services,
         Action<RedisTransitOptions>? configureOptions = null)
     {
@@ -86,11 +84,10 @@ public static class RedisTransitServiceCollectionExtensions
 
         services.TryAddSingleton(options);
 
-        services.TryAddSingleton<ISagaRepository>(sp =>
+        services.TryAddSingleton<RedisCatGaStore>(sp =>
         {
             var redis = sp.GetRequiredService<IConnectionMultiplexer>();
-            var logger = sp.GetRequiredService<ILogger<RedisSagaRepository>>();
-            return new RedisSagaRepository(redis, logger, options);
+            return new RedisCatGaStore(redis, options);
         });
 
         return services;
