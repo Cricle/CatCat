@@ -15,24 +15,23 @@ public class OrderCreatedEventHandler : IEventHandler<OrderCreatedEvent>
 
     public Task HandleAsync(OrderCreatedEvent @event, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("📧 发送订单确认邮件: 订单 {@OrderId}", @event.OrderId);
+        _logger.LogInformation("✅ 订单创建事件: {OrderId}, 金额: {Amount}", @event.OrderId, @event.Amount);
         return Task.CompletedTask;
     }
 }
 
-public class PaymentProcessedEventHandler : IEventHandler<PaymentProcessedEvent>
+public class OrderCompletedEventHandler : IEventHandler<OrderCompletedEvent>
 {
-    private readonly ILogger<PaymentProcessedEventHandler> _logger;
+    private readonly ILogger<OrderCompletedEventHandler> _logger;
 
-    public PaymentProcessedEventHandler(ILogger<PaymentProcessedEventHandler> logger)
+    public OrderCompletedEventHandler(ILogger<OrderCompletedEventHandler> logger)
     {
         _logger = logger;
     }
 
-    public Task HandleAsync(PaymentProcessedEvent @event, CancellationToken cancellationToken = default)
+    public Task HandleAsync(OrderCompletedEvent @event, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("📧 发送支付成功通知: 订单 {@OrderId}", @event.OrderId);
+        _logger.LogInformation("✅ 订单完成事件: {OrderId}", @event.OrderId);
         return Task.CompletedTask;
     }
 }
-

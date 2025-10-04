@@ -1,93 +1,76 @@
-using Microsoft.Extensions.Logging;
+namespace OrderProcessing.Services;
 
-namespace OrderProcessing;
-
+// Payment Service
 public interface IPaymentService
 {
-    Task<bool> ProcessPaymentAsync(Guid orderId, decimal amount);
-    Task RefundAsync(Guid orderId, decimal amount);
-}
-
-public interface IInventoryService
-{
-    Task<bool> ReserveInventoryAsync(string productId, int quantity);
-    Task ReleaseInventoryAsync(string productId, int quantity);
-}
-
-public interface IShippingService
-{
-    Task<string> ScheduleShipmentAsync(Guid orderId, string productId, int quantity);
-    Task CancelShipmentAsync(string trackingNumber);
+    Task<string> ProcessPaymentAsync(Guid orderId, decimal amount, CancellationToken cancellationToken);
+    Task RefundPaymentAsync(Guid orderId, CancellationToken cancellationToken);
 }
 
 public class PaymentService : IPaymentService
 {
-    private readonly ILogger<PaymentService> _logger;
-
-    public PaymentService(ILogger<PaymentService> logger)
+    public async Task<string> ProcessPaymentAsync(Guid orderId, decimal amount, CancellationToken cancellationToken)
     {
-        _logger = logger;
+        if (amount <= 0)
+        {
+            throw new InvalidOperationException("Invalid amount");
+        }
+
+        await Task.Delay(10, cancellationToken); // 模拟网络延迟
+        var paymentId = $"PAY-{Guid.NewGuid().ToString("N")[..12].ToUpper()}";
+        Console.WriteLine($"  ✅ 支付处理完成: {paymentId}, ${amount}");
+        return paymentId;
     }
 
-    public async Task<bool> ProcessPaymentAsync(Guid orderId, decimal amount)
+    public async Task RefundPaymentAsync(Guid orderId, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("💳 处理支付: {Amount:C} (订单 {OrderId})", amount, orderId);
-        await Task.Delay(100);
-        return true;
+        await Task.Delay(10, cancellationToken);
+        Console.WriteLine($"  ↩️  退款处理完成: OrderId={orderId}");
     }
+}
 
-    public async Task RefundAsync(Guid orderId, decimal amount)
-    {
-        _logger.LogInformation("💰 退款: {Amount:C} (订单 {OrderId})", amount, orderId);
-        await Task.Delay(50);
-    }
+// Inventory Service
+public interface IInventoryService
+{
+    Task ReserveInventoryAsync(string productId, int quantity, CancellationToken cancellationToken);
+    Task ReleaseInventoryAsync(string productId, int quantity, CancellationToken cancellationToken);
 }
 
 public class InventoryService : IInventoryService
 {
-    private readonly ILogger<InventoryService> _logger;
-
-    public InventoryService(ILogger<InventoryService> logger)
+    public async Task ReserveInventoryAsync(string productId, int quantity, CancellationToken cancellationToken)
     {
-        _logger = logger;
+        await Task.Delay(10, cancellationToken);
+        Console.WriteLine($"  ✅ 库存预留完成: ProductId={productId}, Quantity={quantity}");
     }
 
-    public async Task<bool> ReserveInventoryAsync(string productId, int quantity)
+    public async Task ReleaseInventoryAsync(string productId, int quantity, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("📦 预留库存: {ProductId} x {Quantity}", productId, quantity);
-        await Task.Delay(100);
-        return true;
+        await Task.Delay(10, cancellationToken);
+        Console.WriteLine($"  ↩️  库存释放完成: ProductId={productId}, Quantity={quantity}");
     }
+}
 
-    public async Task ReleaseInventoryAsync(string productId, int quantity)
-    {
-        _logger.LogInformation("📤 释放库存: {ProductId} x {Quantity}", productId, quantity);
-        await Task.Delay(50);
-    }
+// Shipping Service
+public interface IShippingService
+{
+    Task<string> CreateShipmentAsync(Guid orderId, string address, CancellationToken cancellationToken);
+    Task CancelShipmentAsync(Guid orderId, CancellationToken cancellationToken);
 }
 
 public class ShippingService : IShippingService
 {
-    private readonly ILogger<ShippingService> _logger;
-
-    public ShippingService(ILogger<ShippingService> logger)
+    public async Task<string> CreateShipmentAsync(Guid orderId, string address, CancellationToken cancellationToken)
     {
-        _logger = logger;
+        await Task.Delay(10, cancellationToken);
+        var shipmentId = $"SHIP-{Guid.NewGuid().ToString("N")[..12].ToUpper()}";
+        Console.WriteLine($"  ✅ 发货单创建完成: {shipmentId}, Address={address}");
+        return shipmentId;
     }
 
-    public async Task<string> ScheduleShipmentAsync(Guid orderId, string productId, int quantity)
+    public async Task CancelShipmentAsync(Guid orderId, CancellationToken cancellationToken)
     {
-        var trackingNumber = $"TRACK-{Guid.NewGuid():N}"[..16];
-        _logger.LogInformation("🚚 安排发货: {ProductId} x {Quantity}, 快递单号: {TrackingNumber}", 
-            productId, quantity, trackingNumber);
-        await Task.Delay(100);
-        return trackingNumber;
-    }
-
-    public async Task CancelShipmentAsync(string trackingNumber)
-    {
-        _logger.LogInformation("🚫 取消发货: {TrackingNumber}", trackingNumber);
-        await Task.Delay(50);
+        await Task.Delay(10, cancellationToken);
+        Console.WriteLine($"  ↩️  发货单取消完成: OrderId={orderId}");
     }
 }
-

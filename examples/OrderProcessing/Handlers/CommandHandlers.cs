@@ -3,6 +3,7 @@ using CatCat.Transit.Results;
 using Microsoft.Extensions.Logging;
 using OrderProcessing.Commands;
 using OrderProcessing.Events;
+using OrderProcessing.Services;
 
 namespace OrderProcessing.Handlers;
 
@@ -60,7 +61,8 @@ public class ProcessPaymentCommandHandler : IRequestHandler<ProcessPaymentComman
     {
         _logger.LogInformation("处理支付: 订单 {OrderId}, 金额 {Amount}", request.OrderId, request.Amount);
         
-        var success = await _paymentService.ProcessPaymentAsync(request.OrderId, request.Amount);
+        var paymentId = await _paymentService.ProcessPaymentAsync(request.OrderId, request.Amount, cancellationToken);
+        var success = !string.IsNullOrEmpty(paymentId);
         
         if (success)
         {

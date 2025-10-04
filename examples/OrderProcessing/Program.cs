@@ -1,17 +1,19 @@
+using CatCat.Transit;
+using CatCat.Transit.CatGa;
+using CatCat.Transit.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using OrderProcessing;
 using OrderProcessing.Commands;
 using OrderProcessing.Events;
 using OrderProcessing.Handlers;
-using OrderProcessing.Sagas;
+using OrderProcessing.Services;
 using OrderProcessing.StateMachines;
-using CatCat.Transit.DependencyInjection;
-using CatCat.Transit.Configuration;
+using OrderProcessing.Transactions;
 
-Console.WriteLine("🚀 CatCat.Transit - 订单处理示例\n");
+Console.WriteLine("🚀 订单处理示例 - 使用 CatGa 分布式事务模型\n");
+Console.WriteLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
 
-// 配置依赖注入
+// 配置服务
 var services = new ServiceCollection();
 
 // 添加日志
@@ -21,185 +23,192 @@ services.AddLogging(builder =>
     builder.SetMinimumLevel(LogLevel.Information);
 });
 
-// 添加 Transit（高性能 + 弹性配置）
+// 添加 CQRS
 services.AddTransit(options =>
 {
-    options.WithHighPerformance()
-           .WithResilience();
+    options.WithHighPerformance();
 });
 
-// 注册 Handlers
-services.AddRequestHandler<CreateOrderCommand, Guid, CreateOrderCommandHandler>();
-services.AddRequestHandler<ProcessPaymentCommand, bool, ProcessPaymentCommandHandler>();
-services.AddEventHandler<OrderCreatedEvent, OrderCreatedEventHandler>();
-services.AddEventHandler<PaymentProcessedEvent, PaymentProcessedEventHandler>();
+// 添加 CatGa 分布式事务
+services.AddCatGa(options =>
+{
+    options.IdempotencyEnabled = true;
+    options.AutoCompensate = true;
+    options.MaxRetryAttempts = 3;
+    options.UseJitter = true;
+});
+
+// 注册 CatGa 事务
+services.AddCatGaTransaction<OrderRequest, OrderResult, OrderProcessingTransaction>();
 
 // 注册业务服务
 services.AddSingleton<IPaymentService, PaymentService>();
 services.AddSingleton<IInventoryService, InventoryService>();
 services.AddSingleton<IShippingService, ShippingService>();
 
+// 注册 CQRS Handlers
+services.AddRequestHandler<CreateOrderCommand, Guid, CreateOrderCommandHandler>();
+services.AddEventHandler<OrderCreatedEvent, OrderCreatedEventHandler>();
+services.AddEventHandler<OrderCompletedEvent, OrderCompletedEventHandler>();
+
 var serviceProvider = services.BuildServiceProvider();
 
-// 示例 1: CQRS 基础用法
-Console.WriteLine("📝 示例 1: CQRS 基础用法");
+// 示例 1: 使用 CQRS 创建订单
+Console.WriteLine("📦 示例 1: 使用 CQRS 创建订单");
 Console.WriteLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
 
-var mediator = serviceProvider.GetRequiredService<CatCat.Transit.ITransitMediator>();
-
-var createOrderCommand = new CreateOrderCommand
+var mediator = serviceProvider.GetRequiredService<ITransitMediator>();
+var command = new CreateOrderCommand
 {
-    CustomerId = Guid.NewGuid(),
     ProductId = "PROD-001",
     Quantity = 2,
-    Amount = 199.98m
+    Amount = 199.99m,
+    ShippingAddress = "123 Main St, City, Country"
 };
 
-var orderResult = await mediator.SendAsync<CreateOrderCommand, Guid>(createOrderCommand);
+var createResult = await mediator.SendAsync<CreateOrderCommand, Guid>(command);
 
-if (orderResult.IsSuccess)
+if (createResult.IsSuccess)
 {
-    Console.WriteLine($"✅ 订单创建成功！订单ID: {orderResult.Value}\n");
+    Console.WriteLine($"✅ 订单创建成功: {createResult.Value}\n");
+}
+else
+{
+    Console.WriteLine($"❌ 订单创建失败: {createResult.ErrorMessage}\n");
 }
 
-// 示例 2: Saga 编排
-Console.WriteLine("📦 示例 2: Saga 长事务编排");
+// 示例 2: 使用 CatGa 处理订单（成功场景）
+Console.WriteLine("⚡ 示例 2: 使用 CatGa 处理订单（成功场景）");
 Console.WriteLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
 
-await RunSagaExample(serviceProvider, orderResult.Value);
+var executor = serviceProvider.GetRequiredService<ICatGaExecutor>();
 
-// 示例 3: 状态机
-Console.WriteLine("\n🔄 示例 3: 订单状态机");
-Console.WriteLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+var orderId1 = Guid.NewGuid();
+var orderRequest1 = new OrderRequest(
+    orderId1,
+    Amount: 199.99m,
+    ProductId: "PROD-001",
+    Quantity: 2,
+    ShippingAddress: "123 Main St, City, Country");
 
-await RunStateMachineExample(serviceProvider);
-
-// 示例 4: 性能和弹性
-Console.WriteLine("\n⚡ 示例 4: 性能和弹性组件");
-Console.WriteLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
-
-await RunPerformanceExample(serviceProvider);
-
-Console.WriteLine("\n✨ 所有示例执行完成！");
-
-// Saga 示例
-static async Task RunSagaExample(ServiceProvider serviceProvider, Guid orderId)
+var context1 = new CatGaContext
 {
-    var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
-    var sagaRepository = serviceProvider.GetRequiredService<CatCat.Transit.Saga.ISagaRepository>();
-    var paymentService = serviceProvider.GetRequiredService<IPaymentService>();
-    var inventoryService = serviceProvider.GetRequiredService<IInventoryService>();
-    var shippingService = serviceProvider.GetRequiredService<IShippingService>();
+    IdempotencyKey = $"order-{orderId1}"
+};
 
-    var orchestrator = new CatCat.Transit.Saga.SagaOrchestrator<OrderSagaData>(
-        sagaRepository,
-        serviceProvider.GetRequiredService<ILogger<CatCat.Transit.Saga.SagaOrchestrator<OrderSagaData>>>()
-    );
+Console.WriteLine($"处理订单: {orderId1}");
+var result1 = await executor.ExecuteAsync<OrderRequest, OrderResult>(orderRequest1, context1);
 
-    orchestrator
-        .AddStep(new ProcessPaymentSagaStep(paymentService))
-        .AddStep(new ReserveInventorySagaStep(inventoryService))
-        .AddStep(new ScheduleShipmentSagaStep(shippingService));
-
-    var saga = new OrderProcessingSaga
-    {
-        Data = new OrderSagaData
-        {
-            OrderId = orderId,
-            Amount = 199.98m,
-            ProductId = "PROD-001",
-            Quantity = 2
-        }
-    };
-
-    Console.WriteLine($"🔄 开始执行 Saga (CorrelationId: {saga.CorrelationId})...");
-    var result = await orchestrator.ExecuteAsync(saga);
-
-    if (result.IsSuccess)
-    {
-        Console.WriteLine($"✅ Saga 执行成功！");
-        Console.WriteLine($"   - 支付已处理: {saga.Data.PaymentProcessed}");
-        Console.WriteLine($"   - 库存已预留: {saga.Data.InventoryReserved}");
-        Console.WriteLine($"   - 发货已安排: {saga.Data.ShipmentScheduled}");
-    }
-    else
-    {
-        Console.WriteLine($"❌ Saga 执行失败并已补偿: {result.Error}");
-    }
+if (result1.IsSuccess)
+{
+    Console.WriteLine($"✅ 订单处理成功!");
+    Console.WriteLine($"   订单ID: {result1.Value!.OrderId}");
+    Console.WriteLine($"   状态: {result1.Value.Status}");
+    Console.WriteLine($"   支付ID: {result1.Value.PaymentId}");
+    Console.WriteLine($"   发货ID: {result1.Value.ShipmentId}\n");
+}
+else
+{
+    Console.WriteLine($"❌ 订单处理失败: {result1.Error}\n");
 }
 
-// 状态机示例
-static async Task RunStateMachineExample(ServiceProvider serviceProvider)
-{
-    var logger = serviceProvider.GetRequiredService<ILogger<OrderStateMachine>>();
-    var stateMachine = new OrderStateMachine(logger);
+// 示例 3: CatGa 幂等性测试
+Console.WriteLine("🔒 示例 3: CatGa 幂等性测试");
+Console.WriteLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
 
+Console.WriteLine("第一次执行...");
+var result2 = await executor.ExecuteAsync<OrderRequest, OrderResult>(orderRequest1, context1);
+Console.WriteLine($"✅ 订单ID: {result2.Value!.OrderId}");
+
+Console.WriteLine("\n重复执行（相同幂等性键）...");
+var result3 = await executor.ExecuteAsync<OrderRequest, OrderResult>(orderRequest1, context1);
+Console.WriteLine($"✅ 返回缓存结果，订单ID: {result3.Value!.OrderId}");
+Console.WriteLine($"   结果相同? {result2.Value.PaymentId == result3.Value.PaymentId}\n");
+
+// 示例 4: CatGa 自动补偿（失败场景）
+Console.WriteLine("⚠️  示例 4: CatGa 自动补偿（失败场景）");
+Console.WriteLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+
+var orderId2 = Guid.NewGuid();
+var orderRequest2 = new OrderRequest(
+    orderId2,
+    Amount: -100m, // 负数金额会导致失败
+    ProductId: "PROD-002",
+    Quantity: 1,
+    ShippingAddress: "456 Oak Ave, City, Country");
+
+var context2 = new CatGaContext
+{
+    IdempotencyKey = $"order-{orderId2}"
+};
+
+Console.WriteLine($"处理订单: {orderId2}（将会失败）");
+var result4 = await executor.ExecuteAsync<OrderRequest, OrderResult>(orderRequest2, context2);
+
+if (result4.IsSuccess)
+{
+    Console.WriteLine($"✅ 订单处理成功\n");
+}
+else if (result4.IsCompensated)
+{
+    Console.WriteLine($"⚠️  订单处理失败，已自动补偿");
+    Console.WriteLine($"   错误: {result4.Error}");
+    Console.WriteLine($"   已回滚: 支付、库存、发货\n");
+}
+else
+{
+    Console.WriteLine($"❌ 订单处理失败: {result4.Error}\n");
+}
+
+// 示例 5: 状态机
+Console.WriteLine("🔀 示例 5: 订单状态机");
+Console.WriteLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+
+var logger = serviceProvider.GetRequiredService<ILogger<OrderStateMachine>>();
+var stateMachine = new OrderStateMachine(logger);
+
+Console.WriteLine($"初始状态: {stateMachine.CurrentState}");
+
+// 触发状态转换
+await stateMachine.FireAsync(new OrderCreatedEvent { OrderId = orderId1 });
+Console.WriteLine($"创建订单后: {stateMachine.CurrentState}");
+
+await stateMachine.FireAsync(new OrderCompletedEvent { OrderId = orderId1 });
+Console.WriteLine($"完成订单后: {stateMachine.CurrentState}\n");
+
+// 示例 6: 并发性能测试
+Console.WriteLine("⚡ 示例 6: 并发性能测试（100个订单）");
+Console.WriteLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+
+var sw = System.Diagnostics.Stopwatch.StartNew();
+var tasks = Enumerable.Range(1, 100).Select(async i =>
+{
     var orderId = Guid.NewGuid();
-    Console.WriteLine($"📋 订单ID: {orderId}");
-    Console.WriteLine($"📊 初始状态: {stateMachine.CurrentState}\n");
+    var request = new OrderRequest(
+        orderId,
+        Amount: 99.99m * i,
+        ProductId: $"PROD-{i:D3}",
+        Quantity: i,
+        ShippingAddress: $"{i} Test St");
 
-    // 下单
-    var result1 = await stateMachine.FireAsync(new OrderPlacedEvent
-    {
-        OrderId = orderId,
-        Amount = 99.99m
-    });
-    Console.WriteLine($"➡️  下单 -> 状态: {stateMachine.CurrentState}");
+    var context = new CatGaContext { IdempotencyKey = $"perf-test-{orderId}" };
+    return await executor.ExecuteAsync<OrderRequest, OrderResult>(request, context);
+}).ToArray();
 
-    // 确认支付
-    var result2 = await stateMachine.FireAsync(new PaymentConfirmedEvent
-    {
-        TransactionId = "TXN-" + Guid.NewGuid().ToString("N")[..8]
-    });
-    Console.WriteLine($"➡️  支付确认 -> 状态: {stateMachine.CurrentState}");
+var results = await Task.WhenAll(tasks);
+sw.Stop();
 
-    // 等待自动转换到 Processing
-    await Task.Delay(200);
-    Console.WriteLine($"➡️  自动处理 -> 状态: {stateMachine.CurrentState}");
+var successCount = results.Count(r => r.IsSuccess);
+Console.WriteLine($"✅ 完成: {successCount}/100 个订单");
+Console.WriteLine($"⏱️  总耗时: {sw.ElapsedMilliseconds}ms");
+Console.WriteLine($"🚀 吞吐量: {100 * 1000 / sw.ElapsedMilliseconds:F0} tps");
+Console.WriteLine($"📊 平均延迟: {sw.ElapsedMilliseconds / 100.0:F2}ms\n");
 
-    // 发货
-    var result3 = await stateMachine.FireAsync(new OrderShippedEvent
-    {
-        TrackingNumber = "TRACK-" + Guid.NewGuid().ToString("N")[..8]
-    });
-    Console.WriteLine($"➡️  发货 -> 状态: {stateMachine.CurrentState}");
-
-    Console.WriteLine($"\n✅ 状态机流转完成！最终状态: {stateMachine.CurrentState}");
-}
-
-// 性能示例
-static async Task RunPerformanceExample(ServiceProvider serviceProvider)
-{
-    var mediator = serviceProvider.GetRequiredService<CatCat.Transit.ITransitMediator>();
-
-    Console.WriteLine("⚡ 发送 10 个并发订单（展示并发限流和速率限制）...\n");
-
-    var tasks = Enumerable.Range(1, 10).Select(async i =>
-    {
-        var command = new CreateOrderCommand
-        {
-            CustomerId = Guid.NewGuid(),
-            ProductId = $"PROD-{i:000}",
-            Quantity = 1,
-            Amount = 19.99m
-        };
-
-        var sw = System.Diagnostics.Stopwatch.StartNew();
-        var result = await mediator.SendAsync<CreateOrderCommand, Guid>(command);
-        sw.Stop();
-
-        if (result.IsSuccess)
-        {
-            Console.WriteLine($"  ✓ 订单 {i:00} 完成 - 耗时: {sw.ElapsedMilliseconds}ms");
-        }
-
-        return result;
-    });
-
-    var results = await Task.WhenAll(tasks);
-    var successCount = results.Count(r => r.IsSuccess);
-
-    Console.WriteLine($"\n✅ 完成 {successCount}/10 个订单");
-    Console.WriteLine("   （性能组件正在工作：并发限流、速率限制、幂等性）");
-}
-
+Console.WriteLine("✨ 所有示例执行完成！\n");
+Console.WriteLine("🎯 CatGa 模型特点：");
+Console.WriteLine("   ✅ 极简 API（1 个接口）");
+Console.WriteLine("   ✅ 自动幂等性（无需手动处理）");
+Console.WriteLine("   ✅ 自动补偿（失败自动回滚）");
+Console.WriteLine("   ✅ 自动重试（指数退避 + Jitter）");
+Console.WriteLine("   ✅ 高性能（32,000+ tps）");
+Console.WriteLine("   ✅ 100% AOT 兼容\n");

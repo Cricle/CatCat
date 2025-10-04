@@ -12,6 +12,7 @@ public record CreateOrderCommand : IRequest<Guid>
     public string ProductId { get; init; } = string.Empty;
     public int Quantity { get; init; }
     public decimal Amount { get; init; }
+    public string ShippingAddress { get; init; } = string.Empty;
 }
 
 public record ProcessPaymentCommand : IRequest<bool>

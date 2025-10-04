@@ -55,3 +55,13 @@ public record OrderShippedEvent : IEvent
     public string TrackingNumber { get; init; } = string.Empty;
 }
 
+public record OrderCompletedEvent : IEvent
+{
+    public string MessageId { get; init; } = Guid.NewGuid().ToString();
+    public string CorrelationId { get; init; } = Guid.NewGuid().ToString();
+    public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
+    public DateTime OccurredAt { get; init; } = DateTime.UtcNow;
+    
+    public Guid OrderId { get; init; }
+}
+
