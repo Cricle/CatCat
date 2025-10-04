@@ -5,41 +5,38 @@ namespace CatCat.Transit.CatGa.Repository;
 
 /// <summary>
 /// 内存实现的 CatGa 仓储 - 高性能分片设计
+/// Uses lazy cleanup strategy - cleans up expired entries on access
 /// </summary>
-public sealed class InMemoryCatGaRepository : ICatGaRepository, IDisposable
+public sealed class InMemoryCatGaRepository : ICatGaRepository
 {
     private readonly ConcurrentDictionary<string, (DateTime ExpireAt, object? Result)>[] _idempotencyShards;
     private readonly ConcurrentDictionary<string, CatGaContext> _contextStore;
     private readonly int _shardCount;
     private readonly TimeSpan _expiry;
-    private readonly Timer _cleanupTimer;
+    private long _lastCleanupTicks;
 
     public InMemoryCatGaRepository(int shardCount = 128, TimeSpan? expiry = null)
     {
-        // 分片数必须是 2 的幂
         if (shardCount <= 0 || (shardCount & (shardCount - 1)) != 0)
             throw new ArgumentException("Shard count must be a power of 2", nameof(shardCount));
 
         _shardCount = shardCount;
         _expiry = expiry ?? TimeSpan.FromHours(1);
 
-        // 初始化幂等性分片
         _idempotencyShards = new ConcurrentDictionary<string, (DateTime, object?)>[_shardCount];
         for (int i = 0; i < _shardCount; i++)
         {
             _idempotencyShards[i] = new ConcurrentDictionary<string, (DateTime, object?)>();
         }
 
-        // 初始化上下文存储
         _contextStore = new ConcurrentDictionary<string, CatGaContext>();
-
-        // 定期清理过期数据（每分钟）
-        _cleanupTimer = new Timer(_ => CleanupExpired(), null,
-            TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+        _lastCleanupTicks = DateTime.UtcNow.Ticks;
     }
 
     public bool IsProcessed(string idempotencyKey)
     {
+        TryLazyCleanup(); // Lazy cleanup on access
+        
         var shard = GetIdempotencyShard(idempotencyKey);
         if (shard.TryGetValue(idempotencyKey, out var entry))
         {
@@ -116,15 +113,31 @@ public sealed class InMemoryCatGaRepository : ICatGaRepository, IDisposable
         return _idempotencyShards[shardIndex];
     }
 
-    private void CleanupExpired()
+    /// <summary>
+    /// Lazy cleanup: only runs every minute to save resources
+    /// Sequential iteration is faster than Parallel.ForEach for sharded data
+    /// </summary>
+    private void TryLazyCleanup()
     {
-        var now = DateTime.UtcNow;
+        var now = DateTime.UtcNow.Ticks;
+        var lastCleanup = Interlocked.Read(ref _lastCleanupTicks);
+        var elapsed = TimeSpan.FromTicks(now - lastCleanup);
 
-        // 清理幂等性存储
+        // Only cleanup every minute
+        if (elapsed.TotalMinutes < 1)
+            return;
+
+        // Try to acquire cleanup ownership (lock-free)
+        if (Interlocked.CompareExchange(ref _lastCleanupTicks, now, lastCleanup) != lastCleanup)
+            return;
+
+        var cutoff = DateTime.UtcNow;
+
+        // Sequential cleanup - faster for sharded data
         foreach (var shard in _idempotencyShards)
         {
             var expiredKeys = shard
-                .Where(kvp => kvp.Value.Item1 <= now)
+                .Where(kvp => kvp.Value.Item1 <= cutoff)
                 .Select(kvp => kvp.Key)
                 .ToList();
 
@@ -137,7 +150,6 @@ public sealed class InMemoryCatGaRepository : ICatGaRepository, IDisposable
 
     public void Dispose()
     {
-        _cleanupTimer?.Dispose();
+        // No resources to dispose - Timer removed
     }
 }
-

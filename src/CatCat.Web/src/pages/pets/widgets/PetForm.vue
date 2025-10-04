@@ -188,7 +188,7 @@ const genderOptions = [
   .location-section {
     flex-direction: column;
   }
-  
+
   .location-image {
     width: 100%;
   }

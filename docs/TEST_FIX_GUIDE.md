@@ -18,37 +18,37 @@
 ### 2. API 签名不匹配
 
 #### ConcurrencyLimiter
-**实际**: `ConcurrencyLimiter(int maxConcurrency)`  
+**实际**: `ConcurrencyLimiter(int maxConcurrency)`
 **使用**: `ExecuteAsync<T>(Func<Task<T>>)`
 
 **不是**: `WaitAsync()` / `Release()`
 
 #### TokenBucketRateLimiter
-**实际**: `TokenBucketRateLimiter(int capacity, int refillRatePerSecond)`  
+**实际**: `TokenBucketRateLimiter(int capacity, int refillRatePerSecond)`
 **测试中**: `requestsPerSecond`, `burstCapacity`
 
 #### IIdempotencyStore
-**实际**: `HasBeenProcessedAsync(string)`  
+**实际**: `HasBeenProcessedAsync(string)`
 **测试中**: `IsProcessedAsync(string)`
 
-**实际**: `MarkAsProcessedAsync<TResult>(string, TResult)`  
+**实际**: `MarkAsProcessedAsync<TResult>(string, TResult)`
 **测试中**: `MarkAsProcessedAsync(string, string)`
 
 #### IDeadLetterQueue
-**实际**: `SendAsync<TMessage>(TMessage, Exception, int)`  
+**实际**: `SendAsync<TMessage>(TMessage, Exception, int)`
 **测试中**: `EnqueueAsync(...)`
 
-**实际**: `GetFailedMessagesAsync(int, CancellationToken)`  
+**实际**: `GetFailedMessagesAsync(int, CancellationToken)`
 **测试中**: `GetMessagesAsync(int)`
 
 ### 3. TransitResult.Failure 签名
 
-**实际**: 
+**实际**:
 ```csharp
 TransitResult<T>.Failure(string error, TransitException? exception = null)
 ```
 
-**测试中使用**: 
+**测试中使用**:
 ```csharp
 TransitResult<T>.Failure("error", new InvalidOperationException())
 ```

@@ -275,8 +275,8 @@ const loadProgress = async () => {
 // Can update to status
 const canUpdateToStatus = (status: number) => {
   // Can only move forward
-  const currentStatus = progressHistory.value.length > 0 
-    ? progressHistory.value[progressHistory.value.length - 1].status 
+  const currentStatus = progressHistory.value.length > 0
+    ? progressHistory.value[progressHistory.value.length - 1].status
     : -1
   return status > currentStatus
 }
@@ -310,7 +310,7 @@ const submitUpdate = async () => {
     } as any)
 
     notify({ message: '进度更新成功！', color: 'success' })
-    
+
     // Reset form
     updateForm.value = {
       status: updateForm.value.status + 1,

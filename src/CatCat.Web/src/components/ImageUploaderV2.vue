@@ -9,7 +9,7 @@
         @click="handlePreviewClick"
       >
         <img :src="previewUrl" :alt="label || 'Preview'" />
-        
+
         <!-- Overlay with actions -->
         <div class="image-overlay">
           <VaButton

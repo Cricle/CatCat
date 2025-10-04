@@ -1,7 +1,7 @@
 <template>
   <div class="settings-section">
     <h2 class="text-xl font-semibold mb-4">{{ t('preferences.settings') }}</h2>
-    
+
     <VaCard class="mb-4">
       <VaCardContent>
         <div class="flex items-center justify-between mb-4">

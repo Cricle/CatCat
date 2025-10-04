@@ -19,7 +19,7 @@ public class TracingMiddleware
     public async Task InvokeAsync(HttpContext context)
     {
         var activity = Activity.Current;
-        
+
         if (activity != null)
         {
             // 添加用户信息
@@ -28,7 +28,7 @@ public class TracingMiddleware
                 var userId = context.User.FindFirst("sub")?.Value
                            ?? context.User.FindFirst("user_id")?.Value
                            ?? context.User.FindFirst("id")?.Value;
-                
+
                 if (userId != null)
                 {
                     activity.SetTag("user.id", userId);
@@ -52,7 +52,7 @@ public class TracingMiddleware
             activity.SetTag("http.method", context.Request.Method);
             activity.SetTag("http.path", context.Request.Path);
             activity.SetTag("http.query_string", context.Request.QueryString.ToString());
-            
+
             // 添加客户端信息
             var clientIp = context.Connection.RemoteIpAddress?.ToString();
             if (clientIp != null)
@@ -73,7 +73,7 @@ public class TracingMiddleware
         if (activity != null)
         {
             activity.SetTag("http.status_code", context.Response.StatusCode);
-            
+
             // 根据状态码设置 Activity 状态
             if (context.Response.StatusCode >= 400)
             {

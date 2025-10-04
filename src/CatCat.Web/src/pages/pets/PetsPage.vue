@@ -179,7 +179,7 @@ const filteredPets = computed(() => {
 
 const paginatedPets = computed(() => {
   if (viewMode.value === 'table') return filteredPets.value
-  
+
   const start = (pagination.value.page - 1) * pagination.value.perPage
   const end = start + pagination.value.perPage
   return filteredPets.value.slice(start, end)

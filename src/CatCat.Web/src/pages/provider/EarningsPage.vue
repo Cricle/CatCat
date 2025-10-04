@@ -245,7 +245,7 @@ const filteredEarnings = computed(() => {
   // Search filter
   if (filter.value.search) {
     const searchLower = filter.value.search.toLowerCase()
-    result = result.filter((e) => 
+    result = result.filter((e) =>
       e.orderNo.toLowerCase().includes(searchLower) ||
       e.petName.toLowerCase().includes(searchLower)
     )

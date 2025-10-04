@@ -20,7 +20,7 @@
   - ✅ 内存存储实现
   - ✅ 状态管理（New/Running/Completed/Compensating/Compensated/Failed）
   - ✅ 乐观锁（Version）
-  
+
 - ✅ 状态机框架
   - ✅ 类型安全的状态机基类
   - ✅ 状态转换配置
@@ -141,7 +141,7 @@
    - ✅ TransitJsonSerializerContext 基类
    - ⚠️ ShardedIdempotencyStore：使用反射模式（开发/测试友好）
    - ⚠️ InMemorySagaRepository：使用反射模式（开发/测试友好）
-   
+
 ### ⚠️ 已知 AOT 警告（20 个）
 
 #### JSON 序列化警告（16 个）

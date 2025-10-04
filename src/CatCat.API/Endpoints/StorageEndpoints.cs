@@ -47,14 +47,14 @@ public static class StorageEndpoints
             return Results.BadRequest(ApiResult.Fail("No file uploaded"));
 
         var file = request.Form.Files[0];
-        
+
         // 验证文件大小（最大 50MB）
         if (file.Length > 50 * 1024 * 1024)
             return Results.BadRequest(ApiResult.Fail("File size exceeds 50MB limit"));
 
         // 验证文件类型（只允许图片和视频）
-        var allowedTypes = new[] 
-        { 
+        var allowedTypes = new[]
+        {
             "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp",
             "video/mp4", "video/mpeg", "video/quicktime", "video/x-msvideo"
         };

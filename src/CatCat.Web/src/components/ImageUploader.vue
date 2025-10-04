@@ -56,7 +56,7 @@ const triggerFileInput = () => {
 const handleFileChange = (event: Event) => {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
-  
+
   if (!file) return
 
   // Validate file type
