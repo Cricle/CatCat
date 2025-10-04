@@ -135,8 +135,6 @@ public class CatGaBenchmarks
 
 public class SimpleTransaction : ICatGaTransaction<int, int>
 {
-    public int Value { get; set; }
-    
     public Task<int> ExecuteAsync(int request, CancellationToken cancellationToken = default)
     {
         // 简单计算
