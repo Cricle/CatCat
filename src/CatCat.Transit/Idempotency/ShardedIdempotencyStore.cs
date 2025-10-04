@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace CatCat.Transit.Idempotency;
 
@@ -13,6 +14,7 @@ public class ShardedIdempotencyStore : IIdempotencyStore
     private readonly TimeSpan _retentionPeriod;
     private readonly int _shardCount;
     private readonly Timer _cleanupTimer;
+    private readonly JsonSerializerOptions _jsonOptions;
 
     public ShardedIdempotencyStore(int shardCount = 32, TimeSpan? retentionPeriod = null)
     {
@@ -21,6 +23,14 @@ public class ShardedIdempotencyStore : IIdempotencyStore
 
         _shardCount = shardCount;
         _retentionPeriod = retentionPeriod ?? TimeSpan.FromHours(24);
+        
+        // 配置 JSON 选项（测试时使用反射，生产时可使用源生成器）
+        _jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        };
+        
         _shards = new ConcurrentDictionary<string, (DateTime, Type?, string?)>[_shardCount];
 
         for (int i = 0; i < _shardCount; i++)
@@ -57,7 +67,7 @@ public class ShardedIdempotencyStore : IIdempotencyStore
         if (result != null)
         {
             resultType = typeof(TResult);
-            resultJson = JsonSerializer.Serialize(result);
+            resultJson = JsonSerializer.Serialize(result, _jsonOptions);
         }
 
         shard[messageId] = (DateTime.UtcNow, resultType, resultJson);
@@ -72,7 +82,7 @@ public class ShardedIdempotencyStore : IIdempotencyStore
         {
             if (entry.Item3 != null && entry.Item2 == typeof(TResult))
             {
-                return Task.FromResult(JsonSerializer.Deserialize<TResult>(entry.Item3));
+                return Task.FromResult(JsonSerializer.Deserialize<TResult>(entry.Item3, _jsonOptions));
             }
         }
 
