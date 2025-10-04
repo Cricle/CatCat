@@ -207,49 +207,56 @@ public sealed class CatGaExecutor : ICatGaExecutor
         CancellationToken cancellationToken)
     {
         Exception? lastException = null;
+        CancellationTokenSource? cts = null;
 
-        for (int attempt = 0; attempt <= _retryPolicy.MaxAttempts; attempt++)
+        try
         {
-            try
+            for (int attempt = 0; attempt <= _retryPolicy.MaxAttempts; attempt++)
             {
-                context.SetAttemptCount(attempt + 1);
-
-                using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                cts.CancelAfter(_options.GlobalTimeout);
-
-                var result = await transaction.ExecuteAsync(request, cts.Token);
-
-                _logger.LogDebug(
-                    "[Policy] Transaction {TransactionId} succeeded on attempt {Attempt}",
-                    context.TransactionId, attempt + 1);
-
-                return CatGaResult<TResponse>.Success(result, context);
-            }
-            catch (Exception ex)
-            {
-                lastException = ex;
-
-                _logger.LogWarning(ex,
-                    "[Policy] Transaction {TransactionId} failed on attempt {Attempt}/{MaxAttempts}",
-                    context.TransactionId, attempt + 1, _retryPolicy.MaxAttempts + 1);
-
-                if (!_retryPolicy.ShouldRetry(attempt + 1, ex))
+                try
                 {
-                    break;
+                    context.SetAttemptCount(attempt + 1);
+
+                    // Reuse CTS if timeout is needed
+                    if (_options.GlobalTimeout != Timeout.InfiniteTimeSpan)
+                    {
+                        cts ??= CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                        cts.CancelAfter(_options.GlobalTimeout);
+                        var result = await transaction.ExecuteAsync(request, cts.Token);
+                        _logger.LogDebug("[Policy] Transaction {TransactionId} succeeded on attempt {Attempt}",
+                            context.TransactionId, attempt + 1);
+                        return CatGaResult<TResponse>.Success(result, context);
+                    }
+
+                    var resultNoTimeout = await transaction.ExecuteAsync(request, cancellationToken);
+                    _logger.LogDebug("[Policy] Transaction {TransactionId} succeeded on attempt {Attempt}",
+                        context.TransactionId, attempt + 1);
+                    return CatGaResult<TResponse>.Success(resultNoTimeout, context);
                 }
+                catch (Exception ex)
+                {
+                    lastException = ex;
+                    _logger.LogWarning(ex, "[Policy] Transaction {TransactionId} failed on attempt {Attempt}/{MaxAttempts}",
+                        context.TransactionId, attempt + 1, _retryPolicy.MaxAttempts + 1);
 
-                var delay = _retryPolicy.CalculateDelay(attempt + 1);
-                _logger.LogDebug(
-                    "[Policy] Retrying in {Delay}ms...",
-                    delay.TotalMilliseconds);
+                    if (!_retryPolicy.ShouldRetry(attempt + 1, ex))
+                        break;
 
-                await Task.Delay(delay, cancellationToken);
+                    var delay = _retryPolicy.CalculateDelay(attempt + 1);
+                    _logger.LogDebug("[Policy] Retrying in {Delay}ms...", delay.TotalMilliseconds);
+                    await Task.Delay(delay, cancellationToken);
+
+                    cts?.Dispose();
+                    cts = null;
+                }
             }
         }
+        finally
+        {
+            cts?.Dispose();
+        }
 
-        return CatGaResult<TResponse>.Failure(
-            lastException?.Message ?? "Unknown error",
-            context);
+        return CatGaResult<TResponse>.Failure(lastException?.Message ?? "Unknown error", context);
     }
 
     private async Task<bool> ExecuteWithRetryAsync<TRequest>(
@@ -258,31 +265,42 @@ public sealed class CatGaExecutor : ICatGaExecutor
         CatGaContext context,
         CancellationToken cancellationToken)
     {
-        Exception? lastException = null;
+        CancellationTokenSource? cts = null;
 
-        for (int attempt = 0; attempt <= _retryPolicy.MaxAttempts; attempt++)
+        try
         {
-            try
+            for (int attempt = 0; attempt <= _retryPolicy.MaxAttempts; attempt++)
             {
-                context.SetAttemptCount(attempt + 1);
-
-                using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                cts.CancelAfter(_options.GlobalTimeout);
-
-                await transaction.ExecuteAsync(request, cts.Token);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                lastException = ex;
-
-                if (!_retryPolicy.ShouldRetry(attempt + 1, ex))
+                try
                 {
-                    break;
-                }
+                    context.SetAttemptCount(attempt + 1);
 
-                await Task.Delay(_retryPolicy.CalculateDelay(attempt + 1), cancellationToken);
+                    if (_options.GlobalTimeout != Timeout.InfiniteTimeSpan)
+                    {
+                        cts ??= CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                        cts.CancelAfter(_options.GlobalTimeout);
+                        await transaction.ExecuteAsync(request, cts.Token);
+                    }
+                    else
+                    {
+                        await transaction.ExecuteAsync(request, cancellationToken);
+                    }
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    if (!_retryPolicy.ShouldRetry(attempt + 1, ex))
+                        break;
+
+                    await Task.Delay(_retryPolicy.CalculateDelay(attempt + 1), cancellationToken);
+                    cts?.Dispose();
+                    cts = null;
+                }
             }
+        }
+        finally
+        {
+            cts?.Dispose();
         }
 
         return false;
@@ -299,39 +317,38 @@ public sealed class CatGaExecutor : ICatGaExecutor
     {
         if (!_options.AutoCompensate)
         {
-            _logger.LogWarning(
-                "[Policy] Auto-compensation is disabled for transaction {TransactionId}",
-                context.TransactionId);
+            _logger.LogWarning("[Policy] Auto-compensation is disabled for transaction {TransactionId}", context.TransactionId);
             return false;
         }
 
+        CancellationTokenSource? cts = null;
         try
         {
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            cts.CancelAfter(_compensationPolicy.CompensationTimeout);
-
-            await transaction.CompensateAsync(request, cts.Token);
+            if (_compensationPolicy.CompensationTimeout != Timeout.InfiniteTimeSpan)
+            {
+                cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                cts.CancelAfter(_compensationPolicy.CompensationTimeout);
+                await transaction.CompensateAsync(request, cts.Token);
+            }
+            else
+            {
+                await transaction.CompensateAsync(request, cancellationToken);
+            }
 
             context.MarkCompensated();
-
-            _logger.LogInformation(
-                "[Policy] Compensation successful for transaction {TransactionId}",
-                context.TransactionId);
-
+            _logger.LogInformation("[Policy] Compensation successful for transaction {TransactionId}", context.TransactionId);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex,
-                "[Policy] Compensation failed for transaction {TransactionId}",
-                context.TransactionId);
-
+            _logger.LogError(ex, "[Policy] Compensation failed for transaction {TransactionId}", context.TransactionId);
             if (_compensationPolicy.ThrowOnCompensationFailure)
-            {
                 throw;
-            }
-
             return false;
+        }
+        finally
+        {
+            cts?.Dispose();
         }
     }
 
@@ -344,21 +361,30 @@ public sealed class CatGaExecutor : ICatGaExecutor
         if (!_options.AutoCompensate)
             return false;
 
+        CancellationTokenSource? cts = null;
         try
         {
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            cts.CancelAfter(_compensationPolicy.CompensationTimeout);
-
-            await transaction.CompensateAsync(request, cts.Token);
+            if (_compensationPolicy.CompensationTimeout != Timeout.InfiniteTimeSpan)
+            {
+                cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                cts.CancelAfter(_compensationPolicy.CompensationTimeout);
+                await transaction.CompensateAsync(request, cts.Token);
+            }
+            else
+            {
+                await transaction.CompensateAsync(request, cancellationToken);
+            }
             context.MarkCompensated();
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex,
-                "[Policy] Compensation failed for transaction {TransactionId}",
-                context.TransactionId);
+            _logger.LogError(ex, "[Policy] Compensation failed for transaction {TransactionId}", context.TransactionId);
             return false;
+        }
+        finally
+        {
+            cts?.Dispose();
         }
     }
 }

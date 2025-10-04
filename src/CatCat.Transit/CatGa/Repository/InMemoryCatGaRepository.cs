@@ -115,16 +115,15 @@ public sealed class InMemoryCatGaRepository : ICatGaRepository
 
     /// <summary>
     /// Lazy cleanup: only runs every minute to save resources
-    /// Sequential iteration is faster than Parallel.ForEach for sharded data
+    /// Zero-allocation cleanup: direct iteration, no LINQ
     /// </summary>
     private void TryLazyCleanup()
     {
         var now = DateTime.UtcNow.Ticks;
         var lastCleanup = Interlocked.Read(ref _lastCleanupTicks);
-        var elapsed = TimeSpan.FromTicks(now - lastCleanup);
 
-        // Only cleanup every minute
-        if (elapsed.TotalMinutes < 1)
+        // Only cleanup every minute (600M ticks = 60 * 10M)
+        if (now - lastCleanup < 600000000L)
             return;
 
         // Try to acquire cleanup ownership (lock-free)
@@ -133,17 +132,13 @@ public sealed class InMemoryCatGaRepository : ICatGaRepository
 
         var cutoff = DateTime.UtcNow;
 
-        // Sequential cleanup - faster for sharded data
+        // Zero-allocation cleanup: direct iteration, no LINQ
         foreach (var shard in _idempotencyShards)
         {
-            var expiredKeys = shard
-                .Where(kvp => kvp.Value.Item1 <= cutoff)
-                .Select(kvp => kvp.Key)
-                .ToList();
-
-            foreach (var key in expiredKeys)
+            foreach (var kvp in shard)
             {
-                shard.TryRemove(key, out _);
+                if (kvp.Value.Item1 <= cutoff)
+                    shard.TryRemove(kvp.Key, out _);
             }
         }
     }

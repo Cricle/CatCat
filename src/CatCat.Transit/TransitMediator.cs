@@ -115,16 +115,24 @@ public class TransitMediator : ITransitMediator, IDisposable
                 new HandlerNotFoundException(typeof(TRequest).Name));
         }
 
-        // Build pipeline (strongly-typed, no reflection)
-        var behaviors = _serviceProvider
-            .GetServices<IPipelineBehavior<TRequest, TResponse>>()
-            .Reverse()
-            .ToList();
-
+        // Build pipeline - optimized with minimal allocations
+        var behaviors = _serviceProvider.GetServices<IPipelineBehavior<TRequest, TResponse>>();
+        
+        // Early exit if no behaviors
+        if (!behaviors.TryGetNonEnumeratedCount(out var count) || count == 0)
+            return await handler.HandleAsync(request, cancellationToken);
+        
+        // Build pipeline in reverse (reduce allocations by pre-sizing array)
+        var behaviorArray = new IPipelineBehavior<TRequest, TResponse>[count];
+        var i = 0;
+        foreach (var b in behaviors)
+            behaviorArray[i++] = b;
+        
         Func<Task<TransitResult<TResponse>>> pipeline = () => handler.HandleAsync(request, cancellationToken);
 
-        foreach (var behavior in behaviors)
+        for (int j = behaviorArray.Length - 1; j >= 0; j--)
         {
+            var behavior = behaviorArray[j];
             var currentPipeline = pipeline;
             pipeline = () => behavior.HandleAsync(request, currentPipeline, cancellationToken);
         }
@@ -156,18 +164,28 @@ public class TransitMediator : ITransitMediator, IDisposable
     {
         var handlers = _serviceProvider.GetServices<IEventHandler<TEvent>>();
 
-        // Fire-and-forget parallel processing
-        var tasks = handlers.Select(async handler =>
+        // Zero-allocation parallel processing: direct iteration
+        if (!handlers.TryGetNonEnumeratedCount(out var count) || count == 0)
+            return;
+
+        var tasks = new Task[count];
+        var i = 0;
+
+        foreach (var handler in handlers)
         {
-            try
+            var h = handler; // Capture for closure
+            tasks[i++] = Task.Run(async () =>
             {
-                await handler.HandleAsync(@event, cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Event handler failed: {HandlerType}", handler.GetType().Name);
-            }
-        });
+                try
+                {
+                    await h.HandleAsync(@event, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Event handler failed: {HandlerType}", h.GetType().Name);
+                }
+            }, cancellationToken);
+        }
 
         await Task.WhenAll(tasks);
     }

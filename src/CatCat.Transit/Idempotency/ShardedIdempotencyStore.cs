@@ -106,16 +106,15 @@ public class ShardedIdempotencyStore : IIdempotencyStore
 
     /// <summary>
     /// Lazy cleanup: only runs every 5 minutes to save resources
-    /// Sequential iteration is faster than Parallel.ForEach for sharded data
+    /// No LINQ allocations - direct iteration for zero-GC cleanup
     /// </summary>
     private void TryLazyCleanup()
     {
         var now = DateTime.UtcNow.Ticks;
         var lastCleanup = Interlocked.Read(ref _lastCleanupTicks);
-        var elapsed = TimeSpan.FromTicks(now - lastCleanup);
 
-        // Only cleanup every 5 minutes
-        if (elapsed.TotalMinutes < 5)
+        // Only cleanup every 5 minutes (300M ticks = 5 * 60 * 10M)
+        if (now - lastCleanup < 3000000000L)
             return;
 
         // Try to acquire cleanup ownership (lock-free)
@@ -124,17 +123,13 @@ public class ShardedIdempotencyStore : IIdempotencyStore
 
         var cutoff = DateTime.UtcNow - _retentionPeriod;
 
-        // Sequential cleanup - faster than Parallel.ForEach for sharded data
+        // Zero-allocation cleanup: direct iteration, no LINQ
         foreach (var shard in _shards)
         {
-            var expiredKeys = shard
-                .Where(kvp => kvp.Value.Item1 < cutoff)
-                .Select(kvp => kvp.Key)
-                .ToList();
-
-            foreach (var key in expiredKeys)
+            foreach (var kvp in shard)
             {
-                shard.TryRemove(key, out _);
+                if (kvp.Value.Item1 < cutoff)
+                    shard.TryRemove(kvp.Key, out _);
             }
         }
     }
