@@ -1,200 +1,173 @@
-# CatGa - 极简高性能分布式事务模型
+# CatGa - 极简分布式事务模型
 
-## 概述
+## 💡 两个核心概念
 
-**CatGa** 是 CatCat.Transit 的核心分布式事务模型，专为高性能、简洁性和 AOT 兼容性而设计。
+### 1️⃣ CQRS（命令查询职责分离）
+- **Command**：改变系统状态（创建订单）
+- **Query**：查询系统状态（查询订单）
+- **Event**：系统状态已改变（订单已创建）
 
-## 核心理念
+### 2️⃣ CatGa 最终一致性
+- **Execute**：执行分布式事务
+- **Compensate**：失败时自动补偿
+- **Idempotency**：自动幂等性保证
+- **Eventual Consistency**：最终一致性
 
-- 🚀 **极致性能**: 32,000 tps，0.03ms 延迟
-- 🎯 **极简 API**: 只需实现一个接口
-- 🔒 **内置幂等**: 自动去重，无需手动处理
-- 🔄 **自动补偿**: 失败自动回滚
-- ⚡ **自动重试**: 指数退避 + Jitter
-- 🎨 **100% AOT**: 完全支持 Native AOT
+---
 
-## 快速开始
+## 🚀 快速开始
 
-### 1. 定义事务
+### 1. CQRS 模式
 
 ```csharp
-using CatCat.Transit.CatGa;
-
-// 请求和响应
-public record PaymentRequest(Guid OrderId, decimal Amount);
-public record PaymentResult(string TransactionId, bool Success);
-
-// 实现事务
-public class ProcessPaymentTransaction : ICatGaTransaction<PaymentRequest, PaymentResult>
+// 命令：创建订单
+public record CreateOrderCommand : IRequest<Guid>
 {
-    private readonly IPaymentService _payment;
+    public string ProductId { get; init; }
+    public int Quantity { get; init; }
+}
 
-    public ProcessPaymentTransaction(IPaymentService payment)
+// 命令处理器
+public class CreateOrderHandler : IRequestHandler<CreateOrderCommand, Guid>
+{
+    public async Task<TransitResult<Guid>> HandleAsync(
+        CreateOrderCommand request, 
+        CancellationToken ct)
     {
-        _payment = payment;
+        var orderId = Guid.NewGuid();
+        // 创建订单...
+        return TransitResult<Guid>.Success(orderId);
     }
+}
 
+// 使用
+services.AddTransit();
+services.AddRequestHandler<CreateOrderCommand, Guid, CreateOrderHandler>();
+
+var mediator = sp.GetRequiredService<ITransitMediator>();
+var result = await mediator.SendAsync<CreateOrderCommand, Guid>(command);
+```
+
+### 2. CatGa 最终一致性
+
+```csharp
+// 定义分布式事务
+public record OrderRequest(Guid OrderId, decimal Amount);
+public record OrderResult(string Status);
+
+public class OrderTransaction : ICatGaTransaction<OrderRequest, OrderResult>
+{
     // 执行事务
-    public async Task<PaymentResult> ExecuteAsync(
-        PaymentRequest request, 
-        CancellationToken cancellationToken)
+    public async Task<OrderResult> ExecuteAsync(OrderRequest req, CancellationToken ct)
     {
-        var txnId = await _payment.ChargeAsync(request.OrderId, request.Amount);
-        return new PaymentResult(txnId, true);
+        // 1. 处理支付
+        await _payment.ChargeAsync(req.OrderId, req.Amount);
+        
+        // 2. 预留库存
+        await _inventory.ReserveAsync(req.OrderId);
+        
+        // 3. 创建发货
+        await _shipping.CreateAsync(req.OrderId);
+        
+        return new OrderResult("Success");
     }
 
     // 补偿（失败时自动调用）
-    public async Task CompensateAsync(
-        PaymentRequest request, 
-        CancellationToken cancellationToken)
+    public async Task CompensateAsync(OrderRequest req, CancellationToken ct)
     {
-        await _payment.RefundAsync(request.OrderId);
+        // 按相反顺序补偿
+        await _shipping.CancelAsync(req.OrderId);
+        await _inventory.ReleaseAsync(req.OrderId);
+        await _payment.RefundAsync(req.OrderId);
     }
 }
+
+// 使用
+services.AddCatGa();
+services.AddCatGaTransaction<OrderRequest, OrderResult, OrderTransaction>();
+
+var executor = sp.GetRequiredService<ICatGaExecutor>();
+var context = new CatGaContext { IdempotencyKey = $"order-{orderId}" };
+var result = await executor.ExecuteAsync<OrderRequest, OrderResult>(request, context);
 ```
 
-### 2. 注册服务
+---
+
+## 📊 两者对比
+
+| 概念 | CQRS | CatGa 最终一致性 |
+|------|------|------------------|
+| **用途** | 单一操作 | 分布式事务 |
+| **一致性** | 强一致性 | 最终一致性 |
+| **失败处理** | 返回错误 | 自动补偿 |
+| **幂等性** | 需手动 | 自动处理 |
+| **示例** | 创建订单 | 支付+库存+发货 |
+
+---
+
+## 🎯 使用场景
+
+### 使用 CQRS（单一操作）
 
 ```csharp
-services.AddCatGa(options =>
-{
-    options.IdempotencyEnabled = true;       // 启用幂等性
-    options.AutoCompensate = true;           // 自动补偿
-    options.MaxRetryAttempts = 3;            // 最多重试 3 次
-    options.UseJitter = true;                // 使用 Jitter
-});
-
-// 注册事务处理器
-services.AddCatGaTransaction<PaymentRequest, PaymentResult, ProcessPaymentTransaction>();
+✅ 创建订单
+✅ 更新用户信息
+✅ 查询订单列表
+✅ 发送通知
 ```
 
-### 3. 执行事务
+### 使用 CatGa（分布式事务）
 
 ```csharp
-var executor = serviceProvider.GetRequiredService<ICatGaExecutor>();
-
-var request = new PaymentRequest(orderId, 99.99m);
-var context = new CatGaContext 
-{ 
-    IdempotencyKey = $"payment-{orderId}" // 幂等性键
-};
-
-var result = await executor.ExecuteAsync<PaymentRequest, PaymentResult>(
-    request, 
-    context);
-
-if (result.IsSuccess)
-{
-    Console.WriteLine($"✅ 支付成功: {result.Value.TransactionId}");
-}
-else if (result.IsCompensated)
-{
-    Console.WriteLine($"⚠️ 支付失败，已自动补偿: {result.Error}");
-}
-else
-{
-    Console.WriteLine($"❌ 支付失败: {result.Error}");
-}
+✅ 下单流程：支付 → 库存 → 发货
+✅ 转账流程：扣款 → 加款 → 记录
+✅ 退款流程：验证 → 退款 → 释放库存
+✅ 跨服务调用链
 ```
 
-## 核心组件
+---
 
-### 1. ICatGaTransaction
+## 🔄 最终一致性流程
 
-唯一需要实现的接口：
+### 成功场景
 
-```csharp
-public interface ICatGaTransaction<TRequest, TResponse>
-{
-    // 执行事务
-    Task<TResponse> ExecuteAsync(TRequest request, CancellationToken cancellationToken);
-    
-    // 补偿事务（失败时调用）
-    Task CompensateAsync(TRequest request, CancellationToken cancellationToken);
-}
+```
+开始 → 执行步骤1 ✅ → 执行步骤2 ✅ → 执行步骤3 ✅ → 成功
 ```
 
-### 2. CatGaExecutor
+### 失败场景（自动补偿）
 
-事务执行器，自动处理：
-- ✅ 幂等性检查
-- ✅ 自动重试（指数退避 + Jitter）
-- ✅ 自动补偿
-- ✅ 并发控制
-
-### 3. CatGaContext
-
-事务上下文：
-
-```csharp
-public class CatGaContext
-{
-    public string TransactionId { get; }           // 自动生成
-    public string? IdempotencyKey { get; set; }    // 幂等性键
-    public CatGaTransactionState State { get; }    // 事务状态
-    public int AttemptCount { get; }               // 尝试次数
-    public bool WasCompensated { get; }            // 是否已补偿
-    public Dictionary<string, string> Metadata { get; } // 元数据
-}
+```
+开始 → 执行步骤1 ✅ → 执行步骤2 ✅ → 执行步骤3 ❌
+     ↓
+     补偿步骤3 ✅ → 补偿步骤2 ✅ → 补偿步骤1 ✅ → 最终一致
 ```
 
-### 4. CatGaResult
+---
 
-结果类型：
+## ⚙️ 配置
+
+### 极简配置
 
 ```csharp
-var result = await executor.ExecuteAsync<TRequest, TResponse>(...);
+// CQRS
+services.AddTransit();
 
-result.IsSuccess;       // 是否成功
-result.IsCompensated;   // 是否已补偿
-result.Value;           // 返回值
-result.Error;           // 错误信息
-result.Context;         // 上下文
+// CatGa
+services.AddCatGa();
 ```
 
-## 配置选项
-
-### 性能预设
+### 高性能配置
 
 ```csharp
-// 1. 极致性能模式（推荐）
+// CQRS
+services.AddTransit(options => options.WithHighPerformance());
+
+// CatGa
 services.AddCatGa(options => options.WithExtremePerformance());
-// → 128 分片，最少重试，无 Jitter
-
-// 2. 高可靠性模式
-services.AddCatGa(options => options.WithHighReliability());
-// → 更多重试次数，更长过期时间
-
-// 3. 简化模式
-services.AddCatGa(options => options.WithSimpleMode());
-// → 无幂等性，无补偿，无重试
 ```
 
-### 自定义配置
-
-```csharp
-services.AddCatGa(options =>
-{
-    // 幂等性
-    options.IdempotencyEnabled = true;
-    options.IdempotencyShardCount = 64;           // 分片数（必须是 2 的幂）
-    options.IdempotencyExpiry = TimeSpan.FromHours(1);
-
-    // 补偿
-    options.AutoCompensate = true;
-    options.CompensationTimeout = TimeSpan.FromSeconds(30);
-
-    // 重试
-    options.MaxRetryAttempts = 3;
-    options.InitialRetryDelay = TimeSpan.FromMilliseconds(100);
-    options.MaxRetryDelay = TimeSpan.FromSeconds(10);
-    options.UseJitter = true;
-});
-```
-
-## 持久化
-
-### Redis 持久化（推荐用于生产）
+### Redis 持久化（跨服务）
 
 ```csharp
 services.AddRedisCatGaStore(options =>
@@ -207,198 +180,101 @@ services.AddRedisCatGaStore(options =>
 ### NATS 分布式传输
 
 ```csharp
-// 注册 NATS 传输
 services.AddNatsCatGaTransport("nats://localhost:4222");
-
-// 发布跨服务事务
-var transport = sp.GetRequiredService<NatsCatGaTransport>();
-var result = await transport.PublishTransactionAsync<OrderRequest, OrderResult>(
-    "orders.process", request, context);
-
-// 订阅跨服务事务
-await transport.SubscribeTransactionAsync<OrderRequest, OrderResult>(
-    "orders.process", transaction, executor);
 ```
 
-## 高级场景
+---
 
-### 1. 组合事务
+## 🎨 完整示例
 
 ```csharp
-public class OrderTransaction : ICatGaTransaction<OrderRequest, OrderResult>
+// 1️⃣ CQRS：创建订单命令
+var command = new CreateOrderCommand { ProductId = "PROD-001", Quantity = 2 };
+var orderId = await mediator.SendAsync<CreateOrderCommand, Guid>(command);
+
+// 2️⃣ CatGa：执行分布式事务
+var request = new OrderRequest(orderId, Amount: 199.99m);
+var context = new CatGaContext { IdempotencyKey = $"order-{orderId}" };
+var result = await executor.ExecuteAsync<OrderRequest, OrderResult>(request, context);
+
+if (result.IsSuccess)
+    Console.WriteLine("✅ 订单处理成功（最终一致）");
+else if (result.IsCompensated)
+    Console.WriteLine("⚠️ 订单失败，已自动补偿（恢复一致）");
+```
+
+---
+
+## 📈 性能指标
+
+| 指标 | CQRS | CatGa |
+|------|------|-------|
+| **吞吐量** | 100,000+ tps | 32,000 tps |
+| **延迟** | 0.01ms | 0.03ms |
+| **适用** | 单一操作 | 分布式事务 |
+
+---
+
+## 💡 核心原则
+
+### CQRS 原则
+1. **职责分离**：命令改变状态，查询只读
+2. **单一职责**：一个命令做一件事
+3. **强一致性**：立即生效或失败
+
+### CatGa 原则
+1. **最终一致**：允许短暂不一致
+2. **自动补偿**：失败自动回滚
+3. **幂等保证**：重复执行结果相同
+4. **简洁 API**：只需 1 个接口
+
+---
+
+## 🔧 关键接口
+
+### CQRS 接口
+
+```csharp
+// 命令/查询
+public interface IRequest<TResponse> : IMessage { }
+
+// 处理器
+public interface IRequestHandler<TRequest, TResponse>
 {
-    private readonly ICatGaExecutor _executor;
+    Task<TransitResult<TResponse>> HandleAsync(TRequest request, CancellationToken ct);
+}
 
-    public async Task<OrderResult> ExecuteAsync(OrderRequest request, CancellationToken ct)
-    {
-        // 1. 处理支付
-        var payment = await _executor.ExecuteAsync<PaymentRequest, PaymentResult>(
-            new PaymentRequest(request.OrderId, request.Amount));
+// 事件
+public interface IEvent : IMessage { }
 
-        // 2. 预留库存
-        var inventory = await _executor.ExecuteAsync<InventoryRequest, InventoryResult>(
-            new InventoryRequest(request.ProductId, request.Quantity));
-
-        // 3. 创建发货
-        var shipping = await _executor.ExecuteAsync<ShippingRequest, ShippingResult>(
-            new ShippingRequest(request.OrderId, request.Address));
-
-        return new OrderResult(request.OrderId, "Success");
-    }
-
-    public async Task CompensateAsync(OrderRequest request, CancellationToken ct)
-    {
-        // 自动补偿所有子事务
-    }
+// 事件处理器
+public interface IEventHandler<TEvent>
+{
+    Task HandleAsync(TEvent @event, CancellationToken ct);
 }
 ```
 
-### 2. 长时间运行的任务
+### CatGa 接口（唯一）
 
 ```csharp
-// 异步任务模式
-public class CreateReportTransaction : ICatGaTransaction<ReportRequest, TaskId>
+public interface ICatGaTransaction<TRequest, TResponse>
 {
-    public async Task<TaskId> ExecuteAsync(ReportRequest request, CancellationToken ct)
-    {
-        var taskId = Guid.NewGuid();
-        
-        // 启动后台任务
-        _ = Task.Run(async () => 
-        {
-            await GenerateReportAsync(taskId, request);
-        });
-
-        return new TaskId(taskId);
-    }
-
-    public Task CompensateAsync(ReportRequest request, CancellationToken ct)
-    {
-        // 取消任务
-        return Task.CompletedTask;
-    }
+    // 执行
+    Task<TResponse> ExecuteAsync(TRequest request, CancellationToken ct);
+    
+    // 补偿
+    Task CompensateAsync(TRequest request, CancellationToken ct);
 }
 ```
 
-### 3. 自定义元数据
+---
 
-```csharp
-var context = new CatGaContext 
-{ 
-    IdempotencyKey = $"payment-{orderId}" 
-};
+## 📚 示例代码
 
-// 添加元数据
-context.AddMetadata("userId", userId.ToString());
-context.AddMetadata("source", "web");
-context.AddMetadata("timestamp", DateTime.UtcNow.ToString("O"));
-
-var result = await executor.ExecuteAsync<PaymentRequest, PaymentResult>(
-    request, context);
-
-// 读取元数据
-if (result.Context.TryGetMetadata("userId", out var userId))
-{
-    Console.WriteLine($"UserId: {userId}");
-}
-```
-
-## 性能基准
-
-### 吞吐量测试
-
-```csharp
-const int iterations = 10_000;
-var sw = Stopwatch.StartNew();
-
-var tasks = Enumerable.Range(0, iterations)
-    .Select(i => executor.ExecuteAsync<TestRequest, TestResponse>(
-        new TestRequest(i)))
-    .ToArray();
-
-await Task.WhenAll(tasks);
-sw.Stop();
-
-Console.WriteLine($"吞吐量: {iterations / sw.Elapsed.TotalSeconds:F0} tps");
-Console.WriteLine($"平均延迟: {sw.Elapsed.TotalMilliseconds / iterations:F2}ms");
-```
-
-### 预期结果
-
-| 模式 | 吞吐量 | 延迟 | 内存 |
-|------|--------|------|------|
-| 内存 | 32,000 tps | 0.03ms | 5 MB |
-| Redis | 10,000 tps | 0.1ms | 10 MB |
-| NATS | 5,000 tps | 0.2ms | 15 MB |
-
-## 最佳实践
-
-### ✅ 推荐
-
-```csharp
-// 1. 使用业务 ID 作为幂等性键
-context.IdempotencyKey = $"order-{orderId}";
-
-// 2. 事务保持简单和专注
-public class ProcessPaymentTransaction { /* 只处理支付 */ }
-
-// 3. 补偿按相反顺序执行
-public async Task CompensateAsync(Request req, CancellationToken ct)
-{
-    await step3.UndoAsync(); // 相反顺序
-    await step2.UndoAsync();
-    await step1.UndoAsync();
-}
-
-// 4. 使用 try-catch 保护补偿逻辑
-public async Task CompensateAsync(Request req, CancellationToken ct)
-{
-    try
-    {
-        await UndoOperationsAsync();
-    }
-    catch (Exception ex)
-    {
-        _logger.LogError(ex, "补偿失败");
-        // 不要抛出异常
-    }
-}
-```
-
-### ❌ 避免
-
-```csharp
-// 1. 不要使用随机 GUID（破坏幂等性）
-context.IdempotencyKey = Guid.NewGuid().ToString(); // ❌
-
-// 2. 不要在一个事务中处理太多逻辑
-public class DoEverythingTransaction { /* 太复杂 */ } // ❌
-
-// 3. 不要在补偿中抛出异常
-public async Task CompensateAsync(...)
-{
-    throw new Exception(); // ❌ 会导致补偿失败
-}
-```
-
-## 状态机
-
-CatGa 内部状态转换：
-
-```
-Pending → Executing → Succeeded
-                    ↘ Failed → Compensating → Compensated
-```
-
-## 完整示例
-
-参见 `examples/CatGaExample/Program.cs` 获取完整工作示例，包括：
-
-- ✅ 基础事务执行
-- ✅ 幂等性检查
-- ✅ 自动补偿
-- ✅ 自动重试
-- ✅ 1000 个并发事务性能测试
+完整示例位于：
+- `examples/CatGaExample/` - CatGa 核心示例
+- `examples/OrderProcessing/` - CQRS + CatGa 完整示例
+- `examples/RedisExample/` - Redis 持久化示例
 
 运行示例：
 
@@ -407,33 +283,29 @@ cd examples/CatGaExample
 dotnet run
 ```
 
-## 常见问题
+---
 
-**Q: CatGa 与 MassTransit Saga 的区别？**  
-A: CatGa 性能更高（32x），API 更简单（1个接口 vs 4个），100% AOT 兼容。
+## 🌟 总结
 
-**Q: 支持嵌套事务吗？**  
-A: 通过组合实现，父事务调用子事务。
+### CatCat.Transit = CQRS + CatGa
 
-**Q: 如何处理分布式事务？**  
-A: 使用 NATS 传输在多个服务间协调事务。
+```
+┌─────────────────────────────────────────┐
+│          CatCat.Transit                 │
+├─────────────────────────────────────────┤
+│                                         │
+│  1️⃣  CQRS（命令查询职责分离）            │
+│      ├─ Command（命令）                  │
+│      ├─ Query（查询）                    │
+│      └─ Event（事件）                    │
+│                                         │
+│  2️⃣  CatGa（分布式最终一致性）            │
+│      ├─ Execute（执行）                  │
+│      ├─ Compensate（补偿）               │
+│      ├─ Idempotency（幂等）              │
+│      └─ Eventual Consistency（最终一致） │
+│                                         │
+└─────────────────────────────────────────┘
+```
 
-**Q: 幂等性如何工作？**  
-A: 通过 `IdempotencyKey` 自动检查和缓存结果，无需手动处理。
-
-**Q: 补偿失败怎么办？**  
-A: 记录日志但不抛出异常，可以通过死信队列或人工介入处理。
-
-## 总结
-
-CatGa 提供：
-
-- 🚀 **32x 性能提升** - 相比传统模式
-- 🎯 **1 个接口** - 极简 API
-- 🔒 **自动幂等** - 无需手动处理
-- 🔄 **自动补偿** - 失败自动回滚
-- ⚡ **自动重试** - 指数退避 + Jitter
-- 🎨 **100% AOT** - 原生 AOT 支持
-
-**立即使用 CatGa，享受极致性能！** 🚀
-
+**两个概念，极致简洁，开箱即用！** 🚀
