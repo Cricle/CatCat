@@ -32,6 +32,11 @@ public class CatGaBenchmarks
             options.GlobalTimeout = TimeSpan.FromSeconds(30);
         });
         
+        // 注册测试事务 - 必须在 BuildServiceProvider 之前
+        services.AddCatGaTransaction<int, int, SimpleTransaction>();
+        services.AddCatGaTransaction<ComplexRequest, ComplexResult, ComplexTransaction>();
+        services.AddCatGaTransaction<int, int, IdempotentTransaction>();
+        
         // 配置日志（使用 NullLogger 以避免日志开销）
         services.AddLogging(builder => builder.SetMinimumLevel(LogLevel.Error));
         

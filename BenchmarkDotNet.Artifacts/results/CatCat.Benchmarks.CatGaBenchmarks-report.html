@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>CatCat.Benchmarks.CatGaBenchmarks-20251004-171015</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; text-align: right; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet v0.15.4, Windows 10 (10.0.19045.6332/22H2/2022Update)
+AMD Ryzen 7 5800H with Radeon Graphics 3.20GHz, 1 CPU, 16 logical and 8 physical cores
+  [Host]     : .NET 9.0.8, X64 NativeAOT x86-64-v3
+  Job-WQWZZQ : .NET 9.0.8, X64 NativeAOT x86-64-v3
+  ShortRun   : .NET 9.0.8, X64 NativeAOT x86-64-v3
+</code></pre>
+<pre><code>WarmupCount=3  
+</code></pre>
+
+<table>
+<thead><tr><th>Method</th><th>Job </th><th>Runtime</th><th>IterationCount</th><th>LaunchCount</th><th>RunStrategy</th><th>Mean</th><th>Error</th><th>StdDev</th><th>Gen0</th><th>Allocated</th>
+</tr>
+</thead><tbody><tr><td>单次简单事务</td><td>Job-WQWZZQ</td><td>.NET 9.0</td><td>10</td><td>Default</td><td>Throughput</td><td>1.129 &mu;s</td><td>0.0542 &mu;s</td><td>0.0358 &mu;s</td><td>0.1297</td><td>1.07 KB</td>
+</tr><tr><td>单次简单事务</td><td>ShortRun</td><td>NativeAOT 9.0</td><td>3</td><td>1</td><td>Default</td><td>NA</td><td>NA</td><td>NA</td><td>NA</td><td>NA</td>
+</tr></tbody></table>
+</body>
+</html>

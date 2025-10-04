@@ -34,7 +34,7 @@ if ($Export) {
 
 Write-Host ""
 Write-Host "🔨 编译 Release 版本..." -ForegroundColor Yellow
-dotnet build benchmarks/CatCat.Benchmarks -c Release --no-incremental
+dotnet build CatCat.Benchmarks -c Release --no-incremental
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "`n❌ 编译失败!" -ForegroundColor Red
@@ -44,13 +44,13 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host "✅ 编译成功`n" -ForegroundColor Green
 Write-Host "🚀 开始运行基准测试...`n" -ForegroundColor Cyan
 
-dotnet run --project benchmarks/CatCat.Benchmarks -c Release --no-build -- @args
+dotnet run --project CatCat.Benchmarks -c Release --no-build -- @args
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host "`n✅ 基准测试完成!" -ForegroundColor Green
     
     if ($Export) {
-        Write-Host "`n📁 报告位置: benchmarks/CatCat.Benchmarks/BenchmarkDotNet.Artifacts/results/" -ForegroundColor Blue
+        Write-Host "`n📁 报告位置: CatCat.Benchmarks/BenchmarkDotNet.Artifacts/results/" -ForegroundColor Blue
     }
 } else {
     Write-Host "`n❌ 基准测试失败!" -ForegroundColor Red
