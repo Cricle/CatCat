@@ -1,4 +1,5 @@
-using CatCat.Transit.CatGa;
+using CatCat.Transit.CatGa.Core;
+using CatCat.Transit.CatGa.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 

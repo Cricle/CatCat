@@ -1,4 +1,4 @@
-namespace CatCat.Transit.CatGa;
+namespace CatCat.Transit.CatGa.Core;
 
 /// <summary>
 /// CatGa 事务接口 - 极简 API，只需实现两个方法

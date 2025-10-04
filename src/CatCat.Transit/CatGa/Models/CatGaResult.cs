@@ -1,4 +1,4 @@
-namespace CatCat.Transit.CatGa;
+namespace CatCat.Transit.CatGa.Models;
 
 /// <summary>
 /// CatGa 执行结果

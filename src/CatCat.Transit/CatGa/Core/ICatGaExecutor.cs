@@ -1,4 +1,6 @@
-namespace CatCat.Transit.CatGa;
+using CatCat.Transit.CatGa.Models;
+
+namespace CatCat.Transit.CatGa.Core;
 
 /// <summary>
 /// CatGa 执行器接口 - 负责执行事务（包含重试、补偿、幂等性）
