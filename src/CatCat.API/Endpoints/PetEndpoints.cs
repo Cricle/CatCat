@@ -101,24 +101,25 @@ public static class PetEndpoints
         if (pet == null)
             return Results.NotFound(ApiResult.NotFound("Pet profile not found"));
 
-        if (request.Name != null) pet.Name = request.Name;
-        if (request.Breed != null) pet.Breed = request.Breed;
-        if (request.Age.HasValue) pet.Age = request.Age.Value;
-        if (request.Avatar != null) pet.Avatar = request.Avatar;
-        if (request.Character != null) pet.Character = request.Character;
-        if (request.DietaryHabits != null) pet.DietaryHabits = request.DietaryHabits;
-        if (request.HealthStatus != null) pet.HealthStatus = request.HealthStatus;
-        if (request.Remarks != null) pet.Remarks = request.Remarks;
-        if (request.FoodLocationImage != null) pet.FoodLocationImage = request.FoodLocationImage;
-        if (request.FoodLocationDesc != null) pet.FoodLocationDesc = request.FoodLocationDesc;
-        if (request.WaterLocationImage != null) pet.WaterLocationImage = request.WaterLocationImage;
-        if (request.WaterLocationDesc != null) pet.WaterLocationDesc = request.WaterLocationDesc;
-        if (request.LitterBoxLocationImage != null) pet.LitterBoxLocationImage = request.LitterBoxLocationImage;
-        if (request.LitterBoxLocationDesc != null) pet.LitterBoxLocationDesc = request.LitterBoxLocationDesc;
-        if (request.CleaningSuppliesImage != null) pet.CleaningSuppliesImage = request.CleaningSuppliesImage;
-        if (request.CleaningSuppliesDesc != null) pet.CleaningSuppliesDesc = request.CleaningSuppliesDesc;
-        if (request.NeedsWaterRefill.HasValue) pet.NeedsWaterRefill = request.NeedsWaterRefill.Value;
-        if (request.SpecialInstructions != null) pet.SpecialInstructions = request.SpecialInstructions;
+        // Simplified property updates using null-coalescing
+        pet.Name = request.Name ?? pet.Name;
+        pet.Breed = request.Breed ?? pet.Breed;
+        pet.Age = request.Age ?? pet.Age;
+        pet.Avatar = request.Avatar ?? pet.Avatar;
+        pet.Character = request.Character ?? pet.Character;
+        pet.DietaryHabits = request.DietaryHabits ?? pet.DietaryHabits;
+        pet.HealthStatus = request.HealthStatus ?? pet.HealthStatus;
+        pet.Remarks = request.Remarks ?? pet.Remarks;
+        pet.FoodLocationImage = request.FoodLocationImage ?? pet.FoodLocationImage;
+        pet.FoodLocationDesc = request.FoodLocationDesc ?? pet.FoodLocationDesc;
+        pet.WaterLocationImage = request.WaterLocationImage ?? pet.WaterLocationImage;
+        pet.WaterLocationDesc = request.WaterLocationDesc ?? pet.WaterLocationDesc;
+        pet.LitterBoxLocationImage = request.LitterBoxLocationImage ?? pet.LitterBoxLocationImage;
+        pet.LitterBoxLocationDesc = request.LitterBoxLocationDesc ?? pet.LitterBoxLocationDesc;
+        pet.CleaningSuppliesImage = request.CleaningSuppliesImage ?? pet.CleaningSuppliesImage;
+        pet.CleaningSuppliesDesc = request.CleaningSuppliesDesc ?? pet.CleaningSuppliesDesc;
+        pet.NeedsWaterRefill = request.NeedsWaterRefill ?? pet.NeedsWaterRefill;
+        pet.SpecialInstructions = request.SpecialInstructions ?? pet.SpecialInstructions;
         pet.UpdatedAt = DateTime.UtcNow;
 
         await petRepository.UpdateAsync(pet);

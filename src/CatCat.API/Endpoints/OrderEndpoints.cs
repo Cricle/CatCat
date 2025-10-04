@@ -4,6 +4,7 @@ using CatCat.API.Extensions;
 using CatCat.API.Models;
 using CatCat.Infrastructure.Services;
 using CatCat.Infrastructure.Entities;
+using CatCat.Infrastructure.Common;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
@@ -103,67 +104,34 @@ public static class OrderEndpoints
             return Results.BadRequest(ApiResult.Fail<object>(result.Error!));
 
         var pagedData = result.Value;
-        var pagedResult = PagedResult<ServiceOrder>.Create(pagedData.Items, pagedData.Total, page, pageSize);
+        var pagedResult = Models.PagedResult<ServiceOrder>.Create(pagedData.Items, pagedData.Total, page, pageSize);
         return Results.Ok(ApiResult.Ok(pagedResult));
     }
 
-    private static async Task<IResult> CancelOrder(
-        long id,
+    private static Task<IResult> CancelOrder(long id, ClaimsPrincipal user, IOrderService orderService, CancellationToken cancellationToken) =>
+        ExecuteOrderAction(user, userId => orderService.CancelOrderAsync(id, userId, cancellationToken), "Order cancelled");
+
+    private static Task<IResult> AcceptOrder(long id, ClaimsPrincipal user, IOrderService orderService, CancellationToken cancellationToken) =>
+        ExecuteOrderAction(user, providerId => orderService.AcceptOrderAsync(id, providerId, cancellationToken), "Order accepted");
+
+    private static Task<IResult> StartService(long id, ClaimsPrincipal user, IOrderService orderService, CancellationToken cancellationToken) =>
+        ExecuteOrderAction(user, providerId => orderService.StartServiceAsync(id, providerId, cancellationToken), "Service started");
+
+    private static Task<IResult> CompleteService(long id, ClaimsPrincipal user, IOrderService orderService, CancellationToken cancellationToken) =>
+        ExecuteOrderAction(user, providerId => orderService.CompleteServiceAsync(id, providerId, cancellationToken), "Service completed");
+
+    // Helper method to reduce duplication
+    private static async Task<IResult> ExecuteOrderAction(
         ClaimsPrincipal user,
-        IOrderService orderService,
-        CancellationToken cancellationToken)
+        Func<long, Task<Result>> action,
+        string successMessage)
     {
         if (!user.TryGetUserId(out var userId))
             return Results.Unauthorized();
 
-        var result = await orderService.CancelOrderAsync(id, userId, cancellationToken);
+        var result = await action(userId);
         return result.IsSuccess
-            ? Results.Ok(ApiResult.Ok("Order cancelled"))
-            : Results.BadRequest(ApiResult.Fail(result.Error!));
-    }
-
-    private static async Task<IResult> AcceptOrder(
-        long id,
-        ClaimsPrincipal user,
-        IOrderService orderService,
-        CancellationToken cancellationToken)
-    {
-        if (!user.TryGetUserId(out var providerId))
-            return Results.Unauthorized();
-
-        var result = await orderService.AcceptOrderAsync(id, providerId, cancellationToken);
-        return result.IsSuccess
-            ? Results.Ok(ApiResult.Ok("Order accepted"))
-            : Results.BadRequest(ApiResult.Fail(result.Error!));
-    }
-
-    private static async Task<IResult> StartService(
-        long id,
-        ClaimsPrincipal user,
-        IOrderService orderService,
-        CancellationToken cancellationToken)
-    {
-        if (!user.TryGetUserId(out var providerId))
-            return Results.Unauthorized();
-
-        var result = await orderService.StartServiceAsync(id, providerId, cancellationToken);
-        return result.IsSuccess
-            ? Results.Ok(ApiResult.Ok("Service started"))
-            : Results.BadRequest(ApiResult.Fail(result.Error!));
-    }
-
-    private static async Task<IResult> CompleteService(
-        long id,
-        ClaimsPrincipal user,
-        IOrderService orderService,
-        CancellationToken cancellationToken)
-    {
-        if (!user.TryGetUserId(out var providerId))
-            return Results.Unauthorized();
-
-        var result = await orderService.CompleteServiceAsync(id, providerId, cancellationToken);
-        return result.IsSuccess
-            ? Results.Ok(ApiResult.Ok("Service completed"))
+            ? Results.Ok(ApiResult.Ok(successMessage))
             : Results.BadRequest(ApiResult.Fail(result.Error!));
     }
 

@@ -132,10 +132,17 @@ public class StripePaymentService : IPaymentService
             _logger.LogError(ex, "Failed to create PaymentIntent: OrderId={OrderId}, Error={Error}", 
                 orderId, ex.Message);
             
+            // AOT-compatible: Use pattern matching instead of reflection
+            var exceptionType = ex switch
+            {
+                StripeException => nameof(StripeException),
+                _ => "Exception"
+            };
+            
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
             activity?.AddEvent(new ActivityEvent("exception", tags: new ActivityTagsCollection
             {
-                { "exception.type", ex.GetType().FullName ?? nameof(StripeException) },
+                { "exception.type", exceptionType },
                 { "exception.message", ex.Message },
                 { "exception.stacktrace", ex.StackTrace ?? string.Empty }
             }));
@@ -275,10 +282,17 @@ public class StripePaymentService : IPaymentService
         {
             _logger.LogError(ex, "Failed to refund payment: PaymentIntentId={PaymentIntentId}", paymentIntentId);
             
+            // AOT-compatible: Use pattern matching instead of reflection
+            var exceptionType = ex switch
+            {
+                StripeException => nameof(StripeException),
+                _ => "Exception"
+            };
+            
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
             activity?.AddEvent(new ActivityEvent("exception", tags: new ActivityTagsCollection
             {
-                { "exception.type", ex.GetType().FullName ?? nameof(StripeException) },
+                { "exception.type", exceptionType },
                 { "exception.message", ex.Message },
                 { "exception.stacktrace", ex.StackTrace ?? string.Empty }
             }));

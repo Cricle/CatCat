@@ -8,36 +8,48 @@ services:
     environment:
       POSTGRES_DB: catcat
       POSTGRES_USER: catcat
-      POSTGRES_PASSWORD: catcat_password_change_in_production
-      POSTGRES_INITDB_ARGS: "--encoding=UTF8"
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-catcat_dev_password}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+      PGDATA: /var/lib/postgresql/data/pgdata
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U catcat"]
+      test: ["CMD-SHELL", "pg_isready -U catcat -d catcat"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
     networks:
       - catcat-network
+    restart: unless-stopped
 
   # Redis Cache
   redis:
     image: redis:7-alpine
     container_name: catcat-redis
-    command: redis-server --requirepass catcat_redis_password_change_in_production --appendonly yes
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD:-catcat_dev_password}
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD:-catcat_dev_password}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
     networks:
       - catcat-network
+    restart: unless-stopped
 
   # NATS with JetStream
   nats:
@@ -49,9 +61,13 @@ services:
       - "/data"
       - "-m"
       - "8222"
+      - "--max_payload"
+      - "8MB"
+      - "--max_connections"
+      - "1000"
     ports:
-      - "4222:4222"  # Client connections
-      - "8222:8222"  # Monitoring
+      - "${NATS_CLIENT_PORT:-4222}:4222"  # Client
+      - "${NATS_MONITOR_PORT:-8222}:8222"  # Monitoring
     volumes:
       - nats_data:/data
     healthcheck:
@@ -59,8 +75,10 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
     networks:
       - catcat-network
+    restart: unless-stopped
 
   # MinIO Object Storage
   minio:
@@ -68,11 +86,12 @@ services:
     container_name: catcat-minio
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: catcat
-      MINIO_ROOT_PASSWORD: catcat_minio_password_change_in_production
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-catcat}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-catcat_dev_password}
+      MINIO_BROWSER_REDIRECT_URL: http://localhost:9001
     ports:
-      - "9000:9000"  # API
-      - "9001:9001"  # Console
+      - "${MINIO_API_PORT:-9000}:9000"  # API
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"  # Console
     volumes:
       - minio_data:/data
     healthcheck:
@@ -80,8 +99,68 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 20s
     networks:
       - catcat-network
+    restart: unless-stopped
+
+  # Jaeger - Distributed Tracing
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: catcat-jaeger
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+      SPAN_STORAGE_TYPE: memory
+      MEMORY_MAX_TRACES: 100000
+    ports:
+      - "${JAEGER_UI_PORT:-16686}:16686"  # Jaeger UI
+      - "${JAEGER_OTLP_GRPC_PORT:-4317}:4317"  # OTLP gRPC
+      - "${JAEGER_OTLP_HTTP_PORT:-4318}:4318"  # OTLP HTTP
+    networks:
+      - catcat-network
+    restart: unless-stopped
+
+  # Prometheus - Metrics Collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: catcat-prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - catcat-network
+    restart: unless-stopped
+
+  # Grafana - Metrics Visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: catcat-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_INSTALL_PLUGINS: grafana-piechart-panel,grafana-clock-panel
+      GF_SERVER_ROOT_URL: http://localhost:${GRAFANA_PORT:-3001}
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - catcat-network
+    restart: unless-stopped
 
   # CatCat API
   api:
@@ -90,28 +169,38 @@ services:
       dockerfile: src/CatCat.API/Dockerfile
     container_name: catcat-api
     environment:
-      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
       ASPNETCORE_URLS: http://+:8080
-      ConnectionStrings__Database: "Host=postgres;Port=5432;Database=catcat;Username=catcat;Password=catcat_password_change_in_production"
-      ConnectionStrings__Redis: "redis:6379,password=catcat_redis_password_change_in_production"
+      # Database
+      ConnectionStrings__Database: "Host=postgres;Port=5432;Database=catcat;Username=catcat;Password=${POSTGRES_PASSWORD:-catcat_dev_password};Include Error Detail=true"
+      # Redis
+      ConnectionStrings__Redis: "redis:6379,password=${REDIS_PASSWORD:-catcat_dev_password},abortConnect=false"
+      # NATS
       ConnectionStrings__Nats: "nats://nats:4222"
+      # MinIO
       MinIO__Endpoint: "minio:9000"
-      MinIO__AccessKey: "catcat"
-      MinIO__SecretKey: "catcat_minio_password_change_in_production"
+      MinIO__AccessKey: "${MINIO_ROOT_USER:-catcat}"
+      MinIO__SecretKey: "${MINIO_ROOT_PASSWORD:-catcat_dev_password}"
       MinIO__BucketName: "catcat-media"
       MinIO__UseSSL: "false"
-      Jwt__SecretKey: "change-this-super-secret-key-in-production-must-be-at-least-32-characters-long"
+      # JWT
+      Jwt__SecretKey: "${JWT_SECRET_KEY:-dev-secret-key-change-in-production-at-least-32-chars}"
       Jwt__Issuer: "CatCat.API"
       Jwt__Audience: "CatCat.Client"
       Jwt__ExpiryMinutes: "1440"
-      Stripe__SecretKey: "sk_test_your_stripe_secret_key_change_in_production"
-      Stripe__PublishableKey: "pk_test_your_stripe_publishable_key_change_in_production"
-      Stripe__WebhookSecret: "whsec_your_webhook_secret_change_in_production"
-      Serilog__MinimumLevel__Default: "Information"
+      # Stripe
+      Stripe__SecretKey: "${STRIPE_SECRET_KEY:-sk_test_placeholder}"
+      Stripe__PublishableKey: "${STRIPE_PUBLISHABLE_KEY:-pk_test_placeholder}"
+      Stripe__WebhookSecret: "${STRIPE_WEBHOOK_SECRET:-whsec_placeholder}"
+      # OpenTelemetry
       OpenTelemetry__ServiceName: "CatCat.API"
       OpenTelemetry__Endpoint: "http://jaeger:4317"
+      # Logging
+      Serilog__MinimumLevel__Default: "Information"
+      Serilog__MinimumLevel__Override__Microsoft: "Warning"
+      Serilog__MinimumLevel__Override__System: "Warning"
     ports:
-      - "5000:8080"
+      - "${API_PORT:-5000}:8080"
     depends_on:
       postgres:
         condition: service_healthy
@@ -126,6 +215,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 40s
     networks:
       - catcat-network
     restart: unless-stopped
@@ -137,65 +227,12 @@ services:
       dockerfile: Dockerfile
     container_name: catcat-web
     environment:
-      VITE_API_BASE_URL: http://localhost:5000
+      VITE_API_BASE_URL: http://localhost:${API_PORT:-5000}
     ports:
-      - "3000:80"
+      - "${WEB_PORT:-3000}:80"
     depends_on:
-      - api
-    networks:
-      - catcat-network
-    restart: unless-stopped
-
-  # Jaeger (Optional - for OpenTelemetry tracing)
-  jaeger:
-    image: jaegertracing/all-in-one:latest
-    container_name: catcat-jaeger
-    environment:
-      COLLECTOR_OTLP_ENABLED: "true"
-    ports:
-      - "16686:16686"  # Jaeger UI
-      - "4317:4317"    # OTLP gRPC
-      - "4318:4318"    # OTLP HTTP
-    networks:
-      - catcat-network
-
-  # Prometheus - Metrics Collection
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: catcat-prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-      - '--web.console.templates=/usr/share/prometheus/consoles'
-      - '--storage.tsdb.retention.time=30d'
-      - '--web.enable-lifecycle'
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
-    networks:
-      - catcat-network
-    restart: unless-stopped
-
-  # Grafana - Metrics Visualization
-  grafana:
-    image: grafana/grafana:latest
-    container_name: catcat-grafana
-    environment:
-      GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: catcat_grafana_password
-      GF_INSTALL_PLUGINS: grafana-piechart-panel
-      GF_SERVER_ROOT_URL: http://localhost:3001
-    ports:
-      - "3001:3000"
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
-      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
-    depends_on:
-      - prometheus
+      api:
+        condition: service_healthy
     networks:
       - catcat-network
     restart: unless-stopped
@@ -217,3 +254,6 @@ volumes:
 networks:
   catcat-network:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

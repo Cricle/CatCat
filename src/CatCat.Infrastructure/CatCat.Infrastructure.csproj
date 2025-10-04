@@ -8,6 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\CatCat.Transit\CatCat.Transit.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Npgsql" />
     <PackageReference Include="Sqlx" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />

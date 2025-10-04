@@ -51,6 +51,7 @@ public static class UserEndpoints
         if (userInfo == null)
             return Results.NotFound(ApiResult.NotFound("User not found"));
 
+        // Simplified property updates
         if (!string.IsNullOrEmpty(request.NickName)) userInfo.NickName = request.NickName;
         if (!string.IsNullOrEmpty(request.Email)) userInfo.Email = request.Email;
         if (!string.IsNullOrEmpty(request.Avatar)) userInfo.Avatar = request.Avatar;

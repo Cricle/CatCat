@@ -115,10 +115,20 @@ public static class StripeWebhookEndpoints
         catch (Exception ex)
         {
             logger.LogError(ex, "Error processing Stripe webhook");
+
+            // AOT-compatible: Use pattern matching instead of reflection
+            var exceptionType = ex switch
+            {
+                StripeException => nameof(StripeException),
+                InvalidOperationException => nameof(InvalidOperationException),
+                ArgumentException => nameof(ArgumentException),
+                _ => "Exception"
+            };
+
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
             activity?.AddEvent(new ActivityEvent("exception", tags: new ActivityTagsCollection
             {
-                { "exception.type", ex.GetType().FullName ?? "Unknown" },
+                { "exception.type", exceptionType },
                 { "exception.message", ex.Message }
             }));
 
@@ -165,99 +175,59 @@ public static class StripeWebhookEndpoints
         }
     }
 
-    private static Task HandlePaymentIntentFailed(Event stripeEvent, ILogger logger)
+    private static Task HandlePaymentIntentFailed(Event stripeEvent, ILogger logger) =>
+        LogPaymentIntent<PaymentIntent>(stripeEvent, logger, (pi, orderId) =>
+            logger.LogWarning("Payment failed: PaymentIntentId={PaymentIntentId}, OrderId={OrderId}, Error={Error}",
+                pi.Id, orderId, pi.LastPaymentError?.Message));
+
+    private static Task HandlePaymentIntentCanceled(Event stripeEvent, ILogger logger) =>
+        LogPaymentIntent<PaymentIntent>(stripeEvent, logger, (pi, orderId) =>
+            logger.LogInformation("Payment canceled: PaymentIntentId={PaymentIntentId}, OrderId={OrderId}",
+                pi.Id, orderId));
+
+    private static Task HandleChargeRefunded(Event stripeEvent, IOrderService orderService, ILogger logger, CancellationToken cancellationToken) =>
+        LogStripeEvent<Charge>(stripeEvent, logger, charge =>
+            logger.LogInformation("Charge refunded: ChargeId={ChargeId}, Amount={Amount}, Refunded={Refunded}",
+                charge.Id, charge.Amount / 100m, charge.Refunded));
+
+    private static Task HandleChargeRefundUpdated(Event stripeEvent, ILogger logger) =>
+        LogStripeEvent<Refund>(stripeEvent, logger, refund =>
+            logger.LogInformation("Refund updated: RefundId={RefundId}, Status={Status}, Amount={Amount}",
+                refund.Id, refund.Status, refund.Amount / 100m));
+
+    private static Task HandlePaymentMethodAttached(Event stripeEvent, ILogger logger) =>
+        LogStripeEvent<PaymentMethod>(stripeEvent, logger, pm =>
+            logger.LogInformation("PaymentMethod attached: PaymentMethodId={PaymentMethodId}, CustomerId={CustomerId}, Type={Type}",
+                pm.Id, pm.CustomerId, pm.Type));
+
+    private static Task HandleCustomerCreated(Event stripeEvent, ILogger logger) =>
+        LogStripeEvent<Customer>(stripeEvent, logger, customer =>
+        {
+            var userId = customer.Metadata.TryGetValue("user_id", out var userIdStr) ? userIdStr : "Unknown";
+            logger.LogInformation("Stripe Customer created: CustomerId={CustomerId}, UserId={UserId}, Email={Email}",
+                customer.Id, userId, customer.Email);
+        });
+
+    private static Task HandleCustomerDeleted(Event stripeEvent, ILogger logger) =>
+        LogStripeEvent<Customer>(stripeEvent, logger, customer =>
+            logger.LogInformation("Stripe Customer deleted: CustomerId={CustomerId}", customer.Id));
+
+    // Helper methods to reduce duplication
+    private static Task LogStripeEvent<T>(Event stripeEvent, ILogger logger, Action<T> logAction) where T : class
     {
-        var paymentIntent = stripeEvent.Data.Object as PaymentIntent;
-        if (paymentIntent == null) return Task.CompletedTask;
-
-        var orderId = paymentIntent.Metadata.TryGetValue("order_id", out var orderIdStr) ? orderIdStr : "Unknown";
-
-        logger.LogWarning(
-            "Payment failed: PaymentIntentId={PaymentIntentId}, OrderId={OrderId}, Error={Error}",
-            paymentIntent.Id, orderId, paymentIntent.LastPaymentError?.Message);
-
-        // TODO: 通知用户支付失败，可能需要更新订单状态
-
+        var obj = stripeEvent.Data.Object as T;
+        if (obj != null) logAction(obj);
         return Task.CompletedTask;
     }
 
-    private static Task HandlePaymentIntentCanceled(Event stripeEvent, ILogger logger)
+    private static Task LogPaymentIntent<T>(Event stripeEvent, ILogger logger, Action<T, string> logAction) where T : PaymentIntent
     {
-        var paymentIntent = stripeEvent.Data.Object as PaymentIntent;
-        if (paymentIntent == null) return Task.CompletedTask;
-
-        var orderId = paymentIntent.Metadata.TryGetValue("order_id", out var orderIdStr) ? orderIdStr : "Unknown";
-
-        logger.LogInformation(
-            "Payment canceled: PaymentIntentId={PaymentIntentId}, OrderId={OrderId}",
-            paymentIntent.Id, orderId);
-
-        // TODO: 更新订单状态为已取消
-
-        return Task.CompletedTask;
-    }
-
-    private static async Task HandleChargeRefunded(
-        Event stripeEvent,
-        IOrderService orderService,
-        ILogger logger,
-        CancellationToken cancellationToken)
-    {
-        var charge = stripeEvent.Data.Object as Charge;
-        if (charge == null) return;
-
-        logger.LogInformation(
-            "Charge refunded: ChargeId={ChargeId}, Amount={Amount}, Refunded={Refunded}",
-            charge.Id, charge.Amount / 100m, charge.Refunded);
-
-        // TODO: 更新订单退款状态
-    }
-
-    private static Task HandleChargeRefundUpdated(Event stripeEvent, ILogger logger)
-    {
-        var refund = stripeEvent.Data.Object as Refund;
-        if (refund == null) return Task.CompletedTask;
-
-        logger.LogInformation(
-            "Refund updated: RefundId={RefundId}, Status={Status}, Amount={Amount}",
-            refund.Id, refund.Status, refund.Amount / 100m);
-
-        return Task.CompletedTask;
-    }
-
-    private static Task HandlePaymentMethodAttached(Event stripeEvent, ILogger logger)
-    {
-        var paymentMethod = stripeEvent.Data.Object as PaymentMethod;
-        if (paymentMethod == null) return Task.CompletedTask;
-
-        logger.LogInformation(
-            "PaymentMethod attached: PaymentMethodId={PaymentMethodId}, CustomerId={CustomerId}, Type={Type}",
-            paymentMethod.Id, paymentMethod.CustomerId, paymentMethod.Type);
-
-        return Task.CompletedTask;
-    }
-
-    private static Task HandleCustomerCreated(Event stripeEvent, ILogger logger)
-    {
-        var customer = stripeEvent.Data.Object as Customer;
-        if (customer == null) return Task.CompletedTask;
-
-        var userId = customer.Metadata.TryGetValue("user_id", out var userIdStr) ? userIdStr : "Unknown";
-
-        logger.LogInformation(
-            "Stripe Customer created: CustomerId={CustomerId}, UserId={UserId}, Email={Email}",
-            customer.Id, userId, customer.Email);
-
-        return Task.CompletedTask;
-    }
-
-    private static Task HandleCustomerDeleted(Event stripeEvent, ILogger logger)
-    {
-        var customer = stripeEvent.Data.Object as Customer;
-        if (customer == null) return Task.CompletedTask;
-
-        logger.LogInformation("Stripe Customer deleted: CustomerId={CustomerId}", customer.Id);
-
+        var pi = stripeEvent.Data.Object as T;
+        if (pi != null)
+        {
+            var orderId = pi.Metadata.TryGetValue("order_id", out var orderIdStr) ? orderIdStr : "Unknown";
+            logAction(pi, orderId);
+        }
         return Task.CompletedTask;
     }
 

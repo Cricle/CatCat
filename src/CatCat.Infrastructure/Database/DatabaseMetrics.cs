@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
+using Npgsql;
 
 namespace CatCat.Infrastructure.Database;
 
@@ -87,9 +88,16 @@ public class DatabaseMetrics
         {
             sw.Stop();
 
-            // Record error
-            // AOT-compatible: Get exception type name
-            var errorType = ex.GetType().Name;
+            // Record error - AOT-compatible without reflection
+            var errorType = ex switch
+            {
+                NpgsqlException => nameof(NpgsqlException),
+                TimeoutException => nameof(TimeoutException),
+                InvalidOperationException => nameof(InvalidOperationException),
+                ArgumentException => nameof(ArgumentException),
+                _ => "Exception"
+            };
+
             _queryErrorCount.Add(1,
                 new KeyValuePair<string, object?>("query", queryName),
                 new KeyValuePair<string, object?>("error_type", errorType));
